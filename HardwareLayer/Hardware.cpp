@@ -1,6 +1,8 @@
 #include "Hardware.hpp"
 
 Hardware::Hardware()
+: usbCom()
+, motorPwm()
 {
 	SystemClockConfig();
 }

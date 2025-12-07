@@ -1,10 +1,9 @@
 #include "App.hpp"
-#include "SimpleLogger.hpp"
 
 using namespace AppLayer;
 
-App::App(Hardware &hardwareRef)
-: hardware(hardwareRef)
+App::App(Hardware &hardware)
+: simpleLogger(hardware.usbCom)
+, hw(hardware)
 {
-	SimpleLogger simpleLogger(hardware.usbCom);
 }

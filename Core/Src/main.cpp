@@ -56,14 +56,14 @@ int main(void)
 	MX_UART4_Init();
 
 
-	Hardware hardware;
-	App app(hardware);
+	static Hardware hardware;
+	static App app(hardware);
 
 	hardware.usbCom.Init();
 
 	osKernelInitialize();
 
-	defaultTaskHandle = osThreadNew(StartDefaultTask, NULL,
+	defaultTaskHandle = osThreadNew(StartDefaultTask, (void*)&app,
 									&defaultTask_attributes);
 
 	osKernelStart();
@@ -83,6 +83,11 @@ uint16_t usbRx = 0xFFFF;
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void *argument)
 {
+	App* app = (App*)argument;
+
+	app->hw.usbCom.Test();
+
+
 	UserInterface ui;
 	ui.SetUiState(UiState::HeartBeat);
 	// UserInterface *ui = (UserInterface*)argument;
@@ -95,7 +100,8 @@ void StartDefaultTask(void *argument)
 	/* Infinite loop */
 	for (;;)
 	{
-		osDelay(10);
+		osDelay(1000);
+		app->simpleLogger.Print((uint8_t*)"Test123\r\n", 9);
 		if (cnt < 3)
 		{
 			if (cnt == 2)

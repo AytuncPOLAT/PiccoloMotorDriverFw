@@ -2,13 +2,16 @@
 #define APP_HPP
 
 #include "Hardware.hpp"
+#include "SimpleLogger.hpp"
 
 class App
 {
 public:
-	App(Hardware &hardwareRef);
+	App(Hardware &hardware);
+	AppLayer::SimpleLogger simpleLogger;
+
+	Hardware& hw;
 private:
-	Hardware &hardware;
 };
 
 #endif // APP_HPP

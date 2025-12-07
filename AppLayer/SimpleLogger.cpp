@@ -12,3 +12,8 @@ void SimpleLogger::OnReceiveCallback(uint8_t *Buf, uint32_t Len)
 {
 
 }
+
+void SimpleLogger::Print(uint8_t *data, uint32_t size)
+{
+	uart.Transmit(data, size);
+}
