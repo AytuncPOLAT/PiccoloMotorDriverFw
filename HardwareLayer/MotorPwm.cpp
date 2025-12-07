@@ -1,6 +1,8 @@
 #include "MotorPwm.hpp"
 
-HardwareLayer::MotorPwm::MotorPwm()
+using namespace HardwareLayer;
+
+MotorPwm::MotorPwm()
 {
 	TIM_MasterConfigTypeDef sMasterConfig = {0};
 	TIM_OC_InitTypeDef sConfigOC = {0};
@@ -8,8 +10,8 @@ HardwareLayer::MotorPwm::MotorPwm()
 
 	htim1.Instance = TIM1;
 	htim1.Init.Prescaler = 0;
-	htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-	htim1.Init.Period = 65535;
+	htim1.Init.CounterMode = TIM_COUNTERMODE_CENTERALIGNED1;
+	htim1.Init.Period = 4095;
 	htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
 	htim1.Init.RepetitionCounter = 0;
 	htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
@@ -29,7 +31,7 @@ HardwareLayer::MotorPwm::MotorPwm()
 		//Error_Handler();
 	}
 	sConfigOC.OCMode = TIM_OCMODE_PWM1;
-	sConfigOC.Pulse = 10000;
+	sConfigOC.Pulse = 0;
 	sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
 	sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
 	sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
@@ -94,7 +96,17 @@ void HardwareLayer::MotorPwm::PwmIoInit()
     HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 }
 
-void SetPwmChannelDuty(uint8_t channel, uint32_t duty)
+void MotorPwm::SetPwmChannel1Duty(uint32_t duty)
 {
+	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, duty);
+}
 
+void MotorPwm::SetPwmChannel2Duty(uint32_t duty)
+{
+	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, duty);
+}
+
+void MotorPwm::SetPwmChannel3Duty(uint32_t duty)
+{
+	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, duty);
 }

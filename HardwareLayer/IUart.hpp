@@ -9,6 +9,7 @@ namespace Common
     {
     public:
         virtual uint8_t Transmit(uint8_t* data, uint32_t size) = 0;
+        virtual uint8_t Receive(uint8_t* data, uint32_t size) = 0;
         //virtual int Receive(uint8_t* data, uint32_t size) = 0;
 		//virtual int ReceiveSlip(uint8_t* data, uint32_t* size) = 0;
 

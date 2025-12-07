@@ -10,7 +10,10 @@ namespace HardwareLayer
 	public:
 		MotorPwm();
 		void PwmIoInit();
-		void SetPwmChannelDuty(uint8_t channel, uint32_t duty);
+		void SetPwmChannel1Duty(uint32_t duty);
+		void SetPwmChannel2Duty(uint32_t duty);
+		void SetPwmChannel3Duty(uint32_t duty);
+
 	private:
 		TIM_HandleTypeDef htim1;
 	};

@@ -8,6 +8,7 @@
 #include "DebugPrint.hpp"
 #include "DRV8316R_SpiDriver.hpp"
 #include "UserInterface.hpp"
+#include "SinusPwm.hpp"
 
 SPI_HandleTypeDef hspi2;
 
@@ -85,32 +86,41 @@ void StartDefaultTask(void *argument)
 {
 	App* app = (App*)argument;
 
-	app->hw.usbCom.Test();
-
+	AppLayer::SinusPwm sinPwm;
+	AppLayer::TriPhase phase;
 
 	UserInterface ui;
 	ui.SetUiState(UiState::HeartBeat);
 	// UserInterface *ui = (UserInterface*)argument;
 	// ui->SetUiState(UiState::HeartBeat);
-	static uint8_t cnt = 0;
+	static uint16_t cnt = 0;
+
 	/* init code for USB_DEVICE */
 
 	// Drv8316rSpiDriver drv(hspi2);
 	/* USER CODE BEGIN 5 */
 	/* Infinite loop */
+
+
 	for (;;)
 	{
-		osDelay(1000);
-		app->simpleLogger.Print((uint8_t*)"Test123\r\n", 9);
-		if (cnt < 3)
+		osDelay(1);
+
+		phase = sinPwm.Update3P(1000, cnt);
+		app->hw.motorPwm.SetPwmChannel1Duty(phase.a);
+		app->hw.motorPwm.SetPwmChannel2Duty(phase.b);
+		app->hw.motorPwm.SetPwmChannel3Duty(phase.c);
+
+
+		cnt++;
+		if(cnt > 4096) cnt = 0;
+
+		if(cnt % 10 == 0)
 		{
-			if (cnt == 2)
-			{
-				//MX_USB_DEVICE_Init();
-				AppLayer::DebugPrint::Instance().Print(
-				(uint8_t *)"Kernel started\r\n", 16);
-				cnt++;
-			}
+			uint8_t txBuffer[20];
+			int size = sprintf((char*)txBuffer, "test = %d \r\n", cnt);
+			app->simpleLogger.Print(txBuffer, size);
+			usbRx = app->simpleLogger.ReadByte();
 		}
 
 		if (usbRx != 0xFFFF)
@@ -131,6 +141,10 @@ void StartDefaultTask(void *argument)
 			}
 			usbRx = 0xFFFF;
 		}
+
+
+
+
 		// uint8_t TxBuffer[] = "Hello World! From STM32 USB CDC Device To Virtual COM Port\r\n";
 		// uint8_t TxBufferLen = sizeof(TxBuffer);
 		// CDC_Transmit_HS(TxBuffer, TxBufferLen);

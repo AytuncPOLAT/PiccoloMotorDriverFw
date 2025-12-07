@@ -20,8 +20,8 @@ namespace HardwareLayer
 		UsbVirtualCom();
 		void Init();
 		uint8_t Transmit(uint8_t *data, uint32_t size) override;
+		uint8_t Receive(uint8_t *data, uint32_t size) override;
 		void RegisterOnReceiveCallback(Callback* callBack) override;
-		void Test();
 
 		IUart::Callback* callbackHandle;
 	};
