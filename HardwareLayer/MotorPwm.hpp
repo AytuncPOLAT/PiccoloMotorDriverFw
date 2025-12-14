@@ -13,6 +13,7 @@ namespace HardwareLayer
 		void SetPwmChannel1Duty(uint32_t duty);
 		void SetPwmChannel2Duty(uint32_t duty);
 		void SetPwmChannel3Duty(uint32_t duty);
+		void SetPwmChannel4Duty(uint32_t duty);
 
 	private:
 		TIM_HandleTypeDef htim1;

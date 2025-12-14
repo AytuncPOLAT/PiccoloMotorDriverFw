@@ -61,6 +61,7 @@ int main(void)
 	static App app(hardware);
 
 	hardware.usbCom.Init();
+	hardware.adc.Init();
 
 	osKernelInitialize();
 
@@ -101,12 +102,13 @@ void StartDefaultTask(void *argument)
 	/* USER CODE BEGIN 5 */
 	/* Infinite loop */
 
+	app->hw.adc.Start();
 
 	for (;;)
 	{
-		osDelay(1);
+		osDelay(20);
 
-		phase = sinPwm.Update3P(1000, cnt);
+		phase = sinPwm.Update3P(500, cnt);
 		app->hw.motorPwm.SetPwmChannel1Duty(phase.a);
 		app->hw.motorPwm.SetPwmChannel2Duty(phase.b);
 		app->hw.motorPwm.SetPwmChannel3Duty(phase.c);
@@ -115,17 +117,26 @@ void StartDefaultTask(void *argument)
 		cnt++;
 		if(cnt > 4096) cnt = 0;
 
-		if(cnt % 10 == 0)
-		{
-			uint8_t txBuffer[20];
-			int size = sprintf((char*)txBuffer, "test = %d \r\n", cnt);
-			app->simpleLogger.Print(txBuffer, size);
-			usbRx = app->simpleLogger.ReadByte();
-		}
+		uint8_t txBuffer[100];
+		int size = sprintf((char*)txBuffer, "test = %d|a0 = %d|a1 = %d|a2 = %d|a3 = %d|a4 = %d|a5 = %d|a6 = %d|\r\n", cnt,
+				app->hw.adc.ReadChannel(0),
+				app->hw.adc.ReadChannel(1),
+				app->hw.adc.ReadChannel(2),
+				app->hw.adc.ReadChannel(3),
+				app->hw.adc.ReadChannel(4),
+				app->hw.adc.ReadChannel(5),
+				app->hw.adc.ReadChannel(6));
+
+		app->hw.motorPwm.SetPwmChannel4Duty(app->hw.adc.ReadChannel(6) - 62);
+
+
+		//app->simpleLogger.Print(txBuffer, size);
+		//usbRx = app->simpleLogger.ReadByte();
+
 
 		if (usbRx != 0xFFFF)
 		{
-			ui.CommActivity();
+			//ui.CommActivity();
 
 			if (usbRx == 'a')
 			{
@@ -220,8 +231,7 @@ void SystemClock_Config(void)
  */
 void PeriphCommonClock_Config(void)
 {
-	RCC_PeriphCLKInitTypeDef PeriphClkInitStruct =
-		{0};
+	RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
 
 	/** Initializes the peripherals clock
 	 */
@@ -425,6 +435,13 @@ static void MX_GPIO_Init(void)
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
 	GPIO_InitStruct.Alternate = GPIO_AF0_MCO;
 	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+	GPIO_InitStruct.Pin = GPIO_PIN_8;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8, GPIO_PIN_SET);
 
 	/* USER CODE BEGIN MX_GPIO_Init_2 */
 

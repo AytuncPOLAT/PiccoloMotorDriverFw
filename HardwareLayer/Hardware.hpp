@@ -3,6 +3,7 @@
 
 #include "UsbVirtualCom.hpp"
 #include "MotorPwm.hpp"
+#include "AdcDriver.hpp"
 
 extern "C"
 {
@@ -17,6 +18,8 @@ public:
 
 	HardwareLayer::UsbVirtualCom usbCom;
 	HardwareLayer::MotorPwm motorPwm;
+	HardwareLayer::AdcDriver adc;
+
 private:
 	void SystemClockConfig();
 	void PeriphCommonClockConfig();

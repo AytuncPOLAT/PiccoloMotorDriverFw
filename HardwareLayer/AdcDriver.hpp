@@ -10,6 +10,8 @@ namespace HardwareLayer
 	public:
 		AdcDriver();
 		void Init();
+		void Start();
+		uint16_t ReadChannel(uint8_t channel);
 
 	private:
 		ADC_HandleTypeDef hadc1;

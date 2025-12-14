@@ -10,8 +10,8 @@ MotorPwm::MotorPwm()
 
 	htim1.Instance = TIM1;
 	htim1.Init.Prescaler = 0;
-	htim1.Init.CounterMode = TIM_COUNTERMODE_CENTERALIGNED1;
-	htim1.Init.Period = 4095;
+	htim1.Init.CounterMode = TIM_COUNTERMODE_CENTERALIGNED2;
+	htim1.Init.Period = 1023;
 	htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
 	htim1.Init.RepetitionCounter = 0;
 	htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
@@ -23,7 +23,7 @@ MotorPwm::MotorPwm()
 	{
 		//Error_Handler();
 	}
-	sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+	sMasterConfig.MasterOutputTrigger = TIM_TRGO_OC4REF;
 	sMasterConfig.MasterOutputTrigger2 = TIM_TRGO2_RESET;
 	sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
 	if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK)
@@ -46,6 +46,12 @@ MotorPwm::MotorPwm()
 		//Error_Handler();
 	}
 	if (HAL_TIM_OC_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
+	{
+		//Error_Handler();
+	}
+	sConfigOC.OCPolarity = TIM_OCPOLARITY_LOW;
+	sConfigOC.Pulse = 1;
+	if (HAL_TIM_OC_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
 	{
 		//Error_Handler();
 	}
@@ -109,4 +115,9 @@ void MotorPwm::SetPwmChannel2Duty(uint32_t duty)
 void MotorPwm::SetPwmChannel3Duty(uint32_t duty)
 {
 	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, duty);
+}
+
+void MotorPwm::SetPwmChannel4Duty(uint32_t duty)
+{
+	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, duty);
 }
