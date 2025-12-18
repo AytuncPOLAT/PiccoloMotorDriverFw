@@ -36,6 +36,14 @@ void Communication::Print(uint8_t *data, uint32_t size)
 	uart.Transmit(data, size);
 }
 
+void Communication::Plot(uint32_t data)
+{
+	txDataFrame.address = 1;
+	txDataFrame.cmd = 1;
+	txDataFrame.data0 = data;
+	uart.Transmit((uint8_t*)&txDataFrame, sizeof(txDataFrame));
+}
+
 uint8_t Communication::ReadByte()
 {
 	return rxByte;

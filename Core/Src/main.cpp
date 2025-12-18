@@ -106,7 +106,7 @@ void StartDefaultTask(void *argument)
 
 	for (;;)
 	{
-		osDelay(20);
+		osDelay(100);
 
 		phase = sinPwm.Update3P(500, cnt);
 		app->hw.motorPwm.SetPwmChannel1Duty(phase.a);
@@ -127,12 +127,13 @@ void StartDefaultTask(void *argument)
 				app->hw.adc.ReadChannel(5),
 				app->hw.adc.ReadChannel(6));
 
-		app->hw.motorPwm.SetPwmChannel4Duty(app->hw.adc.ReadChannel(6) - 62);
+		app->hw.motorPwm.SetPwmChannel4Duty(500);
 
 
 		//app->simpleLogger.Print(txBuffer, size);
 		//usbRx = app->simpleLogger.ReadByte();
 
+		app->communication.Plot(app->hw.adc.ReadChannel(6));
 
 		if (usbRx != 0xFFFF)
 		{

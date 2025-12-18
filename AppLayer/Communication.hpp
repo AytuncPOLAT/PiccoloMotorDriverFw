@@ -25,12 +25,14 @@ namespace AppLayer
 		void OnReceiveCallback(uint8_t *Buf, uint32_t Len) override;
 		void Print(uint8_t *data, uint32_t size);
 		uint8_t ReadByte();
+		void Plot(uint32_t);
 
 	private:
 		Common::IUart &uart;
 		uint8_t rxByte;
 		uint32_t size;
 		DataFrame dataFrame;
+		DataFrame txDataFrame;
 	};
 }
 #endif // COMMUNICATION_HPP
