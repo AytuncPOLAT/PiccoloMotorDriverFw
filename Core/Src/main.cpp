@@ -44,6 +44,8 @@ void StartDefaultTask(void *argument);
 int main(void)
 {
 //	MPU_Config();
+	SCB_EnableICache();
+	//SCB_EnableDCache();
 
 	HAL_Init();
 
@@ -131,39 +133,39 @@ void StartDefaultTask(void *argument)
 
 
 		//app->simpleLogger.Print(txBuffer, size);
-		//usbRx = app->simpleLogger.ReadByte();
 
 		app->communication.Plot(app->hw.adc.ReadChannel(6));
 
-		if (usbRx != 0xFFFF)
+		if (app->communication.GetRxStatus())
 		{
-			//ui.CommActivity();
+			ui.CommActivity();
 
-			if (usbRx == 'a')
+			if ( app->communication.GetPayload() == 1)
 			{
 				ui.SetUiState(UiState::HeartBeat);
 			}
-			if (usbRx == 'b')
+
+			if ( app->communication.GetPayload() == 2)
 			{
 				ui.SetUiState(UiState::Warning);
 			}
-			if (usbRx == 'c')
+
+			if ( app->communication.GetPayload() == 3)
 			{
 				ui.SetUiState(UiState::Error);
 			}
-			usbRx = 0xFFFF;
+
+			if ( app->communication.GetPayload() == 4)
+			{
+				app->hw.flashStorage.ProgramWord(0, (uint32_t*)&app->communication.dataFrame);
+			}
+
+			if ( app->communication.GetPayload() == 5)
+			{
+				app->hw.flashStorage.EraseSector();
+			}
 		}
-
-
-
-
-		// uint8_t TxBuffer[] = "Hello World! From STM32 USB CDC Device To Virtual COM Port\r\n";
-		// uint8_t TxBufferLen = sizeof(TxBuffer);
-		// CDC_Transmit_HS(TxBuffer, TxBufferLen);
-		// drv.SendCommand(0, 0);
-		// HAL_GPIO_TogglePin(GPIOE, GPIO_PIN_3);
 	}
-	/* USER CODE END 5 */
 }
 
 void SystemClock_Config(void)

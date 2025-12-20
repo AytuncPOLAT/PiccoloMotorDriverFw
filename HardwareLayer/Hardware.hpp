@@ -4,6 +4,7 @@
 #include "UsbVirtualCom.hpp"
 #include "MotorPwm.hpp"
 #include "AdcDriver.hpp"
+#include "FlashMemoryController.hpp"
 
 extern "C"
 {
@@ -19,6 +20,7 @@ public:
 	HardwareLayer::UsbVirtualCom usbCom;
 	HardwareLayer::MotorPwm motorPwm;
 	HardwareLayer::AdcDriver adc;
+	HardwareLayer::FlashStorage flashStorage;
 
 private:
 	void SystemClockConfig();

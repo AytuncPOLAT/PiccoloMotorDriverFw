@@ -26,13 +26,16 @@ namespace AppLayer
 		void Print(uint8_t *data, uint32_t size);
 		uint8_t ReadByte();
 		void Plot(uint32_t);
+		bool GetRxStatus();
+		uint32_t GetPayload();
+		DataFrame dataFrame;
 
 	private:
 		Common::IUart &uart;
 		uint8_t rxByte;
 		uint32_t size;
-		DataFrame dataFrame;
 		DataFrame txDataFrame;
+		bool isDataReceived;
 	};
 }
 #endif // COMMUNICATION_HPP

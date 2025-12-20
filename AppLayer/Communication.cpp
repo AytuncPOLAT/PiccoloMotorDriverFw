@@ -22,9 +22,13 @@ void Communication::OnReceiveCallback(uint8_t *Buf, uint32_t Len)
 	{
 		memcpy((void*)&dataFrame, (void*)Buf, sizeof(dataFrame));
 		auto localChecksum = crc.Calculate(0, reinterpret_cast<uint8_t*>(&dataFrame), sizeof (dataFrame) - 2);
-		if(dataFrame.checksum == localChecksum)
+		//if(dataFrame.checksum == localChecksum)
+		//{
+		//	volatile int dummy = 0;
+		//}
+		if(dataFrame.address == 101)
 		{
-			volatile int dummy = 0;
+			isDataReceived = true;
 		}
 	}
 	rxByte = Buf[0];
@@ -47,4 +51,16 @@ void Communication::Plot(uint32_t data)
 uint8_t Communication::ReadByte()
 {
 	return rxByte;
+}
+
+bool Communication::GetRxStatus()
+{
+	bool returnValue = isDataReceived;
+	isDataReceived = false;
+	return returnValue;
+}
+
+uint32_t Communication::GetPayload()
+{
+	return dataFrame.data0;
 }
