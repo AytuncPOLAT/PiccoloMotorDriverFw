@@ -8,9 +8,15 @@
 
 namespace AppLayer
 {
+	enum class CMD_TYPE : uint8_t
+	{
+		READ_FROM_DEV = 0,
+		WRITE_TO_DEVICE = 1
+	};
+
 	struct __attribute__((packed)) DataFrame
 	{
-		uint8_t cmd;
+		CMD_TYPE cmd;
 		uint8_t address;
 		uint32_t data0;
 		uint32_t data1;
@@ -33,15 +39,15 @@ namespace AppLayer
 		uint32_t GetPayload();
 		void RegisterCallback(GenericCallback* callBack) override;
 
-
 		DataFrame dataFrame;
+		DataFrame rxData;
+		DataFrame txData;
 
 	private:
 		Common::IUart &uart;
 		uint8_t rxByte;
 		uint32_t size;
-		DataFrame txData;
-		DataFrame rxData;
+
 		bool isDataReceived;
 
 		Common::SystemData& systemData;

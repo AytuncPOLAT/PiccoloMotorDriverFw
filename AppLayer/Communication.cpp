@@ -51,7 +51,7 @@ void Communication::Print(uint8_t *data, uint32_t size)
 void Communication::Plot(uint32_t data)
 {
 	txData.address = 1;
-	txData.cmd = 1;
+	txData.cmd = CMD_TYPE::WRITE_TO_DEVICE;
 	txData.data0 = data;
 	uart.Transmit((uint8_t*)&txData, sizeof(txData));
 }

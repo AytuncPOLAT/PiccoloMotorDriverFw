@@ -69,7 +69,7 @@ Common::ErrorType FlashStorage::ReadNBytes(uint32_t addressOffset, uint32_t* dat
 
 	for(uint8_t i = 0; i < numberOfWords; i++)
 	{
-		*(data + i * wordSize) = *(uint32_t*)(address + i * wordSize);
+		*(data + i) = *(uint32_t*)(address + i * wordSize);
 	}
 	HAL_FLASH_Lock();
 
@@ -103,7 +103,7 @@ Common::ErrorType FlashStorage::ProgramNWords(uint32_t addressOffset, uint32_t* 
 
 	for(uint8_t i = 0; i < numberOfWords; i++)
 	{
-		if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_FLASHWORD, (address + (i * wordSize)), ((uint32_t)data)) != HAL_OK)
+		if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_FLASHWORD, (address + (i * wordSize)), ((uint32_t)data + i * wordSize)) != HAL_OK)
 		{
 			return Common::ErrorType::FLASHMEM;
 		}

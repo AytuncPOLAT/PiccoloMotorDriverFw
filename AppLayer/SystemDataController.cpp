@@ -4,6 +4,13 @@ using namespace AppLayer;
 
 void SystemDataController::OnCallback(uint8_t arg)
 {
+	if(communication.rxData.cmd == CMD_TYPE::WRITE_TO_DEVICE)
+	{
+		communication.txData.cmd = CMD_TYPE::READ_FROM_DEV;
+		communication.txData.address = systemData.configurationData.deviceAddress;
+		communication.txData.data0 = 2048;
+		communication.Plot(2048);
+	}
 }
 
 SystemDataController::SystemDataController(Common::SystemData &systemDataRef,
@@ -39,5 +46,7 @@ bool SystemDataController::CheckIfConfigBlank()
 
 bool SystemDataController::LoadSystemDataFromStorage()
 {
-	storageController.ReadNBytes(0, (uint32_t*)&systemData.configurationData.flashMagicNumber, sizeof(systemData.configurationData), 32);
+	return storageController.ReadNBytes(0, (uint32_t*)&systemData.configurationData.flashMagicNumber, sizeof(systemData.configurationData), 4)
+			== Common::ErrorType::OK;
 }
+

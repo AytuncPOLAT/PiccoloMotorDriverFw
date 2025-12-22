@@ -122,7 +122,7 @@ void StartDefaultTask(void *argument)
 
 		//app->simpleLogger.Print(txBuffer, size);
 
-		app->communication.Plot(app->hw.adc.ReadChannel(6));
+		//app->communication.Plot(app->hw.adc.ReadChannel(6));
 
 		if (app->communication.GetRxStatus())
 		{
