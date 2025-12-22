@@ -16,8 +16,3 @@ void Common::SystemData::DefaultInitialization()
 	configurationData.pidMaxIWindUp = 1000;
 	configurationData.pidSaturation = 1000;
 }
-
-uint32_t* Common::SystemData::GetSystemDataAddress()
-{
-	return configurationData;
-}

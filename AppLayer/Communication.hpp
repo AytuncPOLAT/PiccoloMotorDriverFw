@@ -1,8 +1,10 @@
 #ifndef COMMUNICATION_HPP
 #define COMMUNICATION_HPP
 
+#include <ICallback.hpp>
 #include "IUart.hpp"
 #include "Crc16.hpp"
+#include "SystemData.hpp"
 
 namespace AppLayer
 {
@@ -19,23 +21,31 @@ namespace AppLayer
 
 	class Communication
 	: public Common::IUart::Callback
+	, public Common::ICallback
 	{
 	public:
-		Communication(Common::IUart& uartRef);
+		Communication(Common::IUart& uartRef, Common::SystemData &systemDataRef);
 		void OnReceiveCallback(uint8_t *Buf, uint32_t Len) override;
 		void Print(uint8_t *data, uint32_t size);
 		uint8_t ReadByte();
 		void Plot(uint32_t);
 		bool GetRxStatus();
 		uint32_t GetPayload();
+		void RegisterCallback(GenericCallback* callBack) override;
+
+
 		DataFrame dataFrame;
 
 	private:
 		Common::IUart &uart;
 		uint8_t rxByte;
 		uint32_t size;
-		DataFrame txDataFrame;
+		DataFrame txData;
+		DataFrame rxData;
 		bool isDataReceived;
+
+		Common::SystemData& systemData;
+		ICallback::GenericCallback* callbackHandle;
 	};
 }
 #endif // COMMUNICATION_HPP

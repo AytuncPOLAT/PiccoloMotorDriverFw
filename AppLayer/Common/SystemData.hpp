@@ -22,18 +22,22 @@ namespace Common
 		uint32_t pidKd;
 		uint32_t pidMaxIWindUp;
 		uint32_t pidSaturation;
+		uint32_t padding32[5];
+		uint16_t padding16[1];
 		uint16_t crc16;
 	};
+
+	static_assert(sizeof(ConfigurationData) % 8 == 0, "Configuration data struct alignment error"
+			", Configuration data must be aligned to 8 bytes");
 
 	class SystemData
 	{
 	public:
 		SystemData();
-		uint32_t* GetSystemDataAddress();
 		void DefaultInitialization();
 
-	private:
 		ConfigurationData configurationData;
+	private:
 	};
 }
 #endif // SYSTEM_DATA_H

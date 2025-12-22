@@ -29,7 +29,6 @@ uint8_t UsbVirtualCom::Receive(uint8_t *data, uint32_t size)
 void UsbVirtualCom::RegisterOnReceiveCallback(Common::IUart::Callback* callback)
 {
 	callbackHandle = callback;
-	global_usbComPtr->callbackHandle->OnReceiveCallback(nullptr,0);
 }
 
 void USB_CDC_RxHandler(uint8_t *Buf, uint32_t Len)

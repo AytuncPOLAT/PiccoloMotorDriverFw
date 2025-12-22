@@ -5,6 +5,7 @@ Hardware::Hardware()
 , motorPwm()
 {
 	SystemClockConfig();
+	PeriphCommonClockConfig();
 }
 
 void Hardware::SystemClockConfig(void)
@@ -67,8 +68,7 @@ void Hardware::SystemClockConfig(void)
 
 void Hardware::PeriphCommonClockConfig(void)
 {
-	RCC_PeriphCLKInitTypeDef PeriphClkInitStruct =
-		{0};
+	RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
 
 	/** Initializes the peripherals clock
 	 */

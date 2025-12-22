@@ -16,7 +16,8 @@ namespace HardwareLayer
 		Common::ErrorType EraseSector();
 		Common::ErrorType ProgramWord(uint32_t addressOffset, uint32_t* data);
 		Common::ErrorType ReadFourBytes(uint32_t addressOffset, uint32_t* data);
-		Common::ErrorType ProgramNWords(uint32_t addressOffset, uint32_t* data, uint32_t size);
+		Common::ErrorType ReadNBytes(uint32_t addressOffset, uint32_t* data, uint32_t size, uint8_t wordSize);
+		Common::ErrorType ProgramNWords(uint32_t addressOffset, uint32_t* data, uint32_t size, uint8_t wordSize);
 
 	private:
 		uint32_t GetSector(uint32_t Address);

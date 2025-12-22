@@ -33,6 +33,7 @@ Common::ErrorType FlashStorage::EraseSector()
 	EraseInitStruct.VoltageRange  = FLASH_VOLTAGE_RANGE_4;
 	EraseInitStruct.Sector        = FirstSector;
 	EraseInitStruct.NbSectors     = NbOfSectors;
+
 	if (HAL_FLASHEx_Erase(&EraseInitStruct, &SECTORError) != HAL_OK)
 	{
 		return Common::ErrorType::FLASHMEM;
@@ -45,9 +46,33 @@ Common::ErrorType FlashStorage::EraseSector()
 
 Common::ErrorType FlashStorage::ReadFourBytes(uint32_t addressOffset, uint32_t* data)
 {
+	SCB_DisableICache();
+	HAL_FLASH_Unlock();
+
+	address = FLASH_USER_START_ADDR + addressOffset;
+	*data = *(uint32_t*)address;
+
+	HAL_FLASH_Lock();
+
+	return Common::ErrorType::OK;
+}
+
+Common::ErrorType FlashStorage::ReadNBytes(uint32_t addressOffset, uint32_t* data, uint32_t size, uint8_t wordSize)
+{
+	uint8_t padding = size % wordSize;
+	uint8_t numberOfWords = size / wordSize;
+
+	SCB_DisableICache();
+	HAL_FLASH_Unlock();
+
 	address = FLASH_USER_START_ADDR + addressOffset;
 
-	*data = *(uint32_t*)address;
+	for(uint8_t i = 0; i < numberOfWords; i++)
+	{
+		*(data + i * wordSize) = *(uint32_t*)(address + i * wordSize);
+	}
+	HAL_FLASH_Lock();
+
 	return Common::ErrorType::OK;
 }
 
@@ -67,21 +92,21 @@ Common::ErrorType FlashStorage::ProgramWord(uint32_t addressOffset, uint32_t* da
 	return Common::ErrorType::OK;
 }
 
-Common::ErrorType FlashStorage::ProgramNWords(uint32_t addressOffset, uint32_t* data, uint32_t size)
+Common::ErrorType FlashStorage::ProgramNWords(uint32_t addressOffset, uint32_t* data, uint32_t size, uint8_t wordSize)
 {
-	uint8_t padding = size % WORD_SIZE;
+	uint8_t padding = size % wordSize;
+	uint8_t numberOfWords = size / wordSize;
 
 	HAL_FLASH_Unlock();
 
 	address = FLASH_USER_START_ADDR + addressOffset;
 
-	if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_FLASHWORD, address, ((uint32_t)data)) == HAL_OK)
+	for(uint8_t i = 0; i < numberOfWords; i++)
 	{
-		address += 4;
-	}
-	else
-	{
-		return Common::ErrorType::FLASHMEM;
+		if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_FLASHWORD, (address + (i * wordSize)), ((uint32_t)data)) != HAL_OK)
+		{
+			return Common::ErrorType::FLASHMEM;
+		}
 	}
 
 	HAL_FLASH_Lock();
@@ -89,7 +114,7 @@ Common::ErrorType FlashStorage::ProgramNWords(uint32_t addressOffset, uint32_t* 
 	return Common::ErrorType::OK;
 }
 
-uint32_t FlashStorage::GetSector(uint32_t Address)
+uint32_t FlashStorage::GetSector(uint32_t address)
 {
   return (address - FLASH_BASE) / FLASH_SECTOR_SIZE;
 }

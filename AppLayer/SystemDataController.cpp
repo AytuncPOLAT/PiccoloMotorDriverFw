@@ -2,6 +2,10 @@
 
 using namespace AppLayer;
 
+void SystemDataController::OnCallback(uint8_t arg)
+{
+}
+
 SystemDataController::SystemDataController(Common::SystemData &systemDataRef,
 										   Communication &communicationRef,
 		                                   HardwareLayer::FlashStorage &storageControllerRef)
@@ -9,11 +13,13 @@ SystemDataController::SystemDataController(Common::SystemData &systemDataRef,
 , communication(communicationRef)
 , storageController(storageControllerRef)
 {
+	communication.RegisterCallback(this);
 	if(CheckIfConfigBlank() == true)
 	{
 		systemData.DefaultInitialization();
-		storageController.ProgramNWords(0, systemData., )
+		storageController.ProgramNWords(0, &systemData.configurationData.flashMagicNumber, sizeof(systemData.configurationData), 32);
 	}
+	LoadSystemDataFromStorage();
 }
 
 bool SystemDataController::CheckIfConfigBlank()
@@ -29,4 +35,9 @@ bool SystemDataController::CheckIfConfigBlank()
 	{
 		return true;
 	}
+}
+
+bool SystemDataController::LoadSystemDataFromStorage()
+{
+	storageController.ReadNBytes(0, (uint32_t*)&systemData.configurationData.flashMagicNumber, sizeof(systemData.configurationData), 32);
 }

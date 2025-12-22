@@ -1,6 +1,7 @@
 #ifndef SYSTEM_DATA_CONTROLLER_HPP
 #define SYSTEM_DATA_CONTROLLER_HPP
 
+#include <ICallback.hpp>
 #include "SystemData.hpp"
 #include "Communication.hpp"
 #include "FlashMemoryController.hpp"
@@ -8,6 +9,7 @@
 namespace AppLayer
 {
 	class SystemDataController
+	: public Common::ICallback::GenericCallback
 	{
 	public:
 		SystemDataController(Common::SystemData& systemDataRef,
@@ -16,6 +18,8 @@ namespace AppLayer
 
 	private:
 		bool CheckIfConfigBlank();
+		bool LoadSystemDataFromStorage();
+		void OnCallback(uint8_t arg) override;
 
 		Common::SystemData& systemData;
 		Communication& communication;

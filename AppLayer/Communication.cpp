@@ -8,10 +8,16 @@ namespace
 
 }
 
-Communication::Communication(Common::IUart& uartRef)
+Communication::Communication(Common::IUart& uartRef, Common::SystemData &systemDataRef)
 : uart(uartRef)
+, systemData(systemDataRef)
 {
 	uart.RegisterOnReceiveCallback(this);
+}
+
+void Communication::RegisterCallback(Common::ICallback::GenericCallback* callback)
+{
+	callbackHandle = callback;
 }
 
 void Communication::OnReceiveCallback(uint8_t *Buf, uint32_t Len)
@@ -26,9 +32,11 @@ void Communication::OnReceiveCallback(uint8_t *Buf, uint32_t Len)
 		//{
 		//	volatile int dummy = 0;
 		//}
-		if(dataFrame.address == 101)
+		if(dataFrame.address == systemData.configurationData.deviceAddress)
 		{
+			memcpy((void*)&rxData, (void*)&dataFrame, sizeof(dataFrame));
 			isDataReceived = true;
+			callbackHandle->OnCallback(Len);
 		}
 	}
 	rxByte = Buf[0];
@@ -42,10 +50,10 @@ void Communication::Print(uint8_t *data, uint32_t size)
 
 void Communication::Plot(uint32_t data)
 {
-	txDataFrame.address = 1;
-	txDataFrame.cmd = 1;
-	txDataFrame.data0 = data;
-	uart.Transmit((uint8_t*)&txDataFrame, sizeof(txDataFrame));
+	txData.address = 1;
+	txData.cmd = 1;
+	txData.data0 = data;
+	uart.Transmit((uint8_t*)&txData, sizeof(txData));
 }
 
 uint8_t Communication::ReadByte()
