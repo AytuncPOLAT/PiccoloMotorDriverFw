@@ -9,6 +9,7 @@ namespace Common
 	const uint16_t PARAMETER_LEN = 32;
 	const uint16_t MOTOR_POLES = 7;
 	const uint16_t COUNT_PER_REV = 4095;
+	const uint16_t MOTOR_PWM_MAX_CNT = 1000;
 	
 	struct __attribute__((packed)) ConfigurationData
 	{

@@ -2,7 +2,7 @@
 
 Hardware::Hardware()
 : usbCom()
-, motorPwm()
+, motorPwm(timer1Handle)
 {
 	SystemClockConfig();
 	PeriphCommonClockConfig();

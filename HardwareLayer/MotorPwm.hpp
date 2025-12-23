@@ -8,7 +8,7 @@ namespace HardwareLayer
 	class MotorPwm
 	{
 	public:
-		MotorPwm();
+		MotorPwm(TIM_HandleTypeDef& timerRef);
 		void PwmIoInit();
 		void SetPwmChannel1Duty(uint32_t duty);
 		void SetPwmChannel2Duty(uint32_t duty);
@@ -16,7 +16,7 @@ namespace HardwareLayer
 		void SetPwmChannel4Duty(uint32_t duty);
 
 	private:
-		TIM_HandleTypeDef htim1;
+		TIM_HandleTypeDef& timerHandle;
 	};
 
 }

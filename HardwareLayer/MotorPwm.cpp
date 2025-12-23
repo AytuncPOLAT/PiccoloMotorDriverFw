@@ -1,32 +1,34 @@
 #include "MotorPwm.hpp"
+#include "SystemData.hpp"
 
 using namespace HardwareLayer;
 
-MotorPwm::MotorPwm()
+MotorPwm::MotorPwm(TIM_HandleTypeDef& timerRef)
+: timerHandle(timerRef)
 {
 	TIM_MasterConfigTypeDef sMasterConfig = {0};
 	TIM_OC_InitTypeDef sConfigOC = {0};
 	TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig = {0};
 
-	htim1.Instance = TIM1;
-	htim1.Init.Prescaler = 0;
-	htim1.Init.CounterMode = TIM_COUNTERMODE_CENTERALIGNED2;
-	htim1.Init.Period = 1023;
-	htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-	htim1.Init.RepetitionCounter = 0;
-	htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-	if (HAL_TIM_PWM_Init(&htim1) != HAL_OK)
+	timerHandle.Instance = TIM1;
+	timerHandle.Init.Prescaler = 0;
+	timerHandle.Init.CounterMode = TIM_COUNTERMODE_CENTERALIGNED2;
+	timerHandle.Init.Period = Common::MOTOR_PWM_MAX_CNT;
+	timerHandle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+	timerHandle.Init.RepetitionCounter = 0;
+	timerHandle.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+	if (HAL_TIM_PWM_Init(&timerHandle) != HAL_OK)
 	{
 		//Error_Handler();
 	}
-	if (HAL_TIM_OC_Init(&htim1) != HAL_OK)
+	if (HAL_TIM_OC_Init(&timerHandle) != HAL_OK)
 	{
 		//Error_Handler();
 	}
 	sMasterConfig.MasterOutputTrigger = TIM_TRGO_OC4REF;
 	sMasterConfig.MasterOutputTrigger2 = TIM_TRGO2_RESET;
 	sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-	if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK)
+	if (HAL_TIMEx_MasterConfigSynchronization(&timerHandle, &sMasterConfig) != HAL_OK)
 	{
 		//Error_Handler();
 	}
@@ -37,21 +39,21 @@ MotorPwm::MotorPwm()
 	sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
 	sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
 	sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
-	if (HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+	if (HAL_TIM_PWM_ConfigChannel(&timerHandle, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
 	{
 		//Error_Handler();
 	}
-	if (HAL_TIM_OC_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+	if (HAL_TIM_OC_ConfigChannel(&timerHandle, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
 	{
 		//Error_Handler();
 	}
-	if (HAL_TIM_OC_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
+	if (HAL_TIM_OC_ConfigChannel(&timerHandle, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
 	{
 		//Error_Handler();
 	}
 	sConfigOC.OCPolarity = TIM_OCPOLARITY_LOW;
 	sConfigOC.Pulse = 1;
-	if (HAL_TIM_OC_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
+	if (HAL_TIM_OC_ConfigChannel(&timerHandle, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
 	{
 		//Error_Handler();
 	}
@@ -66,18 +68,18 @@ MotorPwm::MotorPwm()
 	sBreakDeadTimeConfig.Break2Polarity = TIM_BREAK2POLARITY_HIGH;
 	sBreakDeadTimeConfig.Break2Filter = 0;
 	sBreakDeadTimeConfig.AutomaticOutput = TIM_AUTOMATICOUTPUT_DISABLE;
-	if (HAL_TIMEx_ConfigBreakDeadTime(&htim1, &sBreakDeadTimeConfig) != HAL_OK)
+	if (HAL_TIMEx_ConfigBreakDeadTime(&timerHandle, &sBreakDeadTimeConfig) != HAL_OK)
 	{
 		//Error_Handler();
 	}
 
 	PwmIoInit();
-	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
-	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
-	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
-	HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_1);
-	HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_2);
-	HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_3);
+	HAL_TIM_PWM_Start(&timerHandle, TIM_CHANNEL_1);
+	HAL_TIM_PWM_Start(&timerHandle, TIM_CHANNEL_2);
+	HAL_TIM_PWM_Start(&timerHandle, TIM_CHANNEL_3);
+	HAL_TIMEx_PWMN_Start(&timerHandle, TIM_CHANNEL_1);
+	HAL_TIMEx_PWMN_Start(&timerHandle, TIM_CHANNEL_2);
+	HAL_TIMEx_PWMN_Start(&timerHandle, TIM_CHANNEL_3);
 }
 
 void HardwareLayer::MotorPwm::PwmIoInit()
@@ -104,20 +106,20 @@ void HardwareLayer::MotorPwm::PwmIoInit()
 
 void MotorPwm::SetPwmChannel1Duty(uint32_t duty)
 {
-	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, duty);
+	__HAL_TIM_SET_COMPARE(&timerHandle, TIM_CHANNEL_1, duty);
 }
 
 void MotorPwm::SetPwmChannel2Duty(uint32_t duty)
 {
-	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, duty);
+	__HAL_TIM_SET_COMPARE(&timerHandle, TIM_CHANNEL_2, duty);
 }
 
 void MotorPwm::SetPwmChannel3Duty(uint32_t duty)
 {
-	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, duty);
+	__HAL_TIM_SET_COMPARE(&timerHandle, TIM_CHANNEL_3, duty);
 }
 
 void MotorPwm::SetPwmChannel4Duty(uint32_t duty)
 {
-	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, duty);
+	__HAL_TIM_SET_COMPARE(&timerHandle, TIM_CHANNEL_4, duty);
 }

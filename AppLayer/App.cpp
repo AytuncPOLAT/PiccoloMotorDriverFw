@@ -7,5 +7,6 @@ App::App(Hardware &hardware)
 , simpleLogger(hardware.usbCom)
 , communication(hardware.usbCom, systemData)
 , systemDataController(systemData, communication, hw.flashStorage)
+, motorControl(hardware.motorPwm)
 {
 }

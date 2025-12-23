@@ -5,7 +5,7 @@
 #include "SimpleLogger.hpp"
 #include "Communication.hpp"
 #include "SystemDataController.hpp"
-
+#include "MotorControl.hpp"
 
 class App
 {
@@ -15,6 +15,7 @@ public:
 	AppLayer::SimpleLogger simpleLogger;
 	AppLayer::Communication communication;
 	AppLayer::SystemDataController systemDataController;
+	AppLayer::MotorControl motorControl;
 
 	Hardware& hw;
 private:

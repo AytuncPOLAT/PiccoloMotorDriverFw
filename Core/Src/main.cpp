@@ -9,6 +9,7 @@
 #include "DRV8316R_SpiDriver.hpp"
 #include "UserInterface.hpp"
 #include "SinusPwm.hpp"
+#include "PidControl.hpp"
 
 SPI_HandleTypeDef hspi2;
 
@@ -85,7 +86,9 @@ void StartDefaultTask(void *argument)
 	// UserInterface *ui = (UserInterface*)argument;
 	// ui->SetUiState(UiState::HeartBeat);
 	static uint16_t cnt = 0;
-
+	AppLayer::PidController pid;
+	pid.SetParameters(1.0, 0, 0, 1000, 1000);
+	int setPoint = 0;
 	/* init code for USB_DEVICE */
 
 	// Drv8316rSpiDriver drv(hspi2);
@@ -98,10 +101,10 @@ void StartDefaultTask(void *argument)
 	{
 		osDelay(100);
 
-		phase = sinPwm.Update3P(500, cnt);
-		app->hw.motorPwm.SetPwmChannel1Duty(phase.a);
-		app->hw.motorPwm.SetPwmChannel2Duty(phase.b);
-		app->hw.motorPwm.SetPwmChannel3Duty(phase.c);
+		//phase = sinPwm.Update3P(500, cnt);
+		app->hw.motorPwm.SetPwmChannel1Duty(500);
+		//app->hw.motorPwm.SetPwmChannel2Duty(phase.b);
+		//app->hw.motorPwm.SetPwmChannel3Duty(500);
 
 
 		cnt++;
@@ -119,10 +122,12 @@ void StartDefaultTask(void *argument)
 
 		app->hw.motorPwm.SetPwmChannel4Duty(500);
 
-
 		//app->simpleLogger.Print(txBuffer, size);
 
-		//app->communication.Plot(app->hw.adc.ReadChannel(6));
+		app->communication.Plot(app->hw.adc.ReadChannel(6));
+
+		app->motorControl.SetDcMotor(pid.Calculate(app->hw.adc.ReadChannel(6), setPoint));
+
 
 		if (app->communication.GetRxStatus())
 		{
@@ -151,6 +156,11 @@ void StartDefaultTask(void *argument)
 			if ( app->communication.GetPayload() == 5)
 			{
 				app->hw.flashStorage.EraseSector();
+			}
+			if(app->communication.GetPayload() == 6)
+			{
+				//app->hw.motorPwm.SetPwmChannel2Duty(phase.b);
+				setPoint = app->communication.rxData.data1;
 			}
 		}
 	}

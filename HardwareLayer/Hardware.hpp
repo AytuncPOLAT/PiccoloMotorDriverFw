@@ -21,6 +21,7 @@ public:
 	HardwareLayer::MotorPwm motorPwm;
 	HardwareLayer::AdcDriver adc;
 	HardwareLayer::FlashStorage flashStorage;
+	TIM_HandleTypeDef timer1Handle;
 
 private:
 	void SystemClockConfig();
