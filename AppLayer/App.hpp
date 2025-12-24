@@ -6,6 +6,8 @@
 #include "Communication.hpp"
 #include "SystemDataController.hpp"
 #include "MotorControl.hpp"
+#include "UserInterface.hpp"
+#include "PidControl.hpp"
 
 class App
 {
@@ -16,8 +18,10 @@ public:
 	AppLayer::Communication communication;
 	AppLayer::SystemDataController systemDataController;
 	AppLayer::MotorControl motorControl;
+	UserInterface userInterface;
+	AppLayer::PidController pidController;
 
-	Hardware& hw;
+	Hardware& hwPtr;
 private:
 };
 

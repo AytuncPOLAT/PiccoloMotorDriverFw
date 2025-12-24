@@ -48,16 +48,13 @@ public:
 	SetUiState(UiState newState);
 	void
 	CommActivity();
+	void Init();
 
 private:
 	HeartBeatState heartBeat;
 	WarningState warning;
 	ErrorState error;
 	CommActivityState commAct;
-
-	const osThreadAttr_t uiTaskattributes =
-	{ .name = "uiTask", .stack_size = 128 * 4, .priority =
-			(osPriority_t) osPriorityNormal, };
 
 	BaseType_t uiTaskHandle;
 	static void UiTask(void *argument);

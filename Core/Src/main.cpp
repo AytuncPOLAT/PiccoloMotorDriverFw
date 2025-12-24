@@ -50,12 +50,10 @@ int main(void)
 
 	HAL_Init();
 
-
 	MX_GPIO_Init();
 	MX_UART5_Init();
 	MX_SPI2_Init();
 	MX_UART4_Init();
-
 
 	static Hardware hardware;
 	static App app(hardware);
@@ -67,6 +65,10 @@ int main(void)
 
 	defaultTaskHandle = osThreadNew(StartDefaultTask, (void*)&app,
 									&defaultTask_attributes);
+
+	app.userInterface.Init();
+
+	app.motorControl.Init();
 
 	osKernelStart();
 	while (1)
@@ -81,8 +83,7 @@ void StartDefaultTask(void *argument)
 	AppLayer::SinusPwm sinPwm;
 	AppLayer::TriPhase phase;
 
-	UserInterface ui;
-	ui.SetUiState(UiState::HeartBeat);
+	app->userInterface.SetUiState(UiState::HeartBeat);
 	// UserInterface *ui = (UserInterface*)argument;
 	// ui->SetUiState(UiState::HeartBeat);
 	static uint16_t cnt = 0;
@@ -95,14 +96,14 @@ void StartDefaultTask(void *argument)
 	/* USER CODE BEGIN 5 */
 	/* Infinite loop */
 
-	app->hw.adc.Start();
+	app->hwPtr.adc.Start();
 
 	for (;;)
 	{
 		osDelay(100);
 
 		//phase = sinPwm.Update3P(500, cnt);
-		app->hw.motorPwm.SetPwmChannel1Duty(500);
+		//app->hw.motorPwm.SetPwmChannel1Duty(500);
 		//app->hw.motorPwm.SetPwmChannel2Duty(phase.b);
 		//app->hw.motorPwm.SetPwmChannel3Duty(500);
 
@@ -112,50 +113,50 @@ void StartDefaultTask(void *argument)
 
 		uint8_t txBuffer[100];
 		int size = sprintf((char*)txBuffer, "test = %d|a0 = %d|a1 = %d|a2 = %d|a3 = %d|a4 = %d|a5 = %d|a6 = %d|\r\n", cnt,
-				app->hw.adc.ReadChannel(0),
-				app->hw.adc.ReadChannel(1),
-				app->hw.adc.ReadChannel(2),
-				app->hw.adc.ReadChannel(3),
-				app->hw.adc.ReadChannel(4),
-				app->hw.adc.ReadChannel(5),
-				app->hw.adc.ReadChannel(6));
+				app->hwPtr.adc.ReadChannel(0),
+				app->hwPtr.adc.ReadChannel(1),
+				app->hwPtr.adc.ReadChannel(2),
+				app->hwPtr.adc.ReadChannel(3),
+				app->hwPtr.adc.ReadChannel(4),
+				app->hwPtr.adc.ReadChannel(5),
+				app->hwPtr.adc.ReadChannel(6));
 
-		app->hw.motorPwm.SetPwmChannel4Duty(500);
+		app->hwPtr.motorPwm.SetPwmChannel4Duty(app->hwPtr.adc.ReadChannel(6));
 
-		//app->simpleLogger.Print(txBuffer, size);
+		app->simpleLogger.Print(txBuffer, size);
 
-		app->communication.Plot(app->hw.adc.ReadChannel(6));
+		//app->communication.Plot(app->hwPtr.adc.ReadChannel(6));
 
-		app->motorControl.SetDcMotor(pid.Calculate(app->hw.adc.ReadChannel(6), setPoint));
+		//app->motorControl.SetDcMotor(pid.Calculate(app->hw.adc.ReadChannel(6), setPoint));
 
 
 		if (app->communication.GetRxStatus())
 		{
-			ui.CommActivity();
+			app->userInterface.CommActivity();
 
 			if ( app->communication.GetPayload() == 1)
 			{
-				ui.SetUiState(UiState::HeartBeat);
+				app->userInterface.SetUiState(UiState::HeartBeat);
 			}
 
 			if ( app->communication.GetPayload() == 2)
 			{
-				ui.SetUiState(UiState::Warning);
+				app->userInterface.SetUiState(UiState::Warning);
 			}
 
 			if ( app->communication.GetPayload() == 3)
 			{
-				ui.SetUiState(UiState::Error);
+				app->userInterface.SetUiState(UiState::Error);
 			}
 
 			if ( app->communication.GetPayload() == 4)
 			{
-				app->hw.flashStorage.ProgramWord(0, (uint32_t*)&app->communication.dataFrame);
+				//app->hw.flashStorage.ProgramWord(0, (uint32_t*)&app->communication.dataFrame);
 			}
 
 			if ( app->communication.GetPayload() == 5)
 			{
-				app->hw.flashStorage.EraseSector();
+				//app->hw.flashStorage.EraseSector();
 			}
 			if(app->communication.GetPayload() == 6)
 			{

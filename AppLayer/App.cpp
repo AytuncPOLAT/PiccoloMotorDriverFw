@@ -3,10 +3,10 @@
 using namespace AppLayer;
 
 App::App(Hardware &hardware)
-: hw(hardware)
-, simpleLogger(hardware.usbCom)
+: simpleLogger(hardware.usbCom)
 , communication(hardware.usbCom, systemData)
-, systemDataController(systemData, communication, hw.flashStorage)
-, motorControl(hardware.motorPwm)
+, systemDataController(systemData, communication, hardware.flashStorage)
+, motorControl(hardware.motorPwm, pidController, hardware.adc)
+, hwPtr(hardware)
 {
 }

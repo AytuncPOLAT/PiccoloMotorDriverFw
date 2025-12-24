@@ -37,6 +37,11 @@ void CommActivityState::Play()
 
 UserInterface::UserInterface()
 {
+
+}
+
+void UserInterface::Init()
+{
 	uiTaskHandle = xTaskCreate(this->UiTask, "UI_TASK", 128 * 4, (void*) this,
 			24, NULL);
 }
