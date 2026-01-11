@@ -10,8 +10,11 @@ namespace AppLayer
 {
 	enum class CMD_TYPE : uint8_t
 	{
-		READ_FROM_DEV = 0,
-		WRITE_TO_DEVICE = 1
+	    PING = 0,
+	    PING_RESPONSE,
+	    READ_FROM_DEVICE,
+	    WRITE_TO_DEVICE,
+	    WRITE_TO_DEVICE_FLASH,
 	};
 
 	struct __attribute__((packed)) DataFrame
@@ -35,8 +38,22 @@ namespace AppLayer
 		void Print(uint8_t *data, uint32_t size);
 		uint8_t ReadByte();
 		void Plot(uint32_t);
+		void TransmitTxFrame(); //TODO de-commission this one
+
+	    void TransmitDataFrame(CMD_TYPE cmd,
+	                            uint32_t deviceAddress,
+	                            uint32_t data0,
+	                            uint32_t data1,
+	                            uint32_t data2,
+	                            uint32_t data3);
+
 		bool GetRxStatus();
 		uint32_t GetPayload();
+
+		void Filters(uint16_t len);
+
+		void SendPingResponse();
+
 		void RegisterCallback(GenericCallback* callBack) override;
 
 		DataFrame dataFrame;

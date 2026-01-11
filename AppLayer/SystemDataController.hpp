@@ -5,6 +5,7 @@
 #include "SystemData.hpp"
 #include "Communication.hpp"
 #include "FlashMemoryController.hpp"
+#include "UserInterface.hpp"
 
 namespace AppLayer
 {
@@ -14,16 +15,21 @@ namespace AppLayer
 	public:
 		SystemDataController(Common::SystemData& systemDataRef,
 							 Communication& communicationRef,
-							 HardwareLayer::FlashStorage& storageControllerRef);
+							 HardwareLayer::FlashStorage& storageControllerRef,
+							 UserInterface& userInterfaceRef);
 
 	private:
 		bool CheckIfConfigBlank();
 		bool LoadSystemDataFromStorage();
 		void OnCallback(uint8_t arg) override;
+		void DataReadResponse(Common::PROPERTY property);
+
+		void WriteToRam(Common::PROPERTY property, uint32_t newValue);
 
 		Common::SystemData& systemData;
 		Communication& communication;
 		HardwareLayer::FlashStorage& storageController;
+		UserInterface& userInterface;
 	};
 }
 

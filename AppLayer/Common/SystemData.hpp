@@ -11,6 +11,27 @@ namespace Common
 	const uint16_t COUNT_PER_REV = 4095;
 	const uint16_t MOTOR_PWM_MAX_CNT = 1000;
 	
+	enum class DATA_TYPE
+	{
+		U_INTEGER = 0,
+		S_INTEGER,
+		FLOATING
+	};
+
+	enum class PROPERTY : uint8_t
+	{
+		FLASH_MAGIC = 0,
+		SERIAL_NO,
+		FW_VERSION,
+		DEV_ADDRESS,
+		DEV_MODE,
+		PID_KP,
+		PID_KI,
+		PID_KD,
+		PID_MAX_INTEGRAL_WU,
+		PID_SAT,
+	};
+
 	struct __attribute__((packed)) ConfigurationData
 	{
 		uint32_t flashMagicNumber;
@@ -18,11 +39,11 @@ namespace Common
 		uint32_t fwVersion;
 		uint32_t deviceAddress;
 		uint32_t deviceMode;
-		uint32_t pidKp;
-		uint32_t pidKi;
-		uint32_t pidKd;
-		uint32_t pidMaxIWindUp;
-		uint32_t pidSaturation;
+		float pidKp;
+		float pidKi;
+		float pidKd;
+		float pidMaxIWindUp;
+		float pidSaturation;
 		uint32_t padding32[5];
 		uint16_t padding16[1];
 		uint16_t crc16;

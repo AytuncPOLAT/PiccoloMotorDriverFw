@@ -1,34 +1,42 @@
 #include "UserInterface.hpp"
 
-void HeartBeatState::Play()
+void HeartBeatState::Play(uint8_t time)
 {
-	HAL_GPIO_WritePin(GPIOE, GPIO_PIN_4, GPIO_PIN_SET);
-	osDelay(5);
-	HAL_GPIO_WritePin(GPIOE, GPIO_PIN_4, GPIO_PIN_RESET);
-	osDelay(195);
-	HAL_GPIO_WritePin(GPIOE, GPIO_PIN_4, GPIO_PIN_SET);
-	osDelay(5);
-	HAL_GPIO_WritePin(GPIOE, GPIO_PIN_4, GPIO_PIN_RESET);
-	osDelay(795);
+	if(time == 0)
+		HAL_GPIO_WritePin(GPIOE, GPIO_PIN_4, GPIO_PIN_SET);
+	if(time == 1)
+		HAL_GPIO_WritePin(GPIOE, GPIO_PIN_4, GPIO_PIN_RESET);
+	if(time == 19)
+		HAL_GPIO_WritePin(GPIOE, GPIO_PIN_4, GPIO_PIN_SET);
+	if(time == 20)
+		HAL_GPIO_WritePin(GPIOE, GPIO_PIN_4, GPIO_PIN_RESET);
 }
 
-void ErrorState::Play()
+void ErrorState::Play(uint8_t time)
 {
-	HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_SET);
-	osDelay(250);
-	HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_RESET);
-	osDelay(250);
+	if(time == 49)
+		HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_SET);
+	if(time == 99)
+		HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_RESET);
 }
 
-void WarningState::Play()
+void WarningState::Play(uint8_t time)
 {
-	HAL_GPIO_WritePin(GPIOE, GPIO_PIN_4, GPIO_PIN_SET);
-	osDelay(500);
-	HAL_GPIO_WritePin(GPIOE, GPIO_PIN_4, GPIO_PIN_RESET);
-	osDelay(500);
+	if(time == 24)
+		HAL_GPIO_WritePin(GPIOE, GPIO_PIN_4, GPIO_PIN_SET);
+	if(time == 49)
+		HAL_GPIO_WritePin(GPIOE, GPIO_PIN_4, GPIO_PIN_RESET);
 }
 
-void CommActivityState::Play()
+void CommActivityState::Play(uint8_t time)
+{
+	if(time == 0)
+		HAL_GPIO_WritePin(GPIOE, GPIO_PIN_2, GPIO_PIN_SET);
+	if(time == 2)
+		HAL_GPIO_WritePin(GPIOE, GPIO_PIN_2, GPIO_PIN_RESET);
+}
+
+void PingState::Play(uint8_t time)
 {
 	HAL_GPIO_WritePin(GPIOE, GPIO_PIN_2, GPIO_PIN_SET);
 	osDelay(10);
@@ -57,17 +65,27 @@ void UserInterface::UiTask(void *argument)
 			break;
 
 		case UiState::HeartBeat:
-			objectHandle->heartBeat.Play();
+			objectHandle->heartBeat.Play(objectHandle->tenMsCounter);
 			break;
 
 		case UiState::Warning:
-			objectHandle->warning.Play();
+			objectHandle->warning.Play(objectHandle->tenMsCounter);
 
 			break;
 		case UiState::Error:
-			objectHandle->error.Play();
+			objectHandle->error.Play(objectHandle->tenMsCounter);
 			break;
 
+		case UiState::Ping:
+			objectHandle->pingAct.Play(objectHandle->tenMsCounter);
+			objectHandle->state = objectHandle->oldState;
+			break;
+		}
+
+		osDelay(10);
+		if(objectHandle->tenMsCounter++ > 99)
+		{
+			objectHandle->tenMsCounter = 0;
 		}
 
 	}
@@ -76,9 +94,17 @@ void UserInterface::UiTask(void *argument)
 void UserInterface::SetUiState(UiState newState)
 {
 	state = newState;
+	tenMsCounter = 0;
 }
 
 void UserInterface::CommActivity()
 {
-	commAct.Play();
+	//commAct.Play();
+}
+
+void UserInterface::PingActivity()
+{
+	oldState = state;
+	tenMsCounter = 0;
+	state = UiState::Ping;
 }

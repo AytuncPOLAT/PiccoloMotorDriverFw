@@ -100,7 +100,7 @@ void StartDefaultTask(void *argument)
 
 	for (;;)
 	{
-		osDelay(100);
+		osDelay(30);
 
 		//phase = sinPwm.Update3P(500, cnt);
 		//app->hw.motorPwm.SetPwmChannel1Duty(500);
@@ -121,49 +121,13 @@ void StartDefaultTask(void *argument)
 				app->hwPtr.adc.ReadChannel(5),
 				app->hwPtr.adc.ReadChannel(6));
 
-		app->hwPtr.motorPwm.SetPwmChannel4Duty(app->hwPtr.adc.ReadChannel(6));
+		app->hwPtr.motorPwm.SetPwmChannel4Duty(1);
 
-		app->simpleLogger.Print(txBuffer, size);
+		//app->simpleLogger.Print(txBuffer, size);
 
-		//app->communication.Plot(app->hwPtr.adc.ReadChannel(6));
+		//app->communication.Plot(app->hwPtr.adc.ReadChannel(3));
 
 		//app->motorControl.SetDcMotor(pid.Calculate(app->hw.adc.ReadChannel(6), setPoint));
-
-
-		if (app->communication.GetRxStatus())
-		{
-			app->userInterface.CommActivity();
-
-			if ( app->communication.GetPayload() == 1)
-			{
-				app->userInterface.SetUiState(UiState::HeartBeat);
-			}
-
-			if ( app->communication.GetPayload() == 2)
-			{
-				app->userInterface.SetUiState(UiState::Warning);
-			}
-
-			if ( app->communication.GetPayload() == 3)
-			{
-				app->userInterface.SetUiState(UiState::Error);
-			}
-
-			if ( app->communication.GetPayload() == 4)
-			{
-				//app->hw.flashStorage.ProgramWord(0, (uint32_t*)&app->communication.dataFrame);
-			}
-
-			if ( app->communication.GetPayload() == 5)
-			{
-				//app->hw.flashStorage.EraseSector();
-			}
-			if(app->communication.GetPayload() == 6)
-			{
-				//app->hw.motorPwm.SetPwmChannel2Duty(phase.b);
-				setPoint = app->communication.rxData.data1;
-			}
-		}
 	}
 }
 

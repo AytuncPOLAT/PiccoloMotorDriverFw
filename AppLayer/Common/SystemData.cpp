@@ -6,20 +6,20 @@ Common::SystemData::SystemData()
 void Common::SystemData::DefaultInitialization()
 {
 	configurationData.flashMagicNumber = 0xBEEFBEEF;
-	configurationData.deviceSerialNo = 1;
-	configurationData.fwVersion = 2;
-	configurationData.deviceAddress = 3;
-	configurationData.deviceMode = 4;
-	configurationData.pidKp = 5;
-	configurationData.pidKi = 6;
-	configurationData.pidKd = 7;
-	configurationData.pidMaxIWindUp = 8;
-	configurationData.pidSaturation = 9;
-	configurationData.padding32[0] = 10;
-	configurationData.padding32[1] = 11;
-	configurationData.padding32[2] = 12;
-	configurationData.padding32[3] = 13;
-	configurationData.padding32[4] = 14;
-	configurationData.padding16[0] = 15;
-	configurationData.crc16 = 16;
+	configurationData.deviceSerialNo = 1U;
+	configurationData.fwVersion = 2U;
+	configurationData.deviceAddress = 3U;
+	configurationData.deviceMode = 4U;
+	configurationData.pidKp = 5.5f;
+	configurationData.pidKi = 6.6f;
+	configurationData.pidKd = 7.7f;
+	configurationData.pidMaxIWindUp = 8.8f;
+	configurationData.pidSaturation = 9.9f;
+	configurationData.padding32[0] = 10U;
+	configurationData.padding32[1] = 11U;
+	configurationData.padding32[2] = 12U;
+	configurationData.padding32[3] = 13U;
+	configurationData.padding32[4] = 14U;
+	configurationData.padding16[0] = 15U;
+	configurationData.crc16 = 16U;
 }
