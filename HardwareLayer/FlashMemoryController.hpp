@@ -13,7 +13,7 @@ namespace HardwareLayer
 	{
 	public:
 		FlashStorage();
-		Common::ErrorType EraseSector();
+		Common::ErrorType EraseUserSector();
 		Common::ErrorType ProgramWord(uint32_t addressOffset, uint32_t* data);
 		Common::ErrorType ReadFourBytes(uint32_t addressOffset, uint32_t* data);
 		Common::ErrorType ReadNBytes(uint32_t addressOffset, uint32_t* data, uint32_t size, uint8_t wordSize);

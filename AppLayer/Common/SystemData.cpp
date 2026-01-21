@@ -10,11 +10,11 @@ void Common::SystemData::DefaultInitialization()
 	configurationData.fwVersion = 2U;
 	configurationData.deviceAddress = 3U;
 	configurationData.deviceMode = 4U;
-	configurationData.pidKp = 5.5f;
-	configurationData.pidKi = 6.6f;
-	configurationData.pidKd = 7.7f;
-	configurationData.pidMaxIWindUp = 8.8f;
-	configurationData.pidSaturation = 9.9f;
+	configurationData.pidKp = 1000U;
+	configurationData.pidKi = 2000U;
+	configurationData.pidKd = 3000U;
+	configurationData.pidMaxIWindUp = 4000U;
+	configurationData.pidSaturation = 5000U;
 	configurationData.padding32[0] = 10U;
 	configurationData.padding32[1] = 11U;
 	configurationData.padding32[2] = 12U;

@@ -1,12 +1,19 @@
 #include "SinusPwm.hpp"
 #include "SystemData.hpp"
+#include "math.h"
 
 using namespace AppLayer;
+
+float phaseAngle_a;
+float phaseAngle_b;
+float phaseAngle_c;
 
 namespace
 {
 	constexpr uint16_t COMMUTATION_360DEG = Common::COUNT_PER_REV / Common::MOTOR_POLES;
 	constexpr uint16_t COMMUTATION_120DEG = (Common::COUNT_PER_REV / Common::MOTOR_POLES) / 3;
+	constexpr float RAD_2PI = 2.0 * M_PI;
+	constexpr float RAD_120 = RAD_2PI / 3.0;
 }
 
 SinusPwm::SinusPwm()
@@ -14,28 +21,22 @@ SinusPwm::SinusPwm()
 
 }
 
-TriPhase SinusPwm::Update3P(int16_t amplitude, uint16_t angle)
+TriPhase SinusPwm::Update3P(int16_t amplitude, float angleInRad)
 {
+	float amp = amplitude;
+	phaseAngle_a = angleInRad;
+
+	phaseAngle_b = phaseAngle_a + RAD_120;
+	if(phaseAngle_b > RAD_2PI) phaseAngle_b = phaseAngle_b - RAD_2PI;
+
+	phaseAngle_c = phaseAngle_b + RAD_120;
+	if(phaseAngle_c > RAD_2PI) phaseAngle_c = phaseAngle_c - RAD_2PI;
+
 	uint16_t phaseA, phaseB, phaseC;
 
-	phaseA = (angle % COMMUTATION_360DEG);
-	phaseB = (phaseA + COMMUTATION_120DEG) % COMMUTATION_360DEG;
-	phaseC = (phaseB + COMMUTATION_120DEG) % COMMUTATION_360DEG;
-
-	if(amplitude > 1024)amplitude = 1024;
-    if(amplitude < -1024)amplitude = -1024;
-
-	int offsetA = (LUT::sineLut585[phaseA] - 511) * amplitude;
-	int offsetB = (LUT::sineLut585[phaseB] - 511) * amplitude;
-	int offsetC = (LUT::sineLut585[phaseC] - 511) * amplitude;
-
-	offsetA = offsetA / 1024;
-	offsetB = offsetB / 1024;
-	offsetC = offsetC / 1024;
-
-	phase.a = (511 + offsetC);
-	phase.b = (511 + offsetB);
-	phase.c = (511 + offsetA);
+	phase.a = (511.0 + (amp * std::sin(phaseAngle_a)));
+	phase.b = (511.0 + (amp * std::sin(phaseAngle_b)));
+	phase.c = (511.0 + (amp * std::sin(phaseAngle_c)));
 
 	return phase;
 }

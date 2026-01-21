@@ -70,6 +70,8 @@ int main(void)
 
 	app.motorControl.Init();
 
+	app.systemDataController.Init();
+
 	osKernelStart();
 	while (1)
 	{
@@ -121,7 +123,7 @@ void StartDefaultTask(void *argument)
 				app->hwPtr.adc.ReadChannel(5),
 				app->hwPtr.adc.ReadChannel(6));
 
-		app->hwPtr.motorPwm.SetPwmChannel4Duty(1);
+		app->hwPtr.motorPwm.SetPwmChannel4Duty(999);
 
 		//app->simpleLogger.Print(txBuffer, size);
 
@@ -141,16 +143,16 @@ static void MX_SPI2_Init(void)
 	hspi2.Instance = SPI2;
 	hspi2.Init.Mode = SPI_MODE_MASTER;
 	hspi2.Init.Direction = SPI_DIRECTION_2LINES;
-	hspi2.Init.DataSize = SPI_DATASIZE_8BIT;
-	hspi2.Init.CLKPolarity = SPI_POLARITY_HIGH;
-	hspi2.Init.CLKPhase = SPI_PHASE_1EDGE;
-	hspi2.Init.NSS = SPI_NSS_SOFT;
+	hspi2.Init.DataSize = SPI_DATASIZE_16BIT;
+	hspi2.Init.CLKPolarity = SPI_POLARITY_LOW;
+	hspi2.Init.CLKPhase = SPI_PHASE_2EDGE;
+	hspi2.Init.NSS = SPI_NSS_HARD_OUTPUT;
 	hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256;
 	hspi2.Init.FirstBit = SPI_FIRSTBIT_MSB;
 	hspi2.Init.TIMode = SPI_TIMODE_DISABLE;
 	hspi2.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
 	hspi2.Init.CRCPolynomial = 0x0;
-	hspi2.Init.NSSPMode = SPI_NSS_PULSE_DISABLE;
+	hspi2.Init.NSSPMode = SPI_NSS_PULSE_ENABLE;
 	hspi2.Init.NSSPolarity = SPI_NSS_POLARITY_LOW;
 	hspi2.Init.FifoThreshold = SPI_FIFO_THRESHOLD_01DATA;
 	hspi2.Init.TxCRCInitializationPattern =
@@ -330,6 +332,14 @@ static void MX_GPIO_Init(void)
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
 	HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8, GPIO_PIN_SET);
+
+	//DRV ADC REF
+	GPIO_InitStruct.Pin = GPIO_PIN_1;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+	HAL_GPIO_WritePin(GPIOC, GPIO_PIN_1, GPIO_PIN_SET);
 
 	/* USER CODE BEGIN MX_GPIO_Init_2 */
 

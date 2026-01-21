@@ -10,6 +10,7 @@ extern "C"
 #include "stdint.h"
 #include "ErrorHandler.hpp"
 #include "SinusPwm.hpp"
+#include "SystemData.hpp"
 
 namespace Common
 {
@@ -28,6 +29,27 @@ namespace HardwareLayer
 
 namespace AppLayer
 {
+	struct AlphaBetaZero
+	{
+		float alpha;
+		float beta;
+		float zero;
+	};
+
+	struct DQZero
+	{
+		float d;
+		float q;
+		float zero;
+	};
+
+	struct ABC
+	{
+	    float a;
+	    float b;
+	    float c;
+	};
+
 	class PidController;
 
 	class MotorControl
@@ -35,17 +57,29 @@ namespace AppLayer
 	public:
 		MotorControl(HardwareLayer::MotorPwm& motorPwmRef,
 					 PidController& pidControllerRef,
-					 HardwareLayer::AdcDriver& adcRef);
+					 HardwareLayer::AdcDriver& adcRef,
+					 Common::SystemData& systemDataRef);
 
 		void SetDcMotor(int16_t duty);
 		Common::ErrorType SetArmed(bool isArmed);
 		void Init();
 		void SetMotorCurrent(int32_t current);
-		void SetElectricalAngle(int16_t amplitude, int16_t angle);
+		void SetElectricalAngle(int16_t amplitude, float angle);
 
 	private:
 		BaseType_t taskHandle;
 		static void MotorControlTask(void *argument);
+
+		AlphaBetaZero ClarkTransform(ABC input);
+		AlphaBetaZero clarkTransformResult;
+
+		ABC InverseClarkeTransform(AlphaBetaZero input);
+
+		DQZero ParkTransform(float alpha, float beta, float angleInRad);
+		DQZero parkTransformResult;
+
+		AlphaBetaZero InverseParkTransform(DQZero input, float theta);
+
 
 		Common::MotorMode mode;
 		bool armed = false;
@@ -57,6 +91,9 @@ namespace AppLayer
 		HardwareLayer::AdcDriver& adc;
 
 		SinusPwm sinPwm;
+		Common::SystemData& systemData;
+
+
 	};
 }
 

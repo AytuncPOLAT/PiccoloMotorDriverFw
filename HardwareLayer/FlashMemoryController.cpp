@@ -12,7 +12,7 @@ namespace
 FlashStorage::FlashStorage()
 {}
 
-Common::ErrorType FlashStorage::EraseSector()
+Common::ErrorType FlashStorage::EraseUserSector()
 {
 	SCB_DisableICache();
 

@@ -6,7 +6,7 @@ DMA_HandleTypeDef hdma_adc1;
 
 namespace
 {
-	__IO uint16_t adcBuffer[7]__attribute__((section("noncacheable_buffer")));
+	__IO uint16_t adcBuffer[6]__attribute__((section("noncacheable_buffer")));
 }
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
@@ -39,7 +39,7 @@ void AdcDriver::Init()
 	hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
 	hadc1.Init.LowPowerAutoWait = DISABLE;
 	hadc1.Init.ContinuousConvMode = DISABLE;
-	hadc1.Init.NbrOfConversion = 7;
+	hadc1.Init.NbrOfConversion = 6;
 	hadc1.Init.DiscontinuousConvMode = DISABLE;
 	hadc1.Init.ExternalTrigConv = ADC_EXTERNALTRIG_T1_TRGO;
 	hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;
@@ -61,7 +61,7 @@ void AdcDriver::Init()
 
 	sConfig.Channel = ADC_CHANNEL_3;
 	sConfig.Rank = ADC_REGULAR_RANK_1;
-	sConfig.SamplingTime = ADC_SAMPLETIME_8CYCLES_5;
+	sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
 	sConfig.SingleDiff = ADC_SINGLE_ENDED;
 	sConfig.OffsetNumber = ADC_OFFSET_NONE;
 	sConfig.Offset = 0;
@@ -73,7 +73,7 @@ void AdcDriver::Init()
 
 	sConfig.Channel = ADC_CHANNEL_5;
 	sConfig.Rank = ADC_REGULAR_RANK_2;
-	sConfig.SamplingTime = ADC_SAMPLETIME_8CYCLES_5;
+	sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
 	sConfig.SingleDiff = ADC_SINGLE_ENDED;
 	sConfig.OffsetNumber = ADC_OFFSET_NONE;
 	sConfig.Offset = 0;
@@ -85,7 +85,7 @@ void AdcDriver::Init()
 
 	sConfig.Channel = ADC_CHANNEL_7;
 	sConfig.Rank = ADC_REGULAR_RANK_3;
-	sConfig.SamplingTime = ADC_SAMPLETIME_8CYCLES_5;
+	sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
 	sConfig.SingleDiff = ADC_SINGLE_ENDED;
 	sConfig.OffsetNumber = ADC_OFFSET_NONE;
 	sConfig.Offset = 0;
@@ -97,7 +97,7 @@ void AdcDriver::Init()
 
 	sConfig.Channel = ADC_CHANNEL_10;
 	sConfig.Rank = ADC_REGULAR_RANK_4;
-	sConfig.SamplingTime = ADC_SAMPLETIME_8CYCLES_5;
+	sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
 	sConfig.SingleDiff = ADC_SINGLE_ENDED;
 	sConfig.OffsetNumber = ADC_OFFSET_NONE;
 	sConfig.Offset = 0;
@@ -106,10 +106,10 @@ void AdcDriver::Init()
 	{
 		//Error_Handler();
 	}
-
+/*
 	sConfig.Channel = ADC_CHANNEL_11;
 	sConfig.Rank = ADC_REGULAR_RANK_5;
-	sConfig.SamplingTime = ADC_SAMPLETIME_8CYCLES_5;
+	sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
 	sConfig.SingleDiff = ADC_SINGLE_ENDED;
 	sConfig.OffsetNumber = ADC_OFFSET_NONE;
 	sConfig.Offset = 0;
@@ -117,11 +117,11 @@ void AdcDriver::Init()
 	if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
 	{
 		//Error_Handler();
-	}
+	}*/
 
 	sConfig.Channel = ADC_CHANNEL_14;
-	sConfig.Rank = ADC_REGULAR_RANK_6;
-	sConfig.SamplingTime = ADC_SAMPLETIME_8CYCLES_5;
+	sConfig.Rank = ADC_REGULAR_RANK_5;
+	sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
 	sConfig.SingleDiff = ADC_SINGLE_ENDED;
 	sConfig.OffsetNumber = ADC_OFFSET_NONE;
 	sConfig.Offset = 0;
@@ -132,8 +132,8 @@ void AdcDriver::Init()
 	}
 
 	sConfig.Channel = ADC_CHANNEL_15;
-	sConfig.Rank = ADC_REGULAR_RANK_7;
-	sConfig.SamplingTime = ADC_SAMPLETIME_8CYCLES_5;
+	sConfig.Rank = ADC_REGULAR_RANK_6;
+	sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
 	sConfig.SingleDiff = ADC_SINGLE_ENDED;
 	sConfig.OffsetNumber = ADC_OFFSET_NONE;
 	sConfig.Offset = 0;
@@ -153,7 +153,7 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* hadc)
     PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_ADC;
     PeriphClkInitStruct.PLL2.PLL2M = 25;
     PeriphClkInitStruct.PLL2.PLL2N = 150;
-    PeriphClkInitStruct.PLL2.PLL2P = 5;
+    PeriphClkInitStruct.PLL2.PLL2P = 2;
     PeriphClkInitStruct.PLL2.PLL2Q = 2;
     PeriphClkInitStruct.PLL2.PLL2R = 2;
     PeriphClkInitStruct.PLL2.PLL2RGE = RCC_PLL2VCIRANGE_1;
@@ -171,7 +171,7 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* hadc)
     __HAL_RCC_GPIOA_CLK_ENABLE();
     __HAL_RCC_GPIOB_CLK_ENABLE();
 
-    GPIO_InitStruct.Pin = GPIO_PIN_0 | GPIO_PIN_1;
+    GPIO_InitStruct.Pin = GPIO_PIN_0;
     GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
@@ -212,7 +212,7 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* hadc)
 
 void AdcDriver::Start()
 {
-	HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adcBuffer, 7);
+	HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adcBuffer, 6);
 }
 
 uint16_t AdcDriver::ReadChannel(uint8_t channel)

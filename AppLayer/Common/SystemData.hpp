@@ -39,14 +39,20 @@ namespace Common
 		uint32_t fwVersion;
 		uint32_t deviceAddress;
 		uint32_t deviceMode;
-		float pidKp;
-		float pidKi;
-		float pidKd;
-		float pidMaxIWindUp;
-		float pidSaturation;
+		int pidKp;
+		int pidKi;
+		int pidKd;
+		int pidMaxIWindUp;
+		int pidSaturation;
 		uint32_t padding32[5];
 		uint16_t padding16[1];
 		uint16_t crc16;
+	};
+
+	struct RunTimeData
+	{
+		int pwm;
+		int current;
 	};
 
 	static_assert(sizeof(ConfigurationData) % 8 == 0, "Configuration data struct alignment error"
@@ -59,6 +65,7 @@ namespace Common
 		void DefaultInitialization();
 
 		ConfigurationData configurationData;
+		RunTimeData runTimeData;
 	private:
 	};
 }

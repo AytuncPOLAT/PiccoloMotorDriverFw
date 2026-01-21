@@ -5,6 +5,7 @@
 #include "MotorPwm.hpp"
 #include "AdcDriver.hpp"
 #include "FlashMemoryController.hpp"
+#include "DRV8316R_SpiDriver.hpp"
 
 extern "C"
 {
@@ -22,6 +23,7 @@ public:
 	HardwareLayer::AdcDriver adc;
 	HardwareLayer::FlashStorage flashStorage;
 	TIM_HandleTypeDef timer1Handle;
+	Drv8316rSpiDriver drv8316;
 
 private:
 	void SystemClockConfig();

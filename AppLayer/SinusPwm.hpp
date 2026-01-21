@@ -15,7 +15,7 @@ namespace AppLayer
 	{
 	public:
 		SinusPwm();
-		TriPhase Update3P(int16_t amplitude, uint16_t angle);
+		TriPhase Update3P(int16_t amplitude, float angleInRad);
 
 	private:
 		TriPhase phase;

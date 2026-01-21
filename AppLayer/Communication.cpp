@@ -8,9 +8,10 @@ namespace
 
 }
 
-Communication::Communication(Common::IUart& uartRef, Common::SystemData &systemDataRef)
+Communication::Communication(Common::IUart& uartRef, Common::SystemData &systemDataRef, UserInterface& userInterfaceRef)
 : uart(uartRef)
 , systemData(systemDataRef)
+, userInterface(userInterfaceRef)
 {
 	uart.RegisterOnReceiveCallback(this);
 }
@@ -47,6 +48,7 @@ void Communication::Filters(uint16_t len)
 {
 	if(rxData.cmd == CMD_TYPE::PING)
 	{
+		userInterface.PingActivity();
 		SendPingResponse();
 	}
 	else
@@ -82,31 +84,6 @@ void Communication::SendPingResponse()
 void Communication::Print(uint8_t *data, uint32_t size)
 {
 	uart.Transmit(data, size);
-}
-
-void Communication::Plot(uint32_t data)
-{
-	txData.address = 1;
-	txData.cmd = CMD_TYPE::WRITE_TO_DEVICE;
-	txData.data0 = data;
-	uart.Transmit((uint8_t*)&txData, sizeof(txData));
-}
-
-uint8_t Communication::ReadByte()
-{
-	return rxByte;
-}
-
-bool Communication::GetRxStatus()
-{
-	bool returnValue = isDataReceived;
-	isDataReceived = false;
-	return returnValue;
-}
-
-uint32_t Communication::GetPayload()
-{
-	return dataFrame.data0;
 }
 
 void Communication::TransmitTxFrame()

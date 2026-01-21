@@ -5,6 +5,7 @@
 #include "IUart.hpp"
 #include "Crc16.hpp"
 #include "SystemData.hpp"
+#include "UserInterface.hpp"
 
 namespace AppLayer
 {
@@ -15,6 +16,10 @@ namespace AppLayer
 	    READ_FROM_DEVICE,
 	    WRITE_TO_DEVICE,
 	    WRITE_TO_DEVICE_FLASH,
+		MOTION_COMMAND,
+		READ_REALTIME,
+	    CURR_1,
+	    CURR_2
 	};
 
 	struct __attribute__((packed)) DataFrame
@@ -33,11 +38,10 @@ namespace AppLayer
 	, public Common::ICallback
 	{
 	public:
-		Communication(Common::IUart& uartRef, Common::SystemData &systemDataRef);
+		Communication(Common::IUart& uartRef, Common::SystemData &systemDataRef, UserInterface& userInterfaceRef);
 		void OnReceiveCallback(uint8_t *Buf, uint32_t Len) override;
 		void Print(uint8_t *data, uint32_t size);
-		uint8_t ReadByte();
-		void Plot(uint32_t);
+
 		void TransmitTxFrame(); //TODO de-commission this one
 
 	    void TransmitDataFrame(CMD_TYPE cmd,
@@ -46,9 +50,6 @@ namespace AppLayer
 	                            uint32_t data1,
 	                            uint32_t data2,
 	                            uint32_t data3);
-
-		bool GetRxStatus();
-		uint32_t GetPayload();
 
 		void Filters(uint16_t len);
 
@@ -69,6 +70,7 @@ namespace AppLayer
 
 		Common::SystemData& systemData;
 		ICallback::GenericCallback* callbackHandle;
+		UserInterface& userInterface;
 	};
 }
 #endif // COMMUNICATION_HPP
