@@ -6,6 +6,7 @@
 #include "AdcDriver.hpp"
 #include "FlashMemoryController.hpp"
 #include "DRV8316R_SpiDriver.hpp"
+#include "QuadraticEncoderDriver.hpp"
 
 extern "C"
 {
@@ -24,6 +25,7 @@ public:
 	HardwareLayer::FlashStorage flashStorage;
 	TIM_HandleTypeDef timer1Handle;
 	Drv8316rSpiDriver drv8316;
+	HardwareLayer::QuadraticEncoderDriver externalQuadEncoder;
 
 private:
 	void SystemClockConfig();

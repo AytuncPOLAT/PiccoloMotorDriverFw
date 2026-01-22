@@ -11,6 +11,7 @@ extern "C"
 #include "ErrorHandler.hpp"
 #include "SinusPwm.hpp"
 #include "SystemData.hpp"
+#include "IEncoder.hpp"
 
 namespace Common
 {
@@ -53,18 +54,21 @@ namespace AppLayer
 	class PidController;
 
 	class MotorControl
+	: public HardwareLayer::IEncoder::Callback
 	{
 	public:
 		MotorControl(HardwareLayer::MotorPwm& motorPwmRef,
 					 PidController& pidControllerRef,
 					 HardwareLayer::AdcDriver& adcRef,
-					 Common::SystemData& systemDataRef);
+					 Common::SystemData& systemDataRef,
+					 HardwareLayer::IEncoder& rotorEncoderRef);
 
 		void SetDcMotor(int16_t duty);
 		Common::ErrorType SetArmed(bool isArmed);
 		void Init();
 		void SetMotorCurrent(int32_t current);
 		void SetElectricalAngle(int16_t amplitude, float angle);
+		void OnIndexPulseCallBack();
 
 	private:
 		BaseType_t taskHandle;
@@ -80,6 +84,7 @@ namespace AppLayer
 
 		AlphaBetaZero InverseParkTransform(DQZero input, float theta);
 
+		HardwareLayer::IEncoder& rotorEncoder;
 
 		Common::MotorMode mode;
 		bool armed = false;

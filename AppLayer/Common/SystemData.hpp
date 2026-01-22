@@ -11,7 +11,17 @@ namespace Common
 	const uint16_t COUNT_PER_REV = 4095;
 	const uint16_t MOTOR_PWM_MAX_CNT = 1000;
 	
-	enum class DATA_TYPE
+	enum class ADC_CHANNELS : uint8_t
+	{
+		DC_BUS_VOLTAGE = 0,
+		PHASE_A_CURRENT,
+		PHASE_B_CURRENT,
+		PHASE_C_CURRENT,
+		EXT0,
+		EXT1
+	};
+
+	enum class DATA_TYPE : uint8_t
 	{
 		U_INTEGER = 0,
 		S_INTEGER,

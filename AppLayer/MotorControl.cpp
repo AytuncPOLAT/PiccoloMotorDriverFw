@@ -21,14 +21,20 @@ volatile float GLOBAL_PARK_ZERO;
 
 volatile ABC GLOBAL_Abc;
 
+void MotorControl::OnIndexPulseCallBack()
+{
+	}
+
 MotorControl::MotorControl(HardwareLayer::MotorPwm& motorPwmRef,
 						   PidController& pidControllerRef,
 						   HardwareLayer::AdcDriver& adcRef,
-						   Common::SystemData& systemDataRef)
+						   Common::SystemData& systemDataRef,
+						   HardwareLayer::IEncoder& rotorEncoderRef)
 : motorPwm(motorPwmRef)
 , pidController(pidControllerRef)
 , adc(adcRef)
 , systemData(systemDataRef)
+, rotorEncoder(rotorEncoderRef)
 {}
 
 void MotorControl::Init()
@@ -70,7 +76,7 @@ void MotorControl::MotorControlTask(void *argument)
 
 	while (1)
 	{
-		GLOBAL_ADC_0 = ((float)objectHandle->adc.ReadChannel(0) - 40.0 - 2048.0) / 4096.0;
+		GLOBAL_ADC_0 = ((float)objectHandle->adc.ReadChannel(Common::ADC_CHANNELS::DC_BUS_VOLTAGE) - 40.0 - 2048.0) / 4096.0;
 		GLOBAL_ADC_1 = ((float)objectHandle->adc.ReadChannel(1) - 55.0 - 2048.0) / 4096.0;
 		GLOBAL_ADC_2 = ((float)objectHandle->adc.ReadChannel(2) - 56.0 - 2048.0) / 4096.0;
 		GLOBAL_ADC_3 = objectHandle->adc.ReadChannel(3);
@@ -82,15 +88,15 @@ void MotorControl::MotorControlTask(void *argument)
 
 		}
 
-		if(1)
+		if(objectHandle->mode == Common::MotorMode::PMSM)
 		{
+			angle = objectHandle->rotorEncoder.GetPosition();
 			if(angle < 4096)
 			{
 				angle++;
 			}
 			else
 				angle = 0;
-
 
 			float angleInRad = ((float)angle / 4096.0) * 2.0 * M_PI;
 
@@ -120,6 +126,11 @@ void MotorControl::MotorControlTask(void *argument)
 
 		osDelay(1);
 	}
+}
+
+void MotorControl::AlignRotorEncoder()
+{
+
 }
 
 AlphaBetaZero MotorControl::ClarkTransform(ABC input)

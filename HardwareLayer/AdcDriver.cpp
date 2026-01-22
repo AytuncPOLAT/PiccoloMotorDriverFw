@@ -220,3 +220,9 @@ uint16_t AdcDriver::ReadChannel(uint8_t channel)
 	return adcBuffer[channel];
 }
 
+uint16_t AdcDriver::ReadChannel(Common::ADC_CHANNELS channel)
+{
+	uint8_t channelIndex = (uint8_t)channel;
+	return adcBuffer[channelIndex];
+}
+
