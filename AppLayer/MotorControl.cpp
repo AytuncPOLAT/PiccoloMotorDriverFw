@@ -21,6 +21,8 @@ volatile float GLOBAL_PARK_ZERO;
 
 volatile ABC GLOBAL_Abc;
 
+volatile int GLOBAL_encoder = 0;
+
 void MotorControl::OnIndexPulseCallBack()
 {
 	}
@@ -88,15 +90,13 @@ void MotorControl::MotorControlTask(void *argument)
 
 		}
 
-		if(objectHandle->mode == Common::MotorMode::PMSM)
+		if(1)
 		{
-			angle = objectHandle->rotorEncoder.GetPosition();
-			if(angle < 4096)
-			{
-				angle++;
-			}
-			else
-				angle = 0;
+			angle = objectHandle->rotorEncoder.GetPosition()%4096;
+
+			GLOBAL_encoder = objectHandle->rotorEncoder.GetPosition();
+
+
 
 			float angleInRad = ((float)angle / 4096.0) * 2.0 * M_PI;
 
@@ -116,9 +116,11 @@ void MotorControl::MotorControlTask(void *argument)
 			GLOBAL_PARK_Q = objectHandle->parkTransformResult.q;
 			GLOBAL_PARK_ZERO = objectHandle->parkTransformResult.zero;
 
-			objectHandle->motorPwm.SetPwmChannel1Duty((abc.a + 1) * 200);
-			objectHandle->motorPwm.SetPwmChannel2Duty((abc.b + 1) * 200);
-			objectHandle->motorPwm.SetPwmChannel3Duty((abc.c + 1) * 200);
+			int duty = objectHandle->systemData.runTimeData.pwm;
+
+			objectHandle->motorPwm.SetPwmChannel1Duty((abc.a + 1) * duty);
+			objectHandle->motorPwm.SetPwmChannel2Duty((abc.b + 1) * duty);
+			objectHandle->motorPwm.SetPwmChannel3Duty((abc.c + 1) * duty);
 
 			//objectHandle->SetDcMotor(objectHandle->systemData.runTimeData.pwm);
 			objectHandle->systemData.runTimeData.current = GLOBAL_ADC_3;
@@ -126,11 +128,6 @@ void MotorControl::MotorControlTask(void *argument)
 
 		osDelay(1);
 	}
-}
-
-void MotorControl::AlignRotorEncoder()
-{
-
 }
 
 AlphaBetaZero MotorControl::ClarkTransform(ABC input)

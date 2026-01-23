@@ -14,9 +14,20 @@ void QuadraticEncoderDriver::Init()
 	TIM_Encoder_InitTypeDef sConfig = {0};
 	TIM_MasterConfigTypeDef sMasterConfig = {0};
 
-	/* USER CODE BEGIN TIM5_Init 1 */
+	GPIO_InitTypeDef GPIO_InitStruct = {0};
+	__HAL_RCC_TIM5_CLK_ENABLE();
+	__HAL_RCC_GPIOA_CLK_ENABLE();
+	/**TIM5 GPIO Configuration
+	PA0     ------> TIM5_CH1
+	PA1     ------> TIM5_CH2
+	*/
+	GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1;
+	GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	GPIO_InitStruct.Alternate = GPIO_AF2_TIM5;
+	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-	/* USER CODE END TIM5_Init 1 */
 	htim5.Instance = TIM5;
 	htim5.Init.Prescaler = 0;
 	htim5.Init.CounterMode = TIM_COUNTERMODE_UP;
@@ -45,20 +56,6 @@ void QuadraticEncoderDriver::Init()
 
 	HAL_TIM_Encoder_Start(&htim5, TIM_CHANNEL_ALL);
 
-
-	GPIO_InitTypeDef GPIO_InitStruct = {0};
-	__HAL_RCC_TIM5_CLK_ENABLE();
-	__HAL_RCC_GPIOA_CLK_ENABLE();
-	/**TIM5 GPIO Configuration
-	PA0     ------> TIM5_CH1
-	PA1     ------> TIM5_CH2
-	*/
-	GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1;
-	GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-	GPIO_InitStruct.Alternate = GPIO_AF2_TIM5;
-	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 }
 
 int QuadraticEncoderDriver::GetPosition()

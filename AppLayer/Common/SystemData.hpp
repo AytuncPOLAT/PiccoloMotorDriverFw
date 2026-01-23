@@ -13,12 +13,12 @@ namespace Common
 	
 	enum class ADC_CHANNELS : uint8_t
 	{
-		DC_BUS_VOLTAGE = 0,
+		DC_BUS_VOLTAGE = 4,
 		PHASE_A_CURRENT,
 		PHASE_B_CURRENT,
 		PHASE_C_CURRENT,
-		EXT0,
-		EXT1
+		EXT0 = 5,
+		EXT1 = 3
 	};
 
 	enum class DATA_TYPE : uint8_t

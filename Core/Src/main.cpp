@@ -60,6 +60,7 @@ int main(void)
 
 	hardware.usbCom.Init();
 	hardware.adc.Init();
+	hardware.externalQuadEncoder.Init();
 
 	osKernelInitialize();
 
