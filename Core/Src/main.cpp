@@ -1,3 +1,5 @@
+#define ADC_DEBUG
+
 #include "main.h"
 #include "cmsis_os.h"
 #include "usb_device.h"
@@ -64,6 +66,8 @@ int main(void)
 	hardware.adc.Init();
 	hardware.externalQuadEncoder.Init();
 	hardware.as5047.Init();
+	//app.analogProcessor.StartTask();
+
 
 	osKernelInitialize();
 
@@ -107,8 +111,6 @@ void StartDefaultTask(void *argument)
 	for (;;)
 	{
 		osDelay(30);
-
-		Global_as5047 = app->hwPtr.as5047.GetPosition();
 
 		//phase = sinPwm.Update3P(500, cnt);
 		//app->hw.motorPwm.SetPwmChannel1Duty(500);

@@ -10,6 +10,12 @@ void Common::SystemData::DefaultInitialization()
 	configurationData.fwVersion = 2U;
 	configurationData.deviceAddress = 3U;
 	configurationData.deviceMode = 4U;
+	configurationData.adcPhase_A_Offset = 0;
+	configurationData.adcPhase_A_Gain = 0;
+	configurationData.adcPhase_B_Offset = 0;
+	configurationData.adcPhase_B_Gain = 0;
+	configurationData.adcPhase_C_Offset = 0;
+	configurationData.adcPhase_C_Gain = 0;
 	configurationData.pidKp = 1000U;
 	configurationData.pidKi = 2000U;
 	configurationData.pidKd = 3000U;

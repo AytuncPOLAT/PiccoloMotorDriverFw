@@ -8,6 +8,7 @@
 #include "MotorControl.hpp"
 #include "UserInterface.hpp"
 #include "PidControl.hpp"
+#include "AnalogProcessor.hpp"
 
 class App
 {
@@ -17,6 +18,7 @@ public:
 	AppLayer::SimpleLogger simpleLogger;
 	AppLayer::Communication communication;
 	AppLayer::SystemDataController systemDataController;
+	AppLayer::AnalogProcessor analogProcessor;
 	AppLayer::MotorControl motorControl;
 	UserInterface userInterface;
 	AppLayer::PidController pidController;

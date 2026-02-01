@@ -24,9 +24,26 @@ void SystemDataController::OnCallback(uint8_t arg)
 
 	if(communication.rxData.cmd == CMD_TYPE::MOTION_COMMAND)
 	{
+		systemData.runTimeData.isConfigChanged = true;
+
 		if(communication.rxData.data0 == 0)
 		{
 			memcpy(&systemData.runTimeData.pwm, &communication.rxData.data1, sizeof(uint32_t));
+		}
+
+		if(communication.rxData.data0 == 1)
+		{
+			memcpy(&systemData.runTimeData.torque, &communication.rxData.data1, sizeof(uint32_t));
+		}
+
+		if(communication.rxData.data0 == 2)
+		{
+			memcpy(&systemData.runTimeData.speed, &communication.rxData.data1, sizeof(uint32_t));
+		}
+
+		if(communication.rxData.data0 == 3)
+		{
+			memcpy(&systemData.runTimeData.position, &communication.rxData.data1, sizeof(uint32_t));
 		}
 	}
 
@@ -34,7 +51,7 @@ void SystemDataController::OnCallback(uint8_t arg)
 	{
 		communication.txData.cmd = CMD_TYPE::READ_REALTIME;
 		communication.txData.address = systemData.configurationData.deviceAddress;
-		communication.txData.data0 = systemData.runTimeData.current;
+		//communication.txData.data0 = systemData.runTimeData.current;
 		communication.TransmitTxFrame();
 	}
 

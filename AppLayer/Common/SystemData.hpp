@@ -2,6 +2,8 @@
 #define SYSTEM_DATA_H
 
 #include <stdint.h>
+#include <math.h>
+
 namespace Common
 {
 	const uint32_t FLASH_MAGIC_NUM = 0xBEEFBEEF;
@@ -10,7 +12,17 @@ namespace Common
 	const uint16_t MOTOR_POLES = 7;
 	const uint16_t COUNT_PER_REV = 4095;
 	const uint16_t MOTOR_PWM_MAX_CNT = 1000;
-	
+
+	constexpr uint8_t ADC_RESOLUTION_IN_BITS = 12U;
+	constexpr int16_t ADC_MAX = pow(2U, ADC_RESOLUTION_IN_BITS);
+	constexpr int16_t ADC_MID_POINT = ADC_MAX / 2U;
+	constexpr float ADC_REF_IN_MILLI_VOLTS = 3300U;
+	constexpr float MILLIVOLTS_PER_COUNT = ADC_REF_IN_MILLI_VOLTS / ADC_MAX;
+
+	constexpr float DC_BUS_SENSE_LOW_SIDE = 1000U;
+	constexpr float DC_BUS_SENSE_HIGH_SIDE = 47000U;
+	constexpr float DC_BUS_SENSE_RATIO = DC_BUS_SENSE_LOW_SIDE / (DC_BUS_SENSE_LOW_SIDE + DC_BUS_SENSE_HIGH_SIDE);
+
 	enum class ADC_CHANNELS : uint8_t
 	{
 		DC_BUS_VOLTAGE = 4,
@@ -49,6 +61,12 @@ namespace Common
 		uint32_t fwVersion;
 		uint32_t deviceAddress;
 		uint32_t deviceMode;
+		int adcPhase_A_Offset;
+		int adcPhase_A_Gain;
+		int adcPhase_B_Offset;
+		int adcPhase_B_Gain;
+		int adcPhase_C_Offset;
+		int adcPhase_C_Gain;
 		int pidKp;
 		int pidKi;
 		int pidKd;
@@ -62,7 +80,10 @@ namespace Common
 	struct RunTimeData
 	{
 		int pwm;
-		int current;
+		int torque;
+		int speed;
+		int position;
+		bool isConfigChanged;
 	};
 
 	static_assert(sizeof(ConfigurationData) % 8 == 0, "Configuration data struct alignment error"

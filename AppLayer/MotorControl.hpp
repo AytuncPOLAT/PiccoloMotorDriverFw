@@ -12,6 +12,8 @@ extern "C"
 #include "SinusPwm.hpp"
 #include "SystemData.hpp"
 #include "IEncoder.hpp"
+#include "PidControl.hpp"
+#include "AnalogProcessor.hpp"
 
 namespace Common
 {
@@ -59,7 +61,7 @@ namespace AppLayer
 	public:
 		MotorControl(HardwareLayer::MotorPwm& motorPwmRef,
 					 PidController& pidControllerRef,
-					 HardwareLayer::AdcDriver& adcRef,
+					 AnalogProcessor& analogRef,
 					 Common::SystemData& systemDataRef,
 					 HardwareLayer::IEncoder& rotorEncoderRef);
 
@@ -71,6 +73,7 @@ namespace AppLayer
 		void OnIndexPulseCallBack();
 
 	private:
+		void CheckConfigUpdates();
 		BaseType_t taskHandle;
 		static void MotorControlTask(void *argument);
 
@@ -93,12 +96,12 @@ namespace AppLayer
 		int16_t motorCurrent = 0;
 
 		PidController& pidController;
-		HardwareLayer::AdcDriver& adc;
+		AnalogProcessor& analog;
 
 		SinusPwm sinPwm;
 		Common::SystemData& systemData;
 
-
+		PidController dController, qController, speedController;
 	};
 }
 

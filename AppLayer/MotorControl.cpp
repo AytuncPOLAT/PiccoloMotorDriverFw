@@ -5,46 +5,58 @@
 #include "AdcDriver.hpp"
 #include "math.h"
 
-using namespace AppLayer;
-
+float GLOBAL_ADC_6;
 float GLOBAL_ADC_0;
-float GLOBAL_ADC_1;
-float GLOBAL_ADC_2;
-uint16_t GLOBAL_ADC_3;
-uint16_t GLOBAL_ADC_4;
-uint16_t GLOBAL_ADC_5;
-uint16_t GLOBAL_ADC_6;
+
+using namespace AppLayer;
 
 volatile float GLOBAL_PARK_D;
 volatile float GLOBAL_PARK_Q;
 volatile float GLOBAL_PARK_ZERO;
 
+DQZero dqz = {1.0, 0.0, 0.0};
+
 volatile ABC GLOBAL_Abc;
 
 volatile int GLOBAL_encoder = 0;
 
+extern int Global_as5047;
+
+volatile uint8_t globalMarker = 0;
+
+float dFilter = 0.0;
+float qFilter = 0.0;
+
+int speed = 0;
+int16_t oldPos = 0;
+int16_t signedPos = 0;
+float speedFilter = 0.0;
+volatile float speedCmd = 0.0;
+
 void MotorControl::OnIndexPulseCallBack()
 {
-	}
+}
 
 MotorControl::MotorControl(HardwareLayer::MotorPwm& motorPwmRef,
 						   PidController& pidControllerRef,
-						   HardwareLayer::AdcDriver& adcRef,
+						   AnalogProcessor& analogRef,
 						   Common::SystemData& systemDataRef,
 						   HardwareLayer::IEncoder& rotorEncoderRef)
 : motorPwm(motorPwmRef)
 , pidController(pidControllerRef)
-, adc(adcRef)
+, analog(analogRef)
 , systemData(systemDataRef)
 , rotorEncoder(rotorEncoderRef)
-{}
+{
+	dController.SetParameters(10.0, 1.0, 0.0, 1.0, 10.0);
+	qController.SetParameters(10.0, 1.0, 0.0, 1.0, 10.0);
+	speedController.SetParameters(0.01, 0.001, 0.0, 1.0, 10.0);
+}
 
 void MotorControl::Init()
 {
 	taskHandle = xTaskCreate(this->MotorControlTask, "MotorControlTask", 128 * 4, (void*) this,
 			24, NULL);
-
-	//pidController.SetParameters(syste, _ki, _kd, _pidOutputLimit, _windUpLimit)
 }
 
 Common::ErrorType MotorControl::SetArmed(bool isArmed)
@@ -78,55 +90,90 @@ void MotorControl::MotorControlTask(void *argument)
 
 	while (1)
 	{
-		GLOBAL_ADC_0 = ((float)objectHandle->adc.ReadChannel(Common::ADC_CHANNELS::DC_BUS_VOLTAGE) - 40.0 - 2048.0) / 4096.0;
-		GLOBAL_ADC_1 = ((float)objectHandle->adc.ReadChannel(1) - 55.0 - 2048.0) / 4096.0;
-		GLOBAL_ADC_2 = ((float)objectHandle->adc.ReadChannel(2) - 56.0 - 2048.0) / 4096.0;
-		GLOBAL_ADC_3 = objectHandle->adc.ReadChannel(3);
-		GLOBAL_ADC_4 = objectHandle->adc.ReadChannel(4);
-		GLOBAL_ADC_5 = objectHandle->adc.ReadChannel(5);
+		GLOBAL_ADC_6 = objectHandle->analog.GetBusVoltage();
+		GLOBAL_ADC_0 = objectHandle->analog.GetPhaseCurrent(0);
+		//GLOBAL_ADC_0 = ((float)objectHandle->adc.ReadChannel(0) - 40.0 - 2048.0) / 4096.0;
+		//GLOBAL_ADC_1 = ((float)objectHandle->adc.ReadChannel(1) - 55.0 - 2048.0) / 4096.0;
+		//GLOBAL_ADC_2 = ((float)objectHandle->adc.ReadChannel(2) - 56.0 - 2048.0) / 4096.0;
+		//GLOBAL_ADC_3 = objectHandle->adc.ReadChannel(3);
+		//GLOBAL_ADC_4 = objectHandle->adc.ReadChannel(4);
+		//GLOBAL_ADC_5 = objectHandle->adc.ReadChannel(5);
 
 		if(objectHandle->mode == Common::MotorMode::DC_AB)
 		{
 
 		}
 
+
+
 		if(1)
 		{
-			angle = objectHandle->rotorEncoder.GetPosition()%4096;
+			Global_as5047 = objectHandle->rotorEncoder.GetPosition();
 
-			GLOBAL_encoder = objectHandle->rotorEncoder.GetPosition();
+			signedPos = (int16_t)(Global_as5047 << 2);
+
+			if(signedPos < 0)
+				speed = abs(signedPos) - abs(oldPos);
+			else
+				speed = abs(oldPos) - abs(signedPos);
+
+			oldPos = signedPos;
+
+			speedFilter = speed*0.1 + speedFilter*0.9;
 
 
 
-			float angleInRad = ((float)angle / 4096.0) * 2.0 * M_PI;
+			angle = (Global_as5047 >> 2) + 150;
 
-			DQZero dqz = {1.0, 0.0, 0.0};
+			angle = angle % 585;
+			float angleInRad = ((float)angle / 585.0) * 2.0 * M_PI;
 
-			AlphaBetaZero abz = objectHandle->InverseParkTransform(dqz, angleInRad);
-			ABC abc = objectHandle->InverseClarkeTransform(abz);
+			//Feed FW
+			AlphaBetaZero abz;
 
-			GLOBAL_Abc.a = abc.a;
-			GLOBAL_Abc.b = abc.b;
-			GLOBAL_Abc.c = abc.c;
+			abz = objectHandle->InverseParkTransform(dqz, angleInRad);
+			ABC phaseDutyABC = objectHandle->InverseClarkeTransform(abz);
 
-			objectHandle->clarkTransformResult = objectHandle->ClarkTransform(abc);
+			int power = objectHandle->systemData.runTimeData.pwm;
+
+			objectHandle->motorPwm.SetPwmChannel1Duty((phaseDutyABC.a * power) + 500);
+			objectHandle->motorPwm.SetPwmChannel3Duty((phaseDutyABC.b * power) + 500);
+			objectHandle->motorPwm.SetPwmChannel2Duty((phaseDutyABC.c * power) + 500);
+			//Feed FW
+
+			//FeedBack
+			//ABC currentFeedBackABC = {GLOBAL_ADC_0, GLOBAL_ADC_1, GLOBAL_ADC_2};
+			//objectHandle->clarkTransformResult = objectHandle->ClarkTransform(currentFeedBackABC);
 			objectHandle->parkTransformResult = objectHandle->ParkTransform(objectHandle->clarkTransformResult.alpha, objectHandle->clarkTransformResult.beta, angleInRad);
 
-			GLOBAL_PARK_D = objectHandle->parkTransformResult.d;
-			GLOBAL_PARK_Q = objectHandle->parkTransformResult.q;
-			GLOBAL_PARK_ZERO = objectHandle->parkTransformResult.zero;
+			dFilter = objectHandle->parkTransformResult.d * 0.1 + dFilter*0.9;
+			qFilter = objectHandle->parkTransformResult.q * 0.1 + qFilter*0.9;
 
-			int duty = objectHandle->systemData.runTimeData.pwm;
+			GLOBAL_PARK_D = dFilter;
+			GLOBAL_PARK_Q = qFilter;
 
-			objectHandle->motorPwm.SetPwmChannel1Duty((abc.a + 1) * duty);
-			objectHandle->motorPwm.SetPwmChannel2Duty((abc.b + 1) * duty);
-			objectHandle->motorPwm.SetPwmChannel3Duty((abc.c + 1) * duty);
-
-			//objectHandle->SetDcMotor(objectHandle->systemData.runTimeData.pwm);
-			objectHandle->systemData.runTimeData.current = GLOBAL_ADC_3;
+			speedCmd = objectHandle->speedController.Calculate(speedFilter, objectHandle->systemData.runTimeData.speed / 100.0);
+			float dTarget = speedCmd / 100.0;//objectHandle->systemData.runTimeData.syncPwm / 1000.0;
+			dqz.d = objectHandle->dController.Calculate(GLOBAL_PARK_D, dTarget);
+			dqz.q = objectHandle->qController.Calculate(GLOBAL_PARK_Q, 0.0);
+			//FeedBack
 		}
 
+		objectHandle->CheckConfigUpdates();
+
 		osDelay(1);
+	}
+}
+
+void MotorControl::CheckConfigUpdates()
+{
+	if(systemData.runTimeData.isConfigChanged == true)
+	{
+		systemData.runTimeData.isConfigChanged = false;
+
+		dController.SetParameters(10.0, 1.0, 0.0, systemData.runTimeData.torque/1000.0, 10.0);
+		qController.SetParameters(10.0, 1.0, 0.0, systemData.runTimeData.torque/1000.0, 10.0);
+		speedController.SetParameters(0.01, 0.001, 0.0, systemData.runTimeData.position/1000.0, 10.0);
 	}
 }
 

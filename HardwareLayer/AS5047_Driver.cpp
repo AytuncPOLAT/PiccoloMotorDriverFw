@@ -50,7 +50,7 @@ void AS5047::Init()
 	spiHandle.Init.CLKPolarity = SPI_POLARITY_LOW;
 	spiHandle.Init.CLKPhase = SPI_PHASE_2EDGE;
 	spiHandle.Init.NSS = SPI_NSS_HARD_OUTPUT;
-	spiHandle.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256;
+	spiHandle.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16;
 	spiHandle.Init.FirstBit = SPI_FIRSTBIT_MSB;
 	spiHandle.Init.TIMode = SPI_TIMODE_DISABLE;
 	spiHandle.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
