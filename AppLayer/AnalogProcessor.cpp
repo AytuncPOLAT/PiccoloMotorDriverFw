@@ -33,7 +33,8 @@ void AnalogProcessor::AnalogProcessTask(void *argument)
 
 float AnalogProcessor::GetBusVoltage()
 {
-	float busVoltage = ((adc.ReadChannel(Common::ADC_CHANNELS::DC_BUS_VOLTAGE) -72) * Common::MILLIVOLTS_PER_COUNT) / Common::DC_BUS_SENSE_RATIO;
+	float busVoltage = (adc.ReadChannel(Common::ADC_CHANNELS::DC_BUS_VOLTAGE) * Common::MILLIVOLTS_PER_COUNT)
+			/ Common::DC_BUS_SENSE_RATIO;
 	return busVoltage;
 }
 

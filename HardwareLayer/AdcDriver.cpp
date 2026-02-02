@@ -212,6 +212,7 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* hadc)
 
 void AdcDriver::Start()
 {
+	HAL_ADCEx_Calibration_Start(&hadc1, ADC_CALIB_OFFSET_LINEARITY, ADC_SINGLE_ENDED);
 	HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adcBuffer, 6);
 }
 
