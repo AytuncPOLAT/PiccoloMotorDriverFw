@@ -18,6 +18,7 @@ namespace Common
 	constexpr int16_t ADC_MID_POINT = ADC_MAX / 2U;
 	constexpr float ADC_REF_IN_MILLI_VOLTS = 3300U;
 	constexpr float MILLIVOLTS_PER_COUNT = ADC_REF_IN_MILLI_VOLTS / ADC_MAX;
+	constexpr float MILLIAMPS_PER_COUNT = MILLIVOLTS_PER_COUNT / 1.2;
 
 	constexpr float DC_BUS_SENSE_LOW_SIDE = 1000U;
 	constexpr float DC_BUS_SENSE_HIGH_SIDE = 47000U;
@@ -25,12 +26,12 @@ namespace Common
 
 	enum class ADC_CHANNELS : uint8_t
 	{
+		PHASE_A_CURRENT = 0,
+		PHASE_B_CURRENT = 1,
+		PHASE_C_CURRENT = 2,
+		EXT1 = 3,
 		DC_BUS_VOLTAGE = 4,
-		PHASE_A_CURRENT,
-		PHASE_B_CURRENT,
-		PHASE_C_CURRENT,
 		EXT0 = 5,
-		EXT1 = 3
 	};
 
 	enum class DATA_TYPE : uint8_t

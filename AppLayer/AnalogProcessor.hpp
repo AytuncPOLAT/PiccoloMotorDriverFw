@@ -20,8 +20,10 @@ namespace AppLayer
 
 		float GetPhaseCurrent(uint8_t channel);
 		float GetBusVoltage();
+		uint16_t GetExtAnalog(uint8_t channel);
 		void SetVoltageCurrentRatio(float gain);
 		void StartTask();
+
 
 	private:
 		static void AnalogProcessTask(void *argument);
@@ -31,7 +33,7 @@ namespace AppLayer
 		HardwareLayer::AdcDriver& adc;
 		Common::SystemData& systemData;
 		float currentGain;
-
+		float phaseOffsets[3] = {0.0, 0.0, 0.0};
 	};
 }
 #endif //ANALOG_PROCESSOR_HPP

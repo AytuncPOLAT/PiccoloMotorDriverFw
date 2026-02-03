@@ -8,6 +8,9 @@
 float GLOBAL_ADC_6;
 float GLOBAL_ADC_0;
 
+uint16_t G_ADC_ext0;
+uint16_t G_ADC_ext1;
+
 using namespace AppLayer;
 
 volatile float GLOBAL_PARK_D;
@@ -48,9 +51,9 @@ MotorControl::MotorControl(HardwareLayer::MotorPwm& motorPwmRef,
 , systemData(systemDataRef)
 , rotorEncoder(rotorEncoderRef)
 {
-	dController.SetParameters(10.0, 1.0, 0.0, 1.0, 10.0);
-	qController.SetParameters(10.0, 1.0, 0.0, 1.0, 10.0);
-	speedController.SetParameters(0.01, 0.001, 0.0, 1.0, 10.0);
+	dController.SetParameters(10.0, 1.0, 0.0, 400.0, 10.0);
+	qController.SetParameters(10.0, 1.0, 0.0, 400.0, 10.0);
+	speedController.SetParameters(0.01, 0.001, 0.0, 10.0, 10.0);
 }
 
 void MotorControl::Init()
@@ -91,7 +94,9 @@ void MotorControl::MotorControlTask(void *argument)
 	while (1)
 	{
 		GLOBAL_ADC_6 = objectHandle->analog.GetBusVoltage();
-		GLOBAL_ADC_0 = objectHandle->analog.GetPhaseCurrent(0);
+		G_ADC_ext0 = objectHandle->analog.GetExtAnalog(0);
+		G_ADC_ext1 = objectHandle->analog.GetExtAnalog(1);
+
 		//GLOBAL_ADC_0 = ((float)objectHandle->adc.ReadChannel(0) - 40.0 - 2048.0) / 4096.0;
 		//GLOBAL_ADC_1 = ((float)objectHandle->adc.ReadChannel(1) - 55.0 - 2048.0) / 4096.0;
 		//GLOBAL_ADC_2 = ((float)objectHandle->adc.ReadChannel(2) - 56.0 - 2048.0) / 4096.0;
@@ -134,7 +139,7 @@ void MotorControl::MotorControlTask(void *argument)
 			abz = objectHandle->InverseParkTransform(dqz, angleInRad);
 			ABC phaseDutyABC = objectHandle->InverseClarkeTransform(abz);
 
-			int power = objectHandle->systemData.runTimeData.pwm;
+			int power = 1;//objectHandle->systemData.runTimeData.pwm;
 
 			objectHandle->motorPwm.SetPwmChannel1Duty((phaseDutyABC.a * power) + 500);
 			objectHandle->motorPwm.SetPwmChannel3Duty((phaseDutyABC.b * power) + 500);
@@ -142,18 +147,22 @@ void MotorControl::MotorControlTask(void *argument)
 			//Feed FW
 
 			//FeedBack
-			//ABC currentFeedBackABC = {GLOBAL_ADC_0, GLOBAL_ADC_1, GLOBAL_ADC_2};
-			//objectHandle->clarkTransformResult = objectHandle->ClarkTransform(currentFeedBackABC);
+			ABC currentFeedBackABC = {objectHandle->analog.GetPhaseCurrent(0),
+					objectHandle->analog.GetPhaseCurrent(1),
+					objectHandle->analog.GetPhaseCurrent(2)};
+			objectHandle->clarkTransformResult = objectHandle->ClarkTransform(currentFeedBackABC);
 			objectHandle->parkTransformResult = objectHandle->ParkTransform(objectHandle->clarkTransformResult.alpha, objectHandle->clarkTransformResult.beta, angleInRad);
 
-			dFilter = objectHandle->parkTransformResult.d * 0.1 + dFilter*0.9;
-			qFilter = objectHandle->parkTransformResult.q * 0.1 + qFilter*0.9;
+			dFilter = objectHandle->parkTransformResult.d * 0.01 + dFilter*0.99;
+			qFilter = objectHandle->parkTransformResult.q * 0.01 + qFilter*0.99;
 
 			GLOBAL_PARK_D = dFilter;
 			GLOBAL_PARK_Q = qFilter;
 
 			speedCmd = objectHandle->speedController.Calculate(speedFilter, objectHandle->systemData.runTimeData.speed / 100.0);
-			float dTarget = speedCmd / 100.0;//objectHandle->systemData.runTimeData.syncPwm / 1000.0;
+			//float dTarget = speedCmd / 100.0;//objectHandle->systemData.runTimeData.syncPwm / 1000.0;
+			float dTarget = G_ADC_ext1;
+
 			dqz.d = objectHandle->dController.Calculate(GLOBAL_PARK_D, dTarget);
 			dqz.q = objectHandle->qController.Calculate(GLOBAL_PARK_Q, 0.0);
 			//FeedBack

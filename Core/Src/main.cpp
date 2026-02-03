@@ -66,7 +66,6 @@ int main(void)
 	hardware.adc.Init();
 	hardware.externalQuadEncoder.Init();
 	hardware.as5047.Init();
-	//app.analogProcessor.StartTask();
 
 
 	osKernelInitialize();
@@ -75,10 +74,9 @@ int main(void)
 									&defaultTask_attributes);
 
 	app.userInterface.Init();
-
 	app.motorControl.Init();
-
 	app.systemDataController.Init();
+	app.analogProcessor.StartTask();
 
 	osKernelStart();
 	while (1)
