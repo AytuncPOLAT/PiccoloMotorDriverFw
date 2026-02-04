@@ -48,11 +48,17 @@ namespace Common
 		FW_VERSION,
 		DEV_ADDRESS,
 		DEV_MODE,
-		PID_KP,
-		PID_KI,
-		PID_KD,
-		PID_MAX_INTEGRAL_WU,
-		PID_SAT,
+		PID_DQ_KP,
+		PID_DQ_KI,
+		PID_DQ_KD,
+		PID_DQ_MAX_INTEGRAL_WU,
+		PID_DQ_SAT,
+
+		PID_SPD_KP,
+		PID_SPD_KI,
+		PID_SPD_KD,
+		PID_SPD_MAX_INTEGRAL_WU,
+		PID_SPD_SAT,
 	};
 
 	struct __attribute__((packed)) ConfigurationData
@@ -68,15 +74,32 @@ namespace Common
 		int adcPhase_B_Gain;
 		int adcPhase_C_Offset;
 		int adcPhase_C_Gain;
-		int pidKp;
-		int pidKi;
-		int pidKd;
-		int pidMaxIWindUp;
-		int pidSaturation;
-		uint32_t padding32[5];
+
+		struct __attribute__((packed)) SpeedController
+		{
+			int kp;
+			int ki;
+			int kd;
+			int maxIWindUp;
+			int saturation;
+		}speedController;
+
+		struct __attribute__((packed)) DqController //Torque
+		{
+			int kp;
+			int ki;
+			int kd;
+			int maxIWindUp;
+			int saturation;
+		}dqController;
+
+		//uint32_t padding32[0];
 		uint16_t padding16[1];
 		uint16_t crc16;
 	};
+
+	static_assert(sizeof(ConfigurationData) % 8 == 0, "Configuration data struct alignment error"
+			", Configuration data must be aligned to 8 bytes");
 
 	struct RunTimeData
 	{
@@ -86,9 +109,6 @@ namespace Common
 		int position;
 		bool isConfigChanged;
 	};
-
-	static_assert(sizeof(ConfigurationData) % 8 == 0, "Configuration data struct alignment error"
-			", Configuration data must be aligned to 8 bytes");
 
 	class SystemData
 	{

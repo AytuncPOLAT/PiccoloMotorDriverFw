@@ -21,6 +21,7 @@ namespace AppLayer
 		float GetPhaseCurrent(uint8_t channel);
 		float GetBusVoltage();
 		uint16_t GetExtAnalog(uint8_t channel);
+		bool IsCalibrated();
 		void SetVoltageCurrentRatio(float gain);
 		void StartTask();
 
@@ -34,6 +35,8 @@ namespace AppLayer
 		Common::SystemData& systemData;
 		float currentGain;
 		float phaseOffsets[3] = {0.0, 0.0, 0.0};
+
+		bool isCalibrated = false;
 	};
 }
 #endif //ANALOG_PROCESSOR_HPP

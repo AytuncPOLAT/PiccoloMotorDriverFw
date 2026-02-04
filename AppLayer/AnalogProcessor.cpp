@@ -42,7 +42,14 @@ void AnalogProcessor::AnalogProcessTask(void *argument)
 
 		osDelay(10);
 	}
+
+	objectHandle->isCalibrated = true;
 	vTaskDelete(NULL);
+}
+
+bool AnalogProcessor::IsCalibrated()
+{
+	return isCalibrated;
 }
 
 float AnalogProcessor::GetBusVoltage()

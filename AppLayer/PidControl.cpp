@@ -5,13 +5,13 @@ using namespace AppLayer;
 PidController::PidController()
 {}
 
-void PidController::SetParameters(float _kp, float _ki, float _kd, float _pidOutputLimit, float _windUpLimit)
+void PidController::SetParameters(float _kp, float _ki, float _kd, float _windUpLimit, float _pidOutputLimit)
 {
 	kp = _kp;
 	ki = _ki;
 	kd = _kd;
-	pidLimit = _pidOutputLimit;
 	integralWindUpLimit = _windUpLimit;
+	pidLimit = _pidOutputLimit;
 }
 
 float PidController::Calculate(float input, float setPoint)
@@ -40,7 +40,3 @@ float PidController::Calculate(float input, float setPoint)
 
 	return pidOutput;
 }
-
-
-
-

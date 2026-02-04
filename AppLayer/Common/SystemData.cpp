@@ -16,16 +16,18 @@ void Common::SystemData::DefaultInitialization()
 	configurationData.adcPhase_B_Gain = 0;
 	configurationData.adcPhase_C_Offset = 0;
 	configurationData.adcPhase_C_Gain = 0;
-	configurationData.pidKp = 1000U;
-	configurationData.pidKi = 2000U;
-	configurationData.pidKd = 3000U;
-	configurationData.pidMaxIWindUp = 4000U;
-	configurationData.pidSaturation = 5000U;
-	configurationData.padding32[0] = 10U;
-	configurationData.padding32[1] = 11U;
-	configurationData.padding32[2] = 12U;
-	configurationData.padding32[3] = 13U;
-	configurationData.padding32[4] = 14U;
-	configurationData.padding16[0] = 15U;
+
+	configurationData.speedController.kp = 1000;
+	configurationData.speedController.ki = 100;
+	configurationData.speedController.kd = 0;
+	configurationData.speedController.maxIWindUp = 100000;
+	configurationData.speedController.saturation = 500000;
+
+	configurationData.dqController.kp = 10000;
+	configurationData.dqController.ki = 1000;
+	configurationData.dqController.kd = 0;
+	configurationData.dqController.maxIWindUp = 10000;
+	configurationData.dqController.saturation = 500000;
+
 	configurationData.crc16 = 16U;
 }

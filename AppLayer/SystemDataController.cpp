@@ -166,24 +166,46 @@ void SystemDataController::DataReadResponse(Common::PROPERTY property)
 		memcpy(&communication.txData.data0, &systemData.configurationData.deviceMode, sizeof(uint32_t));
 		break;
 
-	case Common::PROPERTY::PID_KP:
-		memcpy(&communication.txData.data0, &systemData.configurationData.pidKp, sizeof(uint32_t));
+	//DQ Controller
+	case Common::PROPERTY::PID_DQ_KP:
+		memcpy(&communication.txData.data0, &systemData.configurationData.dqController.kp, sizeof(uint32_t));
 		break;
 
-	case Common::PROPERTY::PID_KI:
-		memcpy(&communication.txData.data0, &systemData.configurationData.pidKi, sizeof(uint32_t));
+	case Common::PROPERTY::PID_DQ_KI:
+		memcpy(&communication.txData.data0, &systemData.configurationData.dqController.ki, sizeof(uint32_t));
 		break;
 
-	case Common::PROPERTY::PID_KD:
-		memcpy(&communication.txData.data0, &systemData.configurationData.pidKd, sizeof(uint32_t));
+	case Common::PROPERTY::PID_DQ_KD:
+		memcpy(&communication.txData.data0, &systemData.configurationData.dqController.kd, sizeof(uint32_t));
 		break;
 
-	case Common::PROPERTY::PID_MAX_INTEGRAL_WU:
-		memcpy(&communication.txData.data0, &systemData.configurationData.pidMaxIWindUp, sizeof(uint32_t));
+	case Common::PROPERTY::PID_DQ_MAX_INTEGRAL_WU:
+		memcpy(&communication.txData.data0, &systemData.configurationData.dqController.maxIWindUp, sizeof(uint32_t));
 		break;
 
-	case Common::PROPERTY::PID_SAT:
-		memcpy(&communication.txData.data0, &systemData.configurationData.pidSaturation, sizeof(uint32_t));
+	case Common::PROPERTY::PID_DQ_SAT:
+		memcpy(&communication.txData.data0, &systemData.configurationData.dqController.saturation, sizeof(uint32_t));
+		break;
+
+	//Speed Controller
+	case Common::PROPERTY::PID_SPD_KP:
+		memcpy(&communication.txData.data0, &systemData.configurationData.speedController.kp, sizeof(uint32_t));
+		break;
+
+	case Common::PROPERTY::PID_SPD_KI:
+		memcpy(&communication.txData.data0, &systemData.configurationData.speedController.ki, sizeof(uint32_t));
+		break;
+
+	case Common::PROPERTY::PID_SPD_KD:
+		memcpy(&communication.txData.data0, &systemData.configurationData.speedController.kd, sizeof(uint32_t));
+		break;
+
+	case Common::PROPERTY::PID_SPD_MAX_INTEGRAL_WU:
+		memcpy(&communication.txData.data0, &systemData.configurationData.speedController.maxIWindUp, sizeof(uint32_t));
+		break;
+
+	case Common::PROPERTY::PID_SPD_SAT:
+		memcpy(&communication.txData.data0, &systemData.configurationData.speedController.saturation, sizeof(uint32_t));
 		break;
 	}
 
@@ -214,24 +236,46 @@ void SystemDataController::WriteToRam(Common::PROPERTY property, uint32_t newVal
 		memcpy(&systemData.configurationData.deviceMode, &newValue, sizeof(uint32_t));
 		break;
 
-	case Common::PROPERTY::PID_KP:
-		memcpy(&systemData.configurationData.pidKp, &newValue, sizeof(uint32_t));
+	//DQ Controller
+	case Common::PROPERTY::PID_DQ_KP:
+		memcpy(&systemData.configurationData.dqController.kp, &newValue, sizeof(uint32_t));
 		break;
 
-	case Common::PROPERTY::PID_KI:
-		memcpy(&systemData.configurationData.pidKi, &newValue, sizeof(uint32_t));
+	case Common::PROPERTY::PID_DQ_KI:
+		memcpy(&systemData.configurationData.dqController.ki, &newValue, sizeof(uint32_t));
 		break;
 
-	case Common::PROPERTY::PID_KD:
-		memcpy(&systemData.configurationData.pidKd, &newValue, sizeof(uint32_t));
+	case Common::PROPERTY::PID_DQ_KD:
+		memcpy(&systemData.configurationData.dqController.kd, &newValue, sizeof(uint32_t));
 		break;
 
-	case Common::PROPERTY::PID_MAX_INTEGRAL_WU:
-		memcpy(&systemData.configurationData.pidMaxIWindUp, &newValue, sizeof(uint32_t));
+	case Common::PROPERTY::PID_DQ_MAX_INTEGRAL_WU:
+		memcpy(&systemData.configurationData.dqController.maxIWindUp, &newValue, sizeof(uint32_t));
 		break;
 
-	case Common::PROPERTY::PID_SAT:
-		memcpy(&systemData.configurationData.pidSaturation, &newValue, sizeof(uint32_t));
+	case Common::PROPERTY::PID_DQ_SAT:
+		memcpy(&systemData.configurationData.dqController.saturation, &newValue, sizeof(uint32_t));
+		break;
+
+	//Speed Controller
+	case Common::PROPERTY::PID_SPD_KP:
+		memcpy(&systemData.configurationData.speedController.kp, &newValue, sizeof(uint32_t));
+		break;
+
+	case Common::PROPERTY::PID_SPD_KI:
+		memcpy(&systemData.configurationData.speedController.ki, &newValue, sizeof(uint32_t));
+		break;
+
+	case Common::PROPERTY::PID_SPD_KD:
+		memcpy(&systemData.configurationData.speedController.kd, &newValue, sizeof(uint32_t));
+		break;
+
+	case Common::PROPERTY::PID_SPD_MAX_INTEGRAL_WU:
+		memcpy(&systemData.configurationData.speedController.maxIWindUp, &newValue, sizeof(uint32_t));
+		break;
+
+	case Common::PROPERTY::PID_SPD_SAT:
+		memcpy(&systemData.configurationData.speedController.saturation, &newValue, sizeof(uint32_t));
 		break;
 	}
 }

@@ -51,9 +51,23 @@ MotorControl::MotorControl(HardwareLayer::MotorPwm& motorPwmRef,
 , systemData(systemDataRef)
 , rotorEncoder(rotorEncoderRef)
 {
-	dController.SetParameters(10.0, 1.0, 0.0, 400.0, 10.0);
-	qController.SetParameters(10.0, 1.0, 0.0, 400.0, 10.0);
-	speedController.SetParameters(0.01, 0.001, 0.0, 10.0, 10.0);
+	dController.SetParameters(systemData.configurationData.dqController.kp / 1000.0,
+			systemData.configurationData.dqController.ki / 1000.0,
+			systemData.configurationData.dqController.kd / 1000.0,
+			systemData.configurationData.dqController.maxIWindUp / 1000.0,
+			systemData.configurationData.dqController.saturation / 1000.0);
+
+	qController.SetParameters(systemData.configurationData.dqController.kp / 1000.0,
+			systemData.configurationData.dqController.ki / 1000.0,
+			systemData.configurationData.dqController.kd / 1000.0,
+			systemData.configurationData.dqController.maxIWindUp / 1000.0,
+			systemData.configurationData.dqController.saturation / 1000.0);
+
+	speedController.SetParameters(systemData.configurationData.speedController.kp / 1000.0,
+			systemData.configurationData.speedController.ki / 1000.0,
+			systemData.configurationData.speedController.kd / 1000.0,
+			systemData.configurationData.speedController.maxIWindUp / 1000.0,
+			systemData.configurationData.speedController.saturation / 1000.0);
 }
 
 void MotorControl::Init()
@@ -97,13 +111,6 @@ void MotorControl::MotorControlTask(void *argument)
 		G_ADC_ext0 = objectHandle->analog.GetExtAnalog(0);
 		G_ADC_ext1 = objectHandle->analog.GetExtAnalog(1);
 
-		//GLOBAL_ADC_0 = ((float)objectHandle->adc.ReadChannel(0) - 40.0 - 2048.0) / 4096.0;
-		//GLOBAL_ADC_1 = ((float)objectHandle->adc.ReadChannel(1) - 55.0 - 2048.0) / 4096.0;
-		//GLOBAL_ADC_2 = ((float)objectHandle->adc.ReadChannel(2) - 56.0 - 2048.0) / 4096.0;
-		//GLOBAL_ADC_3 = objectHandle->adc.ReadChannel(3);
-		//GLOBAL_ADC_4 = objectHandle->adc.ReadChannel(4);
-		//GLOBAL_ADC_5 = objectHandle->adc.ReadChannel(5);
-
 		if(objectHandle->mode == Common::MotorMode::DC_AB)
 		{
 
@@ -111,7 +118,7 @@ void MotorControl::MotorControlTask(void *argument)
 
 
 
-		if(1)
+		if(objectHandle->analog.IsCalibrated())
 		{
 			Global_as5047 = objectHandle->rotorEncoder.GetPosition();
 
@@ -128,7 +135,7 @@ void MotorControl::MotorControlTask(void *argument)
 
 
 
-			angle = (Global_as5047 >> 2) + 150;
+			angle = (Global_as5047 >> 2) + G_ADC_ext0;
 
 			angle = angle % 585;
 			float angleInRad = ((float)angle / 585.0) * 2.0 * M_PI;
@@ -139,7 +146,7 @@ void MotorControl::MotorControlTask(void *argument)
 			abz = objectHandle->InverseParkTransform(dqz, angleInRad);
 			ABC phaseDutyABC = objectHandle->InverseClarkeTransform(abz);
 
-			int power = 1;//objectHandle->systemData.runTimeData.pwm;
+			float power = 0.5;//objectHandle->systemData.runTimeData.pwm;
 
 			objectHandle->motorPwm.SetPwmChannel1Duty((phaseDutyABC.a * power) + 500);
 			objectHandle->motorPwm.SetPwmChannel3Duty((phaseDutyABC.b * power) + 500);
@@ -159,9 +166,8 @@ void MotorControl::MotorControlTask(void *argument)
 			GLOBAL_PARK_D = dFilter;
 			GLOBAL_PARK_Q = qFilter;
 
-			speedCmd = objectHandle->speedController.Calculate(speedFilter, objectHandle->systemData.runTimeData.speed / 100.0);
-			//float dTarget = speedCmd / 100.0;//objectHandle->systemData.runTimeData.syncPwm / 1000.0;
-			float dTarget = G_ADC_ext1;
+			speedCmd = objectHandle->speedController.Calculate(-speedFilter, (G_ADC_ext1 - 2048) / 100.0);
+			float dTarget = speedCmd;//objectHandle->systemData.runTimeData.syncPwm / 1000.0;
 
 			dqz.d = objectHandle->dController.Calculate(GLOBAL_PARK_D, dTarget);
 			dqz.q = objectHandle->qController.Calculate(GLOBAL_PARK_Q, 0.0);
@@ -180,9 +186,23 @@ void MotorControl::CheckConfigUpdates()
 	{
 		systemData.runTimeData.isConfigChanged = false;
 
-		dController.SetParameters(10.0, 1.0, 0.0, systemData.runTimeData.torque/1000.0, 10.0);
-		qController.SetParameters(10.0, 1.0, 0.0, systemData.runTimeData.torque/1000.0, 10.0);
-		speedController.SetParameters(0.01, 0.001, 0.0, systemData.runTimeData.position/1000.0, 10.0);
+		dController.SetParameters(systemData.configurationData.dqController.kp / 1000.0,
+				systemData.configurationData.dqController.ki / 1000.0,
+				systemData.configurationData.dqController.kd / 1000.0,
+				systemData.configurationData.dqController.maxIWindUp / 1000.0,
+				systemData.configurationData.dqController.saturation / 1000.0);
+
+		qController.SetParameters(systemData.configurationData.dqController.kp / 1000.0,
+				systemData.configurationData.dqController.ki / 1000.0,
+				systemData.configurationData.dqController.kd / 1000.0,
+				systemData.configurationData.dqController.maxIWindUp / 1000.0,
+				systemData.configurationData.dqController.saturation / 1000.0);
+
+		speedController.SetParameters(systemData.configurationData.speedController.kp / 1000.0,
+				systemData.configurationData.speedController.ki / 1000.0,
+				systemData.configurationData.speedController.kd / 1000.0,
+				systemData.configurationData.speedController.maxIWindUp / 1000.0,
+				systemData.configurationData.speedController.saturation / 1000.0);
 	}
 }
 
