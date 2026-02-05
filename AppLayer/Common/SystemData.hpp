@@ -93,13 +93,13 @@ namespace Common
 			int saturation;
 		}dqController;
 
-		//uint32_t padding32[0];
+		uint32_t padding32[2];
 		uint16_t padding16[1];
 		uint16_t crc16;
 	};
 
-	static_assert(sizeof(ConfigurationData) % 8 == 0, "Configuration data struct alignment error"
-			", Configuration data must be aligned to 8 bytes");
+	static_assert(sizeof(ConfigurationData) % 32 == 0, "Configuration data struct alignment error"
+			", Configuration data must be aligned to 32 bytes");
 
 	struct RunTimeData
 	{

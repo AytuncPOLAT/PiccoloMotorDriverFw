@@ -82,7 +82,7 @@ namespace AppLayer
 
 		ABC InverseClarkeTransform(AlphaBetaZero input);
 
-		DQZero ParkTransform(float alpha, float beta, float angleInRad);
+		DQZero ParkTransform(AlphaBetaZero abz, float angleInRad);
 		DQZero parkTransformResult;
 
 		AlphaBetaZero InverseParkTransform(DQZero input, float theta);
@@ -92,6 +92,11 @@ namespace AppLayer
 		Common::MotorMode mode;
 		bool armed = false;
 		HardwareLayer::MotorPwm& motorPwm;
+
+
+		ABC phaseCurrents;
+		void TorqueLoop(float setTorque, float angleInRadians, ABC phaseCurrents);
+		float SpeedLoop(float setSpeed, float speedFb);
 
 		int16_t motorCurrent = 0;
 

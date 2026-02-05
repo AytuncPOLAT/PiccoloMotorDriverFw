@@ -13,6 +13,7 @@ void SystemDataController::OnCallback(uint8_t arg)
 	if(communication.rxData.cmd == CMD_TYPE::WRITE_TO_DEVICE)
 	{
 		WriteToRam((Common::PROPERTY)communication.rxData.data0, communication.rxData.data1);
+		systemData.runTimeData.isConfigChanged = true;
 	}
 
 	if(communication.rxData.cmd == CMD_TYPE::WRITE_TO_DEVICE_FLASH)
@@ -23,8 +24,6 @@ void SystemDataController::OnCallback(uint8_t arg)
 
 	if(communication.rxData.cmd == CMD_TYPE::MOTION_COMMAND)
 	{
-		systemData.runTimeData.isConfigChanged = true;
-
 		if(communication.rxData.data0 == 0)
 		{
 			memcpy(&systemData.runTimeData.pwm, &communication.rxData.data1, sizeof(uint32_t));

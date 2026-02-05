@@ -15,7 +15,7 @@ using namespace AppLayer;
 
 volatile float GLOBAL_PARK_D;
 volatile float GLOBAL_PARK_Q;
-volatile float GLOBAL_PARK_ZERO;
+volatile float GLOBAL_TORQUE_CMD;
 
 DQZero dqz = {1.0, 0.0, 0.0};
 
@@ -35,6 +35,8 @@ int16_t oldPos = 0;
 int16_t signedPos = 0;
 float speedFilter = 0.0;
 volatile float speedCmd = 0.0;
+
+int g_set_speed;
 
 void MotorControl::OnIndexPulseCallBack()
 {
@@ -107,6 +109,10 @@ void MotorControl::MotorControlTask(void *argument)
 
 	while (1)
 	{
+		objectHandle->phaseCurrents.a = objectHandle->analog.GetPhaseCurrent(0);
+		objectHandle->phaseCurrents.b = objectHandle->analog.GetPhaseCurrent(1);
+		objectHandle->phaseCurrents.c = objectHandle->analog.GetPhaseCurrent(2);
+
 		GLOBAL_ADC_6 = objectHandle->analog.GetBusVoltage();
 		G_ADC_ext0 = objectHandle->analog.GetExtAnalog(0);
 		G_ADC_ext1 = objectHandle->analog.GetExtAnalog(1);
@@ -115,8 +121,6 @@ void MotorControl::MotorControlTask(void *argument)
 		{
 
 		}
-
-
 
 		if(objectHandle->analog.IsCalibrated())
 		{
@@ -138,46 +142,57 @@ void MotorControl::MotorControlTask(void *argument)
 			angle = (Global_as5047 >> 2) + G_ADC_ext0;
 
 			angle = angle % 585;
-			float angleInRad = ((float)angle / 585.0) * 2.0 * M_PI;
+			float angleInRadians = ((float)angle / 585.0) * 2.0 * M_PI;
 
-			//Feed FW
-			AlphaBetaZero abz;
+			float torqueCommand = objectHandle->SpeedLoop(objectHandle->systemData.runTimeData.speed, -speedFilter);
 
-			abz = objectHandle->InverseParkTransform(dqz, angleInRad);
-			ABC phaseDutyABC = objectHandle->InverseClarkeTransform(abz);
-
-			float power = 0.5;//objectHandle->systemData.runTimeData.pwm;
-
-			objectHandle->motorPwm.SetPwmChannel1Duty((phaseDutyABC.a * power) + 500);
-			objectHandle->motorPwm.SetPwmChannel3Duty((phaseDutyABC.b * power) + 500);
-			objectHandle->motorPwm.SetPwmChannel2Duty((phaseDutyABC.c * power) + 500);
-			//Feed FW
-
-			//FeedBack
-			ABC currentFeedBackABC = {objectHandle->analog.GetPhaseCurrent(0),
-					objectHandle->analog.GetPhaseCurrent(1),
-					objectHandle->analog.GetPhaseCurrent(2)};
-			objectHandle->clarkTransformResult = objectHandle->ClarkTransform(currentFeedBackABC);
-			objectHandle->parkTransformResult = objectHandle->ParkTransform(objectHandle->clarkTransformResult.alpha, objectHandle->clarkTransformResult.beta, angleInRad);
-
-			dFilter = objectHandle->parkTransformResult.d * 0.01 + dFilter*0.99;
-			qFilter = objectHandle->parkTransformResult.q * 0.01 + qFilter*0.99;
-
-			GLOBAL_PARK_D = dFilter;
-			GLOBAL_PARK_Q = qFilter;
-
-			speedCmd = objectHandle->speedController.Calculate(-speedFilter, (G_ADC_ext1 - 2048) / 100.0);
-			float dTarget = speedCmd;//objectHandle->systemData.runTimeData.syncPwm / 1000.0;
-
-			dqz.d = objectHandle->dController.Calculate(GLOBAL_PARK_D, dTarget);
-			dqz.q = objectHandle->qController.Calculate(GLOBAL_PARK_Q, 0.0);
-			//FeedBack
+			objectHandle->TorqueLoop(torqueCommand,
+					angleInRadians,
+					objectHandle->phaseCurrents);
 		}
 
 		objectHandle->CheckConfigUpdates();
 
 		osDelay(1);
 	}
+}
+
+void MotorControl::TorqueLoop(float setTorque, float angleInRadians, ABC phaseCurrents)
+{
+	AlphaBetaZero abzFb, abzFw;
+	DQZero dqzFb, dqzFw;
+	ABC abcFw;
+
+	static DQZero filteredDQZeroFb;
+
+
+	// 3Phase 120deg AC >> 2 phase 90deg AC
+	abzFb = ClarkTransform(phaseCurrents);
+
+	// 2 phase 90deg AC >> 2 phase 90deg DC
+	dqzFb = ParkTransform(abzFb, angleInRadians);
+
+	filteredDQZeroFb.d = filteredDQZeroFb.d * 0.99 + dqzFb.d * 0.01;
+	filteredDQZeroFb.q = filteredDQZeroFb.q * 0.99 + dqzFb.q * 0.01;
+
+	GLOBAL_PARK_D = filteredDQZeroFb.d;
+	GLOBAL_PARK_Q = filteredDQZeroFb.q;
+	GLOBAL_TORQUE_CMD = setTorque;
+
+	dqzFw.d = dController.Calculate(filteredDQZeroFb.d, setTorque);
+	dqzFw.q = qController.Calculate(filteredDQZeroFb.q, 0.0);
+
+	abzFw = InverseParkTransform(dqzFw, angleInRadians);
+	abcFw = InverseClarkeTransform(abzFw);
+
+	motorPwm.SetPwmChannel1Duty(abcFw.a * 0.5 + 500);
+	motorPwm.SetPwmChannel3Duty(abcFw.b * 0.5 + 500);
+	motorPwm.SetPwmChannel2Duty(abcFw.c * 0.5 + 500);
+}
+
+float MotorControl::SpeedLoop(float setSpeed, float speedFb)
+{
+	return speedController.Calculate(speedFb, setSpeed);
 }
 
 void MotorControl::CheckConfigUpdates()
@@ -232,15 +247,15 @@ ABC MotorControl::InverseClarkeTransform(AlphaBetaZero input)
     return output;
 }
 
-DQZero MotorControl::ParkTransform(float alpha, float beta, float angleInRad)
+DQZero MotorControl::ParkTransform(AlphaBetaZero abz, float angleInRadians)
 {
-	float sin_theta = std::sin(angleInRad);
-	float cos_theta = std::cos(angleInRad);
-
 	DQZero result;
 
-	result.d = ((alpha * cos_theta) + (beta * sin_theta));
-	result.q = ((beta * cos_theta) - (alpha * sin_theta));
+	float sin_theta = std::sin(angleInRadians);
+	float cos_theta = std::cos(angleInRadians);
+
+	result.d = ((abz.alpha * cos_theta) + (abz.beta * sin_theta));
+	result.q = ((abz.beta * cos_theta) - (abz.alpha * sin_theta));
 
 	return result;
 }
