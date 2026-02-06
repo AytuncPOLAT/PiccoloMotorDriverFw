@@ -13,6 +13,7 @@ namespace HardwareLayer
 		void Init();
 		void Reset() override;
 		int GetPosition() override;
+		int GetSpeed() override;
 		void RegisterOnIndexPulseCallback(Callback* callback) override;
 	private:
 	};

@@ -6,19 +6,29 @@ DMA_HandleTypeDef hdma_adc1;
 
 namespace
 {
-	__IO uint16_t adcBuffer[6]__attribute__((section("noncacheable_buffer")));
+	__IO uint16_t adcBuffer[6]__attribute__((section("noncacheable_buffer")));\
+	AdcDriver* adcDriverPtr;
 }
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
 	if (hadc->Instance == ADC1)
 	{
-		HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_8);
+		//HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_8);
+		adcDriverPtr->isConversionDone = true;
 	}
 }
 
 AdcDriver::AdcDriver()
-{}
+: isConversionDone(false)
+{
+	adcDriverPtr = this;
+}
+
+void AdcDriver::ResetConversionDoneFlag()
+{
+	isConversionDone = false;
+}
 
 void AdcDriver::Init()
 {

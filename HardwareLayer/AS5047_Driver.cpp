@@ -100,7 +100,39 @@ uint16_t AS5047::SPI_Read(uint16_t address)
 
 int AS5047::GetPosition()
 {
-	return (int)SPI_Read(ADDR_ANGLECOM);
+	position = (int)SPI_Read(ADDR_ANGLECOM);
+	return position;
+}
+
+float AS5047::GetRotorAngleInRadians()
+{
+	int angle = (position >> 2) + offset;
+	angle = angle % 585;
+
+	float angleInRadians = ((float)angle / 585.0) * 2.0 * M_PI;
+	return angleInRadians;
+}
+
+void AS5047::SetRotorEncoderOffset(int16_t newOffset)
+{
+	offset = newOffset;
+}
+
+int AS5047::GetSpeed()
+{
+	int16_t speed;
+	int16_t reducedPos = (int16_t)(position << 2);
+	static float speedFilter = 0;
+
+	if(reducedPos < 0)
+		speed = abs(reducedPos) - abs(oldPosition);
+	else
+		speed = abs(oldPosition) - abs(reducedPos);
+
+	oldPosition = reducedPos;
+
+	speedFilter = speed*0.1 + speedFilter*0.9;
+	return speedFilter;
 }
 
 void AS5047::Reset()

@@ -17,6 +17,16 @@ AnalogProcessor::AnalogProcessor(HardwareLayer::AdcDriver& adcRef, Common::Syste
 {
 }
 
+void AnalogProcessor::ResetConversionDoneFlag()
+{
+	adc.ResetConversionDoneFlag();
+}
+
+bool AnalogProcessor::GetConversionDoneFlag()
+{
+	return adc.isConversionDone;
+}
+
 void AnalogProcessor::AnalogProcessTask(void *argument)
 {
 	AnalogProcessor *objectHandle = static_cast<AnalogProcessor*>(argument);

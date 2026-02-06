@@ -24,6 +24,8 @@ namespace AppLayer
 		bool IsCalibrated();
 		void SetVoltageCurrentRatio(float gain);
 		void StartTask();
+		void ResetConversionDoneFlag();
+		bool GetConversionDoneFlag();
 
 
 	private:

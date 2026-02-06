@@ -63,6 +63,11 @@ int QuadraticEncoderDriver::GetPosition()
 	return TIM5->CNT;
 }
 
+int QuadraticEncoderDriver::GetSpeed()
+{
+	return 0;
+}
+
 void QuadraticEncoderDriver::Reset()
 {
 

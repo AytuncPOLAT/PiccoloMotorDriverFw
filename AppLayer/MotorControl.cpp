@@ -5,9 +5,6 @@
 #include "AdcDriver.hpp"
 #include "math.h"
 
-float GLOBAL_ADC_6;
-float GLOBAL_ADC_0;
-
 uint16_t G_ADC_ext0;
 uint16_t G_ADC_ext1;
 
@@ -16,16 +13,12 @@ using namespace AppLayer;
 volatile float GLOBAL_PARK_D;
 volatile float GLOBAL_PARK_Q;
 volatile float GLOBAL_TORQUE_CMD;
-
-DQZero dqz = {1.0, 0.0, 0.0};
-
-volatile ABC GLOBAL_Abc;
-
-volatile int GLOBAL_encoder = 0;
+volatile float GLOBAL_BUS_VOLTAGE;
+volatile float GLOBAL_ROTOR_ANGLE_RAD;
+volatile float GLOBAL_ROTOR_ANGLE;
+volatile int GLOBAL_ROTOR_SPEED;
 
 extern int Global_as5047;
-
-volatile uint8_t globalMarker = 0;
 
 float dFilter = 0.0;
 float qFilter = 0.0;
@@ -109,21 +102,27 @@ void MotorControl::MotorControlTask(void *argument)
 
 	while (1)
 	{
-		objectHandle->phaseCurrents.a = objectHandle->analog.GetPhaseCurrent(0);
-		objectHandle->phaseCurrents.b = objectHandle->analog.GetPhaseCurrent(1);
-		objectHandle->phaseCurrents.c = objectHandle->analog.GetPhaseCurrent(2);
-
-		GLOBAL_ADC_6 = objectHandle->analog.GetBusVoltage();
-		G_ADC_ext0 = objectHandle->analog.GetExtAnalog(0);
-		G_ADC_ext1 = objectHandle->analog.GetExtAnalog(1);
-
-		if(objectHandle->mode == Common::MotorMode::DC_AB)
+		if(objectHandle->analog.GetConversionDoneFlag()
+				&& objectHandle->analog.IsCalibrated())
 		{
+			objectHandle->analog.ResetConversionDoneFlag();
 
-		}
+			HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_8);
 
-		if(objectHandle->analog.IsCalibrated())
-		{
+			objectHandle->phaseCurrents.a = objectHandle->analog.GetPhaseCurrent(0);
+			objectHandle->phaseCurrents.b = objectHandle->analog.GetPhaseCurrent(1);
+			objectHandle->phaseCurrents.c = objectHandle->analog.GetPhaseCurrent(2);
+
+			GLOBAL_BUS_VOLTAGE = objectHandle->analog.GetBusVoltage();
+			G_ADC_ext0 = objectHandle->analog.GetExtAnalog(0);
+			G_ADC_ext1 = objectHandle->analog.GetExtAnalog(1);
+
+			if(objectHandle->mode == Common::MotorMode::DC_AB)
+			{
+
+			}
+
+
 			Global_as5047 = objectHandle->rotorEncoder.GetPosition();
 
 			signedPos = (int16_t)(Global_as5047 << 2);
@@ -138,22 +137,25 @@ void MotorControl::MotorControlTask(void *argument)
 			speedFilter = speed*0.1 + speedFilter*0.9;
 
 
-
+/*
 			angle = (Global_as5047 >> 2) + G_ADC_ext0;
 
 			angle = angle % 585;
 			float angleInRadians = ((float)angle / 585.0) * 2.0 * M_PI;
+*/
+			GLOBAL_ROTOR_ANGLE = objectHandle->rotorEncoder.GetPosition();
+			float angleInRadians = objectHandle->rotorEncoder.GetRotorAngleInRadians();
+			GLOBAL_ROTOR_ANGLE_RAD = angleInRadians;
+			GLOBAL_ROTOR_SPEED = objectHandle->rotorEncoder.GetSpeed();
 
 			float torqueCommand = objectHandle->SpeedLoop(objectHandle->systemData.runTimeData.speed, -speedFilter);
 
 			objectHandle->TorqueLoop(torqueCommand,
 					angleInRadians,
 					objectHandle->phaseCurrents);
+
+			objectHandle->CheckConfigUpdates();
 		}
-
-		objectHandle->CheckConfigUpdates();
-
-		osDelay(1);
 	}
 }
 

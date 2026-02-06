@@ -10,6 +10,9 @@ namespace HardwareLayer
 	public:
 		virtual void Reset() = 0;
 		virtual int GetPosition() = 0;
+		virtual int GetSpeed() = 0;
+		virtual float GetRotorAngleInRadians(){};
+		virtual void SetRotorEncoderOffset(int16_t newOffset){};
 
 		struct Callback
 		{

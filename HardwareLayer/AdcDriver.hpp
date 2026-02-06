@@ -14,6 +14,9 @@ namespace HardwareLayer
 		void Start();
 		uint16_t ReadChannel(uint8_t channel);
 		uint16_t ReadChannel(Common::ADC_CHANNELS channel);
+		void ResetConversionDoneFlag();
+
+		bool isConversionDone;
 
 	private:
 		ADC_HandleTypeDef hadc1;
