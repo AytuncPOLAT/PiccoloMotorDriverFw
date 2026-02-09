@@ -53,14 +53,11 @@ namespace AppLayer
 	    float c;
 	};
 
-	class PidController;
-
 	class MotorControl
 	: public HardwareLayer::IEncoder::Callback
 	{
 	public:
 		MotorControl(HardwareLayer::MotorPwm& motorPwmRef,
-					 PidController& pidControllerRef,
 					 AnalogProcessor& analogRef,
 					 Common::SystemData& systemDataRef,
 					 HardwareLayer::IEncoder& rotorEncoderRef);
@@ -69,40 +66,32 @@ namespace AppLayer
 		Common::ErrorType SetArmed(bool isArmed);
 		void Init();
 		void SetMotorCurrent(int32_t current);
-		void SetElectricalAngle(int16_t amplitude, float angle);
 		void OnIndexPulseCallBack();
 
 	private:
 		void CheckConfigUpdates();
-		BaseType_t taskHandle;
 		static void MotorControlTask(void *argument);
 
 		AlphaBetaZero ClarkTransform(ABC input);
 		ABC InverseClarkeTransform(AlphaBetaZero input);
 		DQZero ParkTransform(AlphaBetaZero abz, float angleInRad);
 		AlphaBetaZero InverseParkTransform(DQZero input, float theta);
-
-		HardwareLayer::IEncoder& rotorEncoder;
-
-		Common::MotorMode mode;
-		bool armed = false;
-		HardwareLayer::MotorPwm& motorPwm;
-
-
-		ABC phaseCurrents;
 		void TorqueLoop(float setTorque, float angleInRadians, ABC phaseCurrents);
 		float SpeedLoop(float setSpeed, float speedFb);
+		void SetControllerParameters();
 
-		int16_t motorCurrent = 0;
-
-		PidController& pidController;
+		BaseType_t taskHandle;
+		HardwareLayer::MotorPwm& motorPwm;
 		AnalogProcessor& analog;
-
-		SinusPwm sinPwm;
+		HardwareLayer::IEncoder& rotorEncoder;
 		Common::SystemData& systemData;
+		Common::MotorMode mode;
+		bool armed = false;
 
+		ABC phaseCurrents;
 		PidController dController, qController, speedController, positionController;
 
+		int elecAngleCommand;
 		float torqueCommand;
 		float speedCommand;
 		int positionCommand;

@@ -24,6 +24,14 @@ namespace Common
 	constexpr float DC_BUS_SENSE_HIGH_SIDE = 47000U;
 	constexpr float DC_BUS_SENSE_RATIO = DC_BUS_SENSE_LOW_SIDE / (DC_BUS_SENSE_LOW_SIDE + DC_BUS_SENSE_HIGH_SIDE);
 
+	enum class CONTROLLER_TYPE : uint8_t
+	{
+		ELEC_ANGLE = 0,
+		TORQUE,
+		SPEED,
+		POSITION
+	};
+
 	enum class ADC_CHANNELS : uint8_t
 	{
 		PHASE_A_CURRENT = 0,
@@ -127,7 +135,7 @@ namespace Common
 
 	struct RunTimeData
 	{
-		int controlMode;
+		int elecAngle;
 		int torque;
 		int speed;
 		int position;

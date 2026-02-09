@@ -35,41 +35,15 @@ void MotorControl::OnIndexPulseCallBack()
 }
 
 MotorControl::MotorControl(HardwareLayer::MotorPwm& motorPwmRef,
-						   PidController& pidControllerRef,
 						   AnalogProcessor& analogRef,
 						   Common::SystemData& systemDataRef,
 						   HardwareLayer::IEncoder& rotorEncoderRef)
 : motorPwm(motorPwmRef)
-, pidController(pidControllerRef)
 , analog(analogRef)
 , systemData(systemDataRef)
 , rotorEncoder(rotorEncoderRef)
 {
-	dController.SetParameters(systemData.configurationData.dqController.kp / 1000.0,
-			systemData.configurationData.dqController.ki / 1000.0,
-			systemData.configurationData.dqController.kd / 1000.0,
-			systemData.configurationData.dqController.maxIWindUp / 1000.0,
-			systemData.configurationData.dqController.saturation / 1000.0);
-
-	qController.SetParameters(systemData.configurationData.dqController.kp / 1000.0,
-			systemData.configurationData.dqController.ki / 1000.0,
-			systemData.configurationData.dqController.kd / 1000.0,
-			systemData.configurationData.dqController.maxIWindUp / 1000.0,
-			systemData.configurationData.dqController.saturation / 1000.0);
-
-	speedController.SetParameters(systemData.configurationData.speedController.kp / 1000.0,
-			systemData.configurationData.speedController.ki / 1000.0,
-			systemData.configurationData.speedController.kd / 1000.0,
-			systemData.configurationData.speedController.maxIWindUp / 1000.0,
-			systemData.configurationData.speedController.saturation / 1000.0);
-
-	positionController.SetParameters(systemData.configurationData.positionController.kp / 1000.0,
-			systemData.configurationData.positionController.ki / 1000.0,
-			systemData.configurationData.positionController.kd / 1000.0,
-			systemData.configurationData.positionController.maxIWindUp / 1000.0,
-			systemData.configurationData.positionController.saturation / 1000.0);
-
-	//positionController.SetParameters(0.1, 0, 0, 20, 500);
+	SetControllerParameters();
 }
 void MotorControl::Init()
 {
@@ -89,14 +63,6 @@ void MotorControl::SetDcMotor(int16_t duty)
 {
 	motorPwm.SetPwmChannel2Duty((Common::MOTOR_PWM_MAX_CNT/2) + duty/10.0);
 	motorPwm.SetPwmChannel3Duty((Common::MOTOR_PWM_MAX_CNT/2) - duty/10.0);
-}
-
-void MotorControl::SetElectricalAngle(int16_t amplitude, float angle)
-{
-	auto phase = sinPwm.Update3P(amplitude, angle);
-	motorPwm.SetPwmChannel1Duty(phase.a);
-	motorPwm.SetPwmChannel2Duty(phase.b);
-	motorPwm.SetPwmChannel3Duty(phase.c);
 }
 
 void MotorControl::SetMotorCurrent(int32_t current)
@@ -125,42 +91,58 @@ void MotorControl::MotorControlTask(void *argument)
 			G_ADC_ext0 = objectHandle->analog.GetExtAnalog(0);
 			G_ADC_ext1 = objectHandle->analog.GetExtAnalog(1);
 
-			if(objectHandle->mode == Common::MotorMode::DC_AB)
-			{
-
-			}
+			//TODO: Motor type
+			//if(objectHandle->mode == Common::MotorMode::DC_AB)
+			//{}
 
 			GLOBAL_ROTOR_ANGLE = objectHandle->rotorEncoder.GetPosition();
 			float angleInRadians = objectHandle->rotorEncoder.GetRotorAngleInRadians();
 			GLOBAL_ROTOR_ANGLE_RAD = angleInRadians;
 			GLOBAL_ROTOR_SPEED = objectHandle->rotorEncoder.GetSpeed();
 
-			if(objectHandle->systemData.configurationData.controlMode > 2)
+			if(objectHandle->systemData.configurationData.controlMode
+					>= (uint8_t) Common::CONTROLLER_TYPE::POSITION)
 			{
+				//Position Control
 				GLOBAL_POSITION_CMD = objectHandle->systemData.runTimeData.position;
 				objectHandle->speedCommand =
 						objectHandle->positionController.Calculate(GLOBAL_ROTOR_ANGLE, objectHandle->systemData.runTimeData.position);
 			}
 			else
 			{
+				//Speed Control or lower
 				objectHandle->speedCommand = objectHandle->systemData.runTimeData.speed;
 			}
 
-			if(objectHandle->systemData.configurationData.controlMode > 1) // Speed control
+			if(objectHandle->systemData.configurationData.controlMode
+					>= (uint8_t) Common::CONTROLLER_TYPE::SPEED) // Speed control
 			{
+				//Speed Control
 				objectHandle->torqueCommand = objectHandle->SpeedLoop(objectHandle->speedCommand, GLOBAL_ROTOR_SPEED);
 			}
 			else
 			{
+				//Torque Control
 				objectHandle->torqueCommand = objectHandle->systemData.runTimeData.torque;
 			}
 
-			objectHandle->TorqueLoop(objectHandle->torqueCommand,
-					angleInRadians,
-					objectHandle->phaseCurrents);
+			if(objectHandle->systemData.configurationData.controlMode
+								>= (uint8_t) Common::CONTROLLER_TYPE::TORQUE)
+			{
+				objectHandle->TorqueLoop(objectHandle->torqueCommand,
+						angleInRadians,
+						objectHandle->phaseCurrents);
+			}
+			else if (objectHandle->systemData.configurationData.controlMode
+					>= (uint8_t) Common::CONTROLLER_TYPE::ELEC_ANGLE)
+			{
+				objectHandle->elecAngleCommand = objectHandle->systemData.runTimeData.elecAngle;
+				objectHandle->TorqueLoop(objectHandle->torqueCommand,
+										(float)(objectHandle->elecAngleCommand / 585.0) * 2.0 * (float)M_PI,
+										objectHandle->phaseCurrents);
+			}
 
 			objectHandle->CheckConfigUpdates();
-			//osDelay(1);
 		}
 	}
 }
@@ -208,29 +190,7 @@ void MotorControl::CheckConfigUpdates()
 	{
 		systemData.runTimeData.isConfigChanged = false;
 
-		dController.SetParameters(systemData.configurationData.dqController.kp / 1000.0,
-				systemData.configurationData.dqController.ki / 1000.0,
-				systemData.configurationData.dqController.kd / 1000.0,
-				systemData.configurationData.dqController.maxIWindUp / 1000.0,
-				systemData.configurationData.dqController.saturation / 1000.0);
-
-		qController.SetParameters(systemData.configurationData.dqController.kp / 1000.0,
-				systemData.configurationData.dqController.ki / 1000.0,
-				systemData.configurationData.dqController.kd / 1000.0,
-				systemData.configurationData.dqController.maxIWindUp / 1000.0,
-				systemData.configurationData.dqController.saturation / 1000.0);
-
-		speedController.SetParameters(systemData.configurationData.speedController.kp / 1000.0,
-				systemData.configurationData.speedController.ki / 1000.0,
-				systemData.configurationData.speedController.kd / 1000.0,
-				systemData.configurationData.speedController.maxIWindUp / 1000.0,
-				systemData.configurationData.speedController.saturation / 1000.0);
-
-		positionController.SetParameters(systemData.configurationData.positionController.kp / 1000.0,
-				systemData.configurationData.positionController.ki / 1000.0,
-				systemData.configurationData.positionController.kd / 1000.0,
-				systemData.configurationData.positionController.maxIWindUp / 1000.0,
-				systemData.configurationData.positionController.saturation / 1000.0);
+		SetControllerParameters();
 	}
 }
 
@@ -285,4 +245,31 @@ AlphaBetaZero MotorControl::InverseParkTransform(DQZero input, float theta)
     output.zero  = input.zero;
 
     return output;
+}
+
+void MotorControl::SetControllerParameters()
+{
+	dController.SetParameters(systemData.configurationData.dqController.kp / 1000.0,
+			systemData.configurationData.dqController.ki / 1000.0,
+			systemData.configurationData.dqController.kd / 1000.0,
+			systemData.configurationData.dqController.maxIWindUp / 1000.0,
+			systemData.configurationData.dqController.saturation / 1000.0);
+
+	qController.SetParameters(systemData.configurationData.dqController.kp / 1000.0,
+			systemData.configurationData.dqController.ki / 1000.0,
+			systemData.configurationData.dqController.kd / 1000.0,
+			systemData.configurationData.dqController.maxIWindUp / 1000.0,
+			systemData.configurationData.dqController.saturation / 1000.0);
+
+	speedController.SetParameters(systemData.configurationData.speedController.kp / 1000.0,
+			systemData.configurationData.speedController.ki / 1000.0,
+			systemData.configurationData.speedController.kd / 1000.0,
+			systemData.configurationData.speedController.maxIWindUp / 1000.0,
+			systemData.configurationData.speedController.saturation / 1000.0);
+
+	positionController.SetParameters(systemData.configurationData.positionController.kp / 1000.0,
+			systemData.configurationData.positionController.ki / 1000.0,
+			systemData.configurationData.positionController.kd / 1000.0,
+			systemData.configurationData.positionController.maxIWindUp / 1000.0,
+			systemData.configurationData.positionController.saturation / 1000.0);
 }

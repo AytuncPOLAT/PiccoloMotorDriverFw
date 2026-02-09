@@ -7,7 +7,7 @@ App::App(Hardware &hardware)
 , communication(hardware.usbCom, systemData, userInterface)
 , systemDataController(systemData, communication, hardware.flashStorage, userInterface, hardware.drv8316)
 , analogProcessor(hardware.adc, systemData)
-, motorControl(hardware.motorPwm, pidController, analogProcessor, systemData, hardware.as5047)
+, motorControl(hardware.motorPwm, analogProcessor, systemData, hardware.as5047)
 , hwPtr(hardware)
 {
 }
