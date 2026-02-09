@@ -24,25 +24,10 @@ void SystemDataController::OnCallback(uint8_t arg)
 
 	if(communication.rxData.cmd == CMD_TYPE::MOTION_COMMAND)
 	{
-		if(communication.rxData.data0 == 0)
-		{
-			memcpy(&systemData.runTimeData.pwm, &communication.rxData.data1, sizeof(uint32_t));
-		}
-
-		if(communication.rxData.data0 == 1)
-		{
-			memcpy(&systemData.runTimeData.torque, &communication.rxData.data1, sizeof(uint32_t));
-		}
-
-		if(communication.rxData.data0 == 2)
-		{
-			memcpy(&systemData.runTimeData.speed, &communication.rxData.data1, sizeof(uint32_t));
-		}
-
-		if(communication.rxData.data0 == 3)
-		{
-			memcpy(&systemData.runTimeData.position, &communication.rxData.data1, sizeof(uint32_t));
-		}
+		memcpy(&systemData.runTimeData.controlMode, &communication.rxData.data0, sizeof(uint32_t));
+		memcpy(&systemData.runTimeData.torque, &communication.rxData.data1, sizeof(uint32_t));
+		memcpy(&systemData.runTimeData.speed, &communication.rxData.data2, sizeof(uint32_t));
+		memcpy(&systemData.runTimeData.position, &communication.rxData.data3, sizeof(uint32_t));
 	}
 
 	if(communication.rxData.cmd == CMD_TYPE::READ_REALTIME)
@@ -161,8 +146,8 @@ void SystemDataController::DataReadResponse(Common::PROPERTY property)
 		memcpy(&communication.txData.data0, &systemData.configurationData.deviceAddress, sizeof(uint32_t));
 		break;
 
-	case Common::PROPERTY::DEV_MODE:
-		memcpy(&communication.txData.data0, &systemData.configurationData.deviceMode, sizeof(uint32_t));
+	case Common::PROPERTY::DEV_CONTROL_MODE:
+		memcpy(&communication.txData.data0, &systemData.configurationData.controlMode, sizeof(uint32_t));
 		break;
 
 	//DQ Controller
@@ -206,6 +191,32 @@ void SystemDataController::DataReadResponse(Common::PROPERTY property)
 	case Common::PROPERTY::PID_SPD_SAT:
 		memcpy(&communication.txData.data0, &systemData.configurationData.speedController.saturation, sizeof(uint32_t));
 		break;
+
+	//Position Controller
+	case Common::PROPERTY::PID_POS_KP:
+		memcpy(&communication.txData.data0, &systemData.configurationData.positionController.kp, sizeof(uint32_t));
+		break;
+
+	case Common::PROPERTY::PID_POS_KI:
+		memcpy(&communication.txData.data0, &systemData.configurationData.positionController.ki, sizeof(uint32_t));
+		break;
+
+	case Common::PROPERTY::PID_POS_KD:
+		memcpy(&communication.txData.data0, &systemData.configurationData.positionController.kd, sizeof(uint32_t));
+		break;
+
+	case Common::PROPERTY::PID_POS_MAX_INTEGRAL_WU:
+		memcpy(&communication.txData.data0, &systemData.configurationData.positionController.maxIWindUp, sizeof(uint32_t));
+		break;
+
+	case Common::PROPERTY::PID_POS_SAT:
+		memcpy(&communication.txData.data0, &systemData.configurationData.positionController.saturation, sizeof(uint32_t));
+		break;
+
+	// Motor Parameters
+	case Common::PROPERTY::MOTOR_ENCODER_OFFSET:
+			memcpy(&communication.txData.data0, &systemData.configurationData.motor.motorEncoderOffset, sizeof(uint32_t));
+			break;
 	}
 
 	communication.TransmitTxFrame();
@@ -231,8 +242,8 @@ void SystemDataController::WriteToRam(Common::PROPERTY property, uint32_t newVal
 		memcpy(&systemData.configurationData.deviceAddress, &newValue, sizeof(uint32_t));
 		break;
 
-	case Common::PROPERTY::DEV_MODE:
-		memcpy(&systemData.configurationData.deviceMode, &newValue, sizeof(uint32_t));
+	case Common::PROPERTY::DEV_CONTROL_MODE:
+		memcpy(&systemData.configurationData.controlMode, &newValue, sizeof(uint32_t));
 		break;
 
 	//DQ Controller
@@ -275,6 +286,32 @@ void SystemDataController::WriteToRam(Common::PROPERTY property, uint32_t newVal
 
 	case Common::PROPERTY::PID_SPD_SAT:
 		memcpy(&systemData.configurationData.speedController.saturation, &newValue, sizeof(uint32_t));
+		break;
+
+	//Position Controller
+	case Common::PROPERTY::PID_POS_KP:
+		memcpy(&systemData.configurationData.positionController.kp, &newValue, sizeof(uint32_t));
+		break;
+
+	case Common::PROPERTY::PID_POS_KI:
+		memcpy(&systemData.configurationData.positionController.ki, &newValue, sizeof(uint32_t));
+		break;
+
+	case Common::PROPERTY::PID_POS_KD:
+		memcpy(&systemData.configurationData.positionController.kd, &newValue, sizeof(uint32_t));
+		break;
+
+	case Common::PROPERTY::PID_POS_MAX_INTEGRAL_WU:
+		memcpy(&systemData.configurationData.positionController.maxIWindUp, &newValue, sizeof(uint32_t));
+		break;
+
+	case Common::PROPERTY::PID_POS_SAT:
+		memcpy(&systemData.configurationData.positionController.saturation, &newValue, sizeof(uint32_t));
+		break;
+
+
+	case Common::PROPERTY::MOTOR_ENCODER_OFFSET:
+		memcpy(&systemData.configurationData.motor.motorEncoderOffset, &newValue, sizeof(uint32_t));
 		break;
 	}
 }

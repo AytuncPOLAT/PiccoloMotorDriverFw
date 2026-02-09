@@ -75,6 +75,8 @@ void AS5047::Init()
 
 uint16_t AS5047::SPI_Read(uint16_t address)
 {
+	//TODO
+
 	uint16_t rxWord;
 	uint16_t cmd = 0;
 	uint16_t sumOfOnes = 0;
@@ -124,7 +126,7 @@ int AS5047::GetSpeed()
 	int16_t reducedPos = (int16_t)(position << 2);
 	static float speedFilter = 0;
 
-	if(reducedPos < 0)
+	if(reducedPos >= 0)
 		speed = abs(reducedPos) - abs(oldPosition);
 	else
 		speed = abs(oldPosition) - abs(reducedPos);

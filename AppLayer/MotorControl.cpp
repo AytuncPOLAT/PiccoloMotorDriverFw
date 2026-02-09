@@ -13,12 +13,11 @@ using namespace AppLayer;
 volatile float GLOBAL_PARK_D;
 volatile float GLOBAL_PARK_Q;
 volatile float GLOBAL_TORQUE_CMD;
+volatile float GLOBAL_POSITION_CMD;
 volatile float GLOBAL_BUS_VOLTAGE;
 volatile float GLOBAL_ROTOR_ANGLE_RAD;
 volatile float GLOBAL_ROTOR_ANGLE;
 volatile int GLOBAL_ROTOR_SPEED;
-
-extern int Global_as5047;
 
 float dFilter = 0.0;
 float qFilter = 0.0;
@@ -63,12 +62,21 @@ MotorControl::MotorControl(HardwareLayer::MotorPwm& motorPwmRef,
 			systemData.configurationData.speedController.kd / 1000.0,
 			systemData.configurationData.speedController.maxIWindUp / 1000.0,
 			systemData.configurationData.speedController.saturation / 1000.0);
-}
 
+	positionController.SetParameters(systemData.configurationData.positionController.kp / 1000.0,
+			systemData.configurationData.positionController.ki / 1000.0,
+			systemData.configurationData.positionController.kd / 1000.0,
+			systemData.configurationData.positionController.maxIWindUp / 1000.0,
+			systemData.configurationData.positionController.saturation / 1000.0);
+
+	//positionController.SetParameters(0.1, 0, 0, 20, 500);
+}
 void MotorControl::Init()
 {
 	taskHandle = xTaskCreate(this->MotorControlTask, "MotorControlTask", 128 * 4, (void*) this,
 			24, NULL);
+
+	rotorEncoder.SetRotorEncoderOffset(systemData.configurationData.motor.motorEncoderOffset);
 }
 
 Common::ErrorType MotorControl::SetArmed(bool isArmed)
@@ -122,39 +130,37 @@ void MotorControl::MotorControlTask(void *argument)
 
 			}
 
-
-			Global_as5047 = objectHandle->rotorEncoder.GetPosition();
-
-			signedPos = (int16_t)(Global_as5047 << 2);
-
-			if(signedPos < 0)
-				speed = abs(signedPos) - abs(oldPos);
-			else
-				speed = abs(oldPos) - abs(signedPos);
-
-			oldPos = signedPos;
-
-			speedFilter = speed*0.1 + speedFilter*0.9;
-
-
-/*
-			angle = (Global_as5047 >> 2) + G_ADC_ext0;
-
-			angle = angle % 585;
-			float angleInRadians = ((float)angle / 585.0) * 2.0 * M_PI;
-*/
 			GLOBAL_ROTOR_ANGLE = objectHandle->rotorEncoder.GetPosition();
 			float angleInRadians = objectHandle->rotorEncoder.GetRotorAngleInRadians();
 			GLOBAL_ROTOR_ANGLE_RAD = angleInRadians;
 			GLOBAL_ROTOR_SPEED = objectHandle->rotorEncoder.GetSpeed();
 
-			float torqueCommand = objectHandle->SpeedLoop(objectHandle->systemData.runTimeData.speed, -speedFilter);
+			if(objectHandle->systemData.configurationData.controlMode > 2)
+			{
+				GLOBAL_POSITION_CMD = objectHandle->systemData.runTimeData.position;
+				objectHandle->speedCommand =
+						objectHandle->positionController.Calculate(GLOBAL_ROTOR_ANGLE, objectHandle->systemData.runTimeData.position);
+			}
+			else
+			{
+				objectHandle->speedCommand = objectHandle->systemData.runTimeData.speed;
+			}
 
-			objectHandle->TorqueLoop(torqueCommand,
+			if(objectHandle->systemData.configurationData.controlMode > 1) // Speed control
+			{
+				objectHandle->torqueCommand = objectHandle->SpeedLoop(objectHandle->speedCommand, GLOBAL_ROTOR_SPEED);
+			}
+			else
+			{
+				objectHandle->torqueCommand = objectHandle->systemData.runTimeData.torque;
+			}
+
+			objectHandle->TorqueLoop(objectHandle->torqueCommand,
 					angleInRadians,
 					objectHandle->phaseCurrents);
 
 			objectHandle->CheckConfigUpdates();
+			//osDelay(1);
 		}
 	}
 }
@@ -166,7 +172,6 @@ void MotorControl::TorqueLoop(float setTorque, float angleInRadians, ABC phaseCu
 	ABC abcFw;
 
 	static DQZero filteredDQZeroFb;
-
 
 	// 3Phase 120deg AC >> 2 phase 90deg AC
 	abzFb = ClarkTransform(phaseCurrents);
@@ -220,6 +225,12 @@ void MotorControl::CheckConfigUpdates()
 				systemData.configurationData.speedController.kd / 1000.0,
 				systemData.configurationData.speedController.maxIWindUp / 1000.0,
 				systemData.configurationData.speedController.saturation / 1000.0);
+
+		positionController.SetParameters(systemData.configurationData.positionController.kp / 1000.0,
+				systemData.configurationData.positionController.ki / 1000.0,
+				systemData.configurationData.positionController.kd / 1000.0,
+				systemData.configurationData.positionController.maxIWindUp / 1000.0,
+				systemData.configurationData.positionController.saturation / 1000.0);
 	}
 }
 

@@ -78,13 +78,8 @@ namespace AppLayer
 		static void MotorControlTask(void *argument);
 
 		AlphaBetaZero ClarkTransform(ABC input);
-		AlphaBetaZero clarkTransformResult;
-
 		ABC InverseClarkeTransform(AlphaBetaZero input);
-
 		DQZero ParkTransform(AlphaBetaZero abz, float angleInRad);
-		DQZero parkTransformResult;
-
 		AlphaBetaZero InverseParkTransform(DQZero input, float theta);
 
 		HardwareLayer::IEncoder& rotorEncoder;
@@ -106,7 +101,11 @@ namespace AppLayer
 		SinusPwm sinPwm;
 		Common::SystemData& systemData;
 
-		PidController dController, qController, speedController;
+		PidController dController, qController, speedController, positionController;
+
+		float torqueCommand;
+		float speedCommand;
+		int positionCommand;
 	};
 }
 

@@ -47,7 +47,8 @@ namespace Common
 		SERIAL_NO,
 		FW_VERSION,
 		DEV_ADDRESS,
-		DEV_MODE,
+		DEV_CONTROL_MODE,
+
 		PID_DQ_KP,
 		PID_DQ_KI,
 		PID_DQ_KD,
@@ -59,6 +60,14 @@ namespace Common
 		PID_SPD_KD,
 		PID_SPD_MAX_INTEGRAL_WU,
 		PID_SPD_SAT,
+
+		PID_POS_KP,
+		PID_POS_KI,
+		PID_POS_KD,
+		PID_POS_MAX_INTEGRAL_WU,
+		PID_POS_SAT,
+
+		MOTOR_ENCODER_OFFSET
 	};
 
 	struct __attribute__((packed)) ConfigurationData
@@ -67,7 +76,8 @@ namespace Common
 		uint32_t deviceSerialNo;
 		uint32_t fwVersion;
 		uint32_t deviceAddress;
-		uint32_t deviceMode;
+		uint32_t controlMode;
+
 		int adcPhase_A_Offset;
 		int adcPhase_A_Gain;
 		int adcPhase_B_Offset;
@@ -93,7 +103,21 @@ namespace Common
 			int saturation;
 		}dqController;
 
-		uint32_t padding32[2];
+		struct __attribute__((packed)) PositionController //Torque
+		{
+			int kp;
+			int ki;
+			int kd;
+			int maxIWindUp;
+			int saturation;
+		}positionController;
+
+		struct __attribute__((packed)) Motor
+		{
+			int motorEncoderOffset;
+		} motor;
+
+		uint32_t padding32[12];
 		uint16_t padding16[1];
 		uint16_t crc16;
 	};
@@ -103,7 +127,7 @@ namespace Common
 
 	struct RunTimeData
 	{
-		int pwm;
+		int controlMode;
 		int torque;
 		int speed;
 		int position;
