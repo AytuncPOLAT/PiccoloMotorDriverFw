@@ -118,7 +118,8 @@ void MotorControl::MotorControlTask(void *argument)
 					>= (uint8_t) Common::CONTROLLER_TYPE::SPEED) // Speed control
 			{
 				//Speed Control
-				objectHandle->torqueCommand = objectHandle->SpeedLoop(objectHandle->speedCommand, GLOBAL_ROTOR_SPEED);
+				//objectHandle->torqueCommand = objectHandle->SpeedLoop(objectHandle->speedCommand, GLOBAL_ROTOR_SPEED);
+				objectHandle->torqueCommand = objectHandle->SpeedLoop(G_ADC_ext0/50.0, GLOBAL_ROTOR_SPEED);
 			}
 			else
 			{
@@ -249,6 +250,8 @@ AlphaBetaZero MotorControl::InverseParkTransform(DQZero input, float theta)
 
 void MotorControl::SetControllerParameters()
 {
+	rotorEncoder.SetRotorEncoderOffset(systemData.configurationData.motor.motorEncoderOffset);
+
 	dController.SetParameters(systemData.configurationData.dqController.kp / 1000.0,
 			systemData.configurationData.dqController.ki / 1000.0,
 			systemData.configurationData.dqController.kd / 1000.0,

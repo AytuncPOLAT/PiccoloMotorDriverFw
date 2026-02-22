@@ -11,9 +11,12 @@ uint16_t GLOBAL_ADC_5;
 
 using namespace AppLayer;
 
-AnalogProcessor::AnalogProcessor(HardwareLayer::AdcDriver& adcRef, Common::SystemData& systemDataRef)
+AnalogProcessor::AnalogProcessor(HardwareLayer::AdcDriver& adcRef,
+		Common::SystemData& systemDataRef,
+		Drv8316rSpiDriver& drvRef)
 : adc(adcRef)
 , systemData(systemDataRef)
+, drv(drvRef)
 {
 }
 
@@ -121,6 +124,11 @@ uint16_t AnalogProcessor::GetExtAnalog(uint8_t channel)
 void AnalogProcessor::SetVoltageCurrentRatio(float gain)
 {
 	currentGain = gain;
+}
+
+void AnalogProcessor::SetCurrentSenseGain()
+{
+
 }
 
 void AnalogProcessor::StartTask()

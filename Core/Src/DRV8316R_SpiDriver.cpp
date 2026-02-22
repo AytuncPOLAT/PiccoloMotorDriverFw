@@ -23,6 +23,16 @@ void Drv8316rSpiDriver::SetCurr2()
 	drv8316_write_reg(0x07, 0x03);
 }
 
+void Drv8316rSpiDriver::SetOCP()
+{
+	drv8316_write_reg(0x06, 0x05);
+}
+
+void Drv8316rSpiDriver::ClearFaults()
+{
+	drv8316_write_reg(0x04, 0x61);
+}
+
 void Drv8316rSpiDriver::drv8316_write_reg(uint8_t reg, uint8_t data)
 {
 	uint16_t out = 0;
@@ -37,4 +47,3 @@ void Drv8316rSpiDriver::drv8316_write_reg(uint8_t reg, uint8_t data)
 	out |= (parity & 1) << 8;
 	HAL_SPI_TransmitReceive(&hspi2, (uint8_t*)&out, (uint8_t*)&outputDataFrame, 1, 1000);
 }
-

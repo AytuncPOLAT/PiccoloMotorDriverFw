@@ -35,6 +35,8 @@ public:
 
 	void SetCurr1();
 	void SetCurr2();
+	void SetOCP();
+	void ClearFaults();
 
 private:
 	SPI_HandleTypeDef &hspi2;

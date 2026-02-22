@@ -19,7 +19,7 @@ SPI_HandleTypeDef hspi2;
 
 TIM_HandleTypeDef htim1;
 
-UART_HandleTypeDef huart4;
+
 UART_HandleTypeDef huart5;
 
 /* Definitions for defaultTask */
@@ -57,7 +57,6 @@ int main(void)
 	MX_GPIO_Init();
 	MX_UART5_Init();
 	MX_SPI2_Init();
-	MX_UART4_Init();
 
 	static Hardware hardware;
 	static App app(hardware);
@@ -66,7 +65,7 @@ int main(void)
 	hardware.adc.Init();
 	hardware.externalQuadEncoder.Init();
 	hardware.as5047.Init();
-
+	hardware.rs485.Init();
 
 	osKernelInitialize();
 
@@ -108,12 +107,14 @@ void StartDefaultTask(void *argument)
 
 	for (;;)
 	{
-		osDelay(30);
+		osDelay(100);
 
 		//phase = sinPwm.Update3P(500, cnt);
 		//app->hw.motorPwm.SetPwmChannel1Duty(500);
 		//app->hw.motorPwm.SetPwmChannel2Duty(phase.b);
 		//app->hw.motorPwm.SetPwmChannel3Duty(500);
+
+
 
 
 		cnt++;
@@ -130,6 +131,9 @@ void StartDefaultTask(void *argument)
 				app->hwPtr.adc.ReadChannel(6));
 
 		app->hwPtr.motorPwm.SetPwmChannel4Duty(999);
+
+
+		app->hwPtr.rs485.Transmit(txBuffer, 10);
 
 		//app->simpleLogger.Print(txBuffer, size);
 
@@ -176,65 +180,6 @@ static void MX_SPI2_Init(void)
 	}
 }
 
-/**
- * @brief TIM1 Initialization Function
- * @param None
- * @retval None
- */
-
-
-/**
- * @brief UART4 Initialization Function
- * @param None
- * @retval None
- */
-static void MX_UART4_Init(void)
-{
-
-	/* USER CODE BEGIN UART4_Init 0 */
-
-	/* USER CODE END UART4_Init 0 */
-
-	/* USER CODE BEGIN UART4_Init 1 */
-
-	/* USER CODE END UART4_Init 1 */
-	huart4.Instance = UART4;
-	huart4.Init.BaudRate = 115200;
-	huart4.Init.WordLength = UART_WORDLENGTH_8B;
-	huart4.Init.StopBits = UART_STOPBITS_1;
-	huart4.Init.Parity = UART_PARITY_NONE;
-	huart4.Init.Mode = UART_MODE_TX_RX;
-	huart4.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-	huart4.Init.OverSampling = UART_OVERSAMPLING_16;
-	huart4.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
-	huart4.Init.ClockPrescaler = UART_PRESCALER_DIV1;
-	huart4.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-	if (HAL_RS485Ex_Init(&huart4, UART_DE_POLARITY_HIGH, 0, 0) != HAL_OK)
-	{
-		Error_Handler();
-	}
-	if (HAL_UARTEx_SetTxFifoThreshold(&huart4, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK)
-	{
-		Error_Handler();
-	}
-	if (HAL_UARTEx_SetRxFifoThreshold(&huart4, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK)
-	{
-		Error_Handler();
-	}
-	if (HAL_UARTEx_DisableFifoMode(&huart4) != HAL_OK)
-	{
-		Error_Handler();
-	}
-	/* USER CODE BEGIN UART4_Init 2 */
-
-	/* USER CODE END UART4_Init 2 */
-}
-
-/**
- * @brief UART5 Initialization Function
- * @param None
- * @retval None
- */
 static void MX_UART5_Init(void)
 {
 	huart5.Instance = UART5;

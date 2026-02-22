@@ -8,6 +8,7 @@ void SystemDataController::OnCallback(uint8_t arg)
 	if(communication.rxData.cmd == CMD_TYPE::READ_FROM_DEVICE)
 	{
 		DataReadResponse((Common::PROPERTY)communication.rxData.data0);
+		drv.ClearFaults();
 	}
 
 	if(communication.rxData.cmd == CMD_TYPE::WRITE_TO_DEVICE)
@@ -54,6 +55,8 @@ void SystemDataController::TaskThread(void *argument)
 
 	objectHandle->drv.SendCommand(0, 0);
 	objectHandle->drv.SetCurr2();
+	objectHandle->drv.SetOCP();
+
 	while(1)
 	{
 

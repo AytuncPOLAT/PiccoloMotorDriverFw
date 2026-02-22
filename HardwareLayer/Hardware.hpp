@@ -8,6 +8,7 @@
 #include "DRV8316R_SpiDriver.hpp"
 #include "QuadraticEncoderDriver.hpp"
 #include "AS5047_Driver.hpp"
+#include "RS485.hpp"
 
 extern "C"
 {
@@ -28,6 +29,7 @@ public:
 	Drv8316rSpiDriver drv8316;
 	HardwareLayer::QuadraticEncoderDriver externalQuadEncoder;
 	HardwareLayer::AS5047 as5047;
+	HardwareLayer::Rs485 rs485;
 
 private:
 	void SystemClockConfig();
