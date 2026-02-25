@@ -7,22 +7,25 @@ namespace
 	Rs485* global_rs485;
 }
 
-
-void UART4_IRQHandler(void)
+extern "C"
 {
-	HAL_UART_IRQHandler(&global_rs485->huart4);
+	void UART4_IRQHandler(void)
+	{
+		HAL_UART_IRQHandler(&global_rs485->huart4);
+	}
 }
 
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 {
 	if (huart->Instance == UART4)
 	{
-		HAL_UART_Receive_IT(&global_rs485->huart4, global_rs485->rxBuffer, Size);
+		//HAL_UART_Receive_IT(&global_rs485->huart4, global_rs485->rxBuffer, Size);
 		global_rs485->callbackHandle->OnReceiveCallback(global_rs485->rxBuffer, Size);
 	}
 }
 
 Rs485::Rs485()
+: callbackHandle(nullptr)
 {
 	global_rs485 = this;
 }
@@ -85,13 +88,18 @@ void Rs485::Init()
 		//Error_Handler();
 	}
 
-    HAL_NVIC_SetPriority(UART4_IRQn, 2, 0);
-    HAL_NVIC_EnableIRQ(UART4_IRQn);
+	//__HAL_UART_ENABLE_IT(&huart4, UART_IT_RXNE); // Enable RX interrupt
+	//__HAL_UART_ENABLE_IT(&huart4, UART_IT_TXE); // Enable TX interrupt
+
+    //HAL_NVIC_SetPriority(UART4_IRQn, 0, 1);
+    //HAL_NVIC_EnableIRQ(UART4_IRQn);
+
+    HAL_UART_Receive_DMA(&global_rs485->huart4, global_rs485->rxBuffer, 4);
 }
 
 uint8_t Rs485::Receive(uint8_t *data, uint32_t size)
 {
-	return 0;
+
 }
 
 uint8_t Rs485::Transmit(uint8_t *data, uint32_t size)

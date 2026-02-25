@@ -133,7 +133,7 @@ void StartDefaultTask(void *argument)
 		app->hwPtr.motorPwm.SetPwmChannel4Duty(999);
 
 
-		app->hwPtr.rs485.Transmit(txBuffer, 10);
+		app->hwPtr.rs485.Transmit(app->hwPtr.rs485.rxBuffer, 8);
 
 		//app->simpleLogger.Print(txBuffer, size);
 
