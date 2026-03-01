@@ -11,7 +11,7 @@ namespace AppLayer
 	{
 	public:
 		SimpleLogger(Common::IUart &uartRef);
-		void OnReceiveCallback(uint8_t *Buf, uint32_t Len) override;
+		void OnReceiveCallback(uint8_t *Buf, uint32_t Len, void* instance) override;
 		void Print(uint8_t *data, uint32_t size);
 		uint8_t ReadByte();
 

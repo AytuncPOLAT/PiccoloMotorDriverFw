@@ -43,7 +43,8 @@ enum class UiState
 	HeartBeat = 1,
 	Warning = 2,
 	Error = 3,
-	Ping = 4
+	Ping = 4,
+	Comm = 5
 };
 
 class UserInterface

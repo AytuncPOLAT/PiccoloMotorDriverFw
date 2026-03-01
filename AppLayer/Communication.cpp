@@ -8,12 +8,14 @@ namespace
 
 }
 
-Communication::Communication(Common::IUart& uartRef, Common::SystemData &systemDataRef, UserInterface& userInterfaceRef)
-: uart(uartRef)
+Communication::Communication(Common::IUart& uartRef, Common::IUart& rs485Ref, Common::SystemData &systemDataRef, UserInterface& userInterfaceRef)
+: usbCdc(uartRef)
+, rs485(rs485Ref)
 , systemData(systemDataRef)
 , userInterface(userInterfaceRef)
 {
-	uart.RegisterOnReceiveCallback(this);
+	usbCdc.RegisterOnReceiveCallback(this);
+	rs485.RegisterOnReceiveCallback(this);
 }
 
 void Communication::RegisterCallback(Common::ICallback::GenericCallback* callback)
@@ -21,8 +23,20 @@ void Communication::RegisterCallback(Common::ICallback::GenericCallback* callbac
 	callbackHandle = callback;
 }
 
-void Communication::OnReceiveCallback(uint8_t *Buf, uint32_t Len)
+void Communication::OnReceiveCallback(uint8_t *Buf, uint32_t Len, void* instance)
 {
+	void* rs485Instance = rs485.GetInstance();
+	void* usbInstance = usbCdc.GetInstance();
+
+	if(instance == rs485Instance)
+	{
+		interface = INTERFACE::RS485;
+	}
+	else if(instance == usbInstance)
+	{
+		interface = INTERFACE::USB_CDC;
+	}
+
 	Common::Crc16 crc;
 
 	if(Len == sizeof(dataFrame))
@@ -38,6 +52,18 @@ void Communication::OnReceiveCallback(uint8_t *Buf, uint32_t Len)
 
 				Filters(Len);
 			}
+			else
+			{
+				/*
+				if(interface == INTERFACE::RS485)
+				{
+					usbCdc.Transmit((uint8_t*)&rxData, sizeof(rxData));
+				}
+				else if(interface == INTERFACE::USB_CDC)
+				{
+					rs485.Transmit((uint8_t*)&rxData, sizeof(rxData));
+				}*/
+			}
 		}
 	}
 	rxByte = Buf[0];
@@ -52,7 +78,10 @@ void Communication::Filters(uint16_t len)
 		SendPingResponse();
 	}
 	else
+	{
 		callbackHandle->OnCallback(len);
+		userInterface.CommActivity();
+	}
 }
 
 void Communication::TransmitDataFrame(CMD_TYPE cmd,
@@ -72,7 +101,14 @@ void Communication::TransmitDataFrame(CMD_TYPE cmd,
     Common::Crc16 crc;
     txData.checksum = crc.Calculate(0, reinterpret_cast<uint8_t*>(&txData), sizeof (txData) - 2);
 
-    uart.Transmit((uint8_t*)&txData, sizeof(txData));
+	if(interface == INTERFACE::RS485)
+	{
+		rs485.Transmit((uint8_t*)&txData, sizeof(txData));
+	}
+	else if(interface == INTERFACE::USB_CDC)
+	{
+		usbCdc.Transmit((uint8_t*)&txData, sizeof(txData));
+	}
 }
 
 void Communication::SendPingResponse()
@@ -83,10 +119,17 @@ void Communication::SendPingResponse()
 
 void Communication::Print(uint8_t *data, uint32_t size)
 {
-	uart.Transmit(data, size);
+	usbCdc.Transmit(data, size);
 }
 
 void Communication::TransmitTxFrame()
 {
-	uart.Transmit((uint8_t*)&txData, sizeof(txData));
+	if(interface == INTERFACE::RS485)
+	{
+		rs485.Transmit((uint8_t*)&txData, sizeof(txData));
+	}
+	else if(interface == INTERFACE::USB_CDC)
+	{
+		usbCdc.Transmit((uint8_t*)&txData, sizeof(txData));
+	}
 }

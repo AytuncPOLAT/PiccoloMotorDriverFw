@@ -9,6 +9,13 @@
 
 namespace AppLayer
 {
+	enum class INTERFACE : uint8_t
+	{
+		NONE = 0,
+		USB_CDC,
+		RS485
+	};
+
 	enum class CMD_TYPE : uint8_t
 	{
 	    PING = 0,
@@ -38,8 +45,8 @@ namespace AppLayer
 	, public Common::ICallback
 	{
 	public:
-		Communication(Common::IUart& uartRef, Common::SystemData &systemDataRef, UserInterface& userInterfaceRef);
-		void OnReceiveCallback(uint8_t *Buf, uint32_t Len) override;
+		Communication(Common::IUart& uartRef, Common::IUart& rs485Ref, Common::SystemData &systemDataRef, UserInterface& userInterfaceRef);
+		void OnReceiveCallback(uint8_t *Buf, uint32_t Len, void* instance) override;
 		void Print(uint8_t *data, uint32_t size);
 
 		void TransmitTxFrame(); //TODO de-commission this one
@@ -62,11 +69,14 @@ namespace AppLayer
 		DataFrame txData;
 
 	private:
-		Common::IUart &uart;
+		Common::IUart &usbCdc;
+		Common::IUart &rs485;
+
 		uint8_t rxByte;
 		uint32_t size;
 
 		bool isDataReceived;
+		INTERFACE interface = INTERFACE::NONE;
 
 		Common::SystemData& systemData;
 		ICallback::GenericCallback* callbackHandle;

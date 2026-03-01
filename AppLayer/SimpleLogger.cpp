@@ -8,7 +8,7 @@ SimpleLogger::SimpleLogger(Common::IUart &uartRef)
 	uart.RegisterOnReceiveCallback(this);
 }
 
-void SimpleLogger::OnReceiveCallback(uint8_t *Buf, uint32_t Len)
+void SimpleLogger::OnReceiveCallback(uint8_t *Buf, uint32_t Len, void* instance)
 {
 	rxByte = Buf[0];
 	size = Len;

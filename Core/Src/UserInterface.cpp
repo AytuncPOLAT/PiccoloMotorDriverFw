@@ -4,9 +4,9 @@ void HeartBeatState::Play(uint8_t time)
 {
 	if(time == 0)
 		HAL_GPIO_WritePin(GPIOE, GPIO_PIN_4, GPIO_PIN_SET);
-	if(time == 1)
+	if(time == 2)
 		HAL_GPIO_WritePin(GPIOE, GPIO_PIN_4, GPIO_PIN_RESET);
-	if(time == 19)
+	if(time == 18)
 		HAL_GPIO_WritePin(GPIOE, GPIO_PIN_4, GPIO_PIN_SET);
 	if(time == 20)
 		HAL_GPIO_WritePin(GPIOE, GPIO_PIN_4, GPIO_PIN_RESET);
@@ -30,10 +30,9 @@ void WarningState::Play(uint8_t time)
 
 void CommActivityState::Play(uint8_t time)
 {
-	if(time == 0)
-		HAL_GPIO_WritePin(GPIOE, GPIO_PIN_2, GPIO_PIN_SET);
-	if(time == 2)
-		HAL_GPIO_WritePin(GPIOE, GPIO_PIN_2, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(GPIOE, GPIO_PIN_2, GPIO_PIN_SET);
+	osDelay(5);
+	HAL_GPIO_WritePin(GPIOE, GPIO_PIN_2, GPIO_PIN_RESET);
 }
 
 void PingState::Play(uint8_t time)
@@ -80,6 +79,11 @@ void UserInterface::UiTask(void *argument)
 			objectHandle->pingAct.Play(objectHandle->tenMsCounter);
 			objectHandle->state = objectHandle->oldState;
 			break;
+
+		case UiState::Comm:
+			objectHandle->commAct.Play(objectHandle->tenMsCounter);
+			objectHandle->state = objectHandle->oldState;
+			break;
 		}
 
 		osDelay(10);
@@ -99,7 +103,12 @@ void UserInterface::SetUiState(UiState newState)
 
 void UserInterface::CommActivity()
 {
-	//commAct.Play();
+	if(state != UiState::Comm)
+	{
+		oldState = state;
+		tenMsCounter = 0;
+		state = UiState::Comm;
+	}
 }
 
 void UserInterface::PingActivity()

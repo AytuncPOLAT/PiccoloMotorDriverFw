@@ -121,6 +121,8 @@ void StartDefaultTask(void *argument)
 		if(cnt > 4096) cnt = 0;
 
 		uint8_t txBuffer[100];
+		memset(txBuffer, 0, 100);
+
 		int size = sprintf((char*)txBuffer, "test = %d|a0 = %d|a1 = %d|a2 = %d|a3 = %d|a4 = %d|a5 = %d|a6 = %d|\r\n", cnt,
 				app->hwPtr.adc.ReadChannel(0),
 				app->hwPtr.adc.ReadChannel(1),
@@ -133,7 +135,7 @@ void StartDefaultTask(void *argument)
 		app->hwPtr.motorPwm.SetPwmChannel4Duty(999);
 
 
-		app->hwPtr.rs485.Transmit(app->hwPtr.rs485.rxBuffer, 8);
+		//app->hwPtr.rs485.Transmit(txBuffer, 100);
 
 		//app->simpleLogger.Print(txBuffer, size);
 

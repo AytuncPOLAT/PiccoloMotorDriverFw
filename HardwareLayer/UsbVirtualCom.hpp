@@ -22,6 +22,7 @@ namespace HardwareLayer
 		uint8_t Transmit(uint8_t *data, uint32_t size) override;
 		uint8_t Receive(uint8_t *data, uint32_t size) override;
 		void RegisterOnReceiveCallback(Callback* callBack) override;
+		void* GetInstance() override;
 
 		IUart::Callback* callbackHandle;
 	};

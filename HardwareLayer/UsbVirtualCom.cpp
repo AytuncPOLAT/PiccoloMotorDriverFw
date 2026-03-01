@@ -10,6 +10,11 @@ UsbVirtualCom::UsbVirtualCom()
 	global_usbComPtr = this;
 }
 
+void* UsbVirtualCom::GetInstance()
+{
+	return this;
+}
+
 void UsbVirtualCom::Init()
 {
 	MX_USB_DEVICE_Init();
@@ -35,6 +40,6 @@ void USB_CDC_RxHandler(uint8_t *Buf, uint32_t Len)
 {
 	if(global_usbComPtr->callbackHandle != nullptr)
 	{
-		global_usbComPtr->callbackHandle->OnReceiveCallback(Buf, Len);
+		global_usbComPtr->callbackHandle->OnReceiveCallback(Buf, Len, global_usbComPtr);
 	}
 }

@@ -104,9 +104,19 @@ void MotorControl::MotorControlTask(void *argument)
 					>= (uint8_t) Common::CONTROLLER_TYPE::POSITION)
 			{
 				//Position Control
-				GLOBAL_POSITION_CMD = objectHandle->systemData.runTimeData.position;
-				objectHandle->speedCommand =
+				if(objectHandle->systemData.configurationData.controlMode == 4)
+				{
+					GLOBAL_POSITION_CMD = G_ADC_ext0;
+					objectHandle->speedCommand =
+											objectHandle->positionController.Calculate(GLOBAL_ROTOR_ANGLE, GLOBAL_POSITION_CMD);
+				}
+				else
+				{
+					GLOBAL_POSITION_CMD = objectHandle->systemData.runTimeData.position;
+
+					objectHandle->speedCommand =
 						objectHandle->positionController.Calculate(GLOBAL_ROTOR_ANGLE, objectHandle->systemData.runTimeData.position);
+				}
 			}
 			else
 			{
@@ -118,8 +128,8 @@ void MotorControl::MotorControlTask(void *argument)
 					>= (uint8_t) Common::CONTROLLER_TYPE::SPEED) // Speed control
 			{
 				//Speed Control
-				//objectHandle->torqueCommand = objectHandle->SpeedLoop(objectHandle->speedCommand, GLOBAL_ROTOR_SPEED);
-				objectHandle->torqueCommand = objectHandle->SpeedLoop(G_ADC_ext0/50.0, GLOBAL_ROTOR_SPEED);
+				objectHandle->torqueCommand = objectHandle->SpeedLoop(objectHandle->speedCommand, GLOBAL_ROTOR_SPEED);
+				//objectHandle->torqueCommand = objectHandle->SpeedLoop(G_ADC_ext0/50.0, GLOBAL_ROTOR_SPEED);
 			}
 			else
 			{
