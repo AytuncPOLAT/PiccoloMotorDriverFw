@@ -73,6 +73,7 @@ void AS5047::Init()
 	}
 }
 
+
 uint16_t AS5047::SPI_Read(uint16_t address)
 {
 	//TODO
@@ -104,6 +105,21 @@ int AS5047::GetPosition()
 {
 	position = (int)SPI_Read(ADDR_ANGLECOM);
 	return position;
+}
+
+int AS5047::GetMultiTurnPosition()
+{
+	if(position - oldPosMultiTurn > 8000)
+	{
+		multiTurnRev = multiTurnRev - 1;
+	}
+	else if(oldPosMultiTurn - position > 8000)
+	{
+		multiTurnRev = multiTurnRev + 1;
+	}
+
+	oldPosMultiTurn = position;
+	return multiTurnRev * 16384 + position;
 }
 
 float AS5047::GetRotorAngleInRadians()

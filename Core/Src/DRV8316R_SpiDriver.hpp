@@ -27,7 +27,9 @@ struct OutputDataFrame
 class Drv8316rSpiDriver
 {
 public:
-	Drv8316rSpiDriver(SPI_HandleTypeDef &spiInstance);
+	Drv8316rSpiDriver();
+	void Init();
+
 	std::uint8_t
 	SendCommand(std::uint8_t address, std::uint8_t data);
 
@@ -39,7 +41,7 @@ public:
 	void ClearFaults();
 
 private:
-	SPI_HandleTypeDef &hspi2;
+	SPI_HandleTypeDef hspi2;
 
 	InputDataFrame inputDataFrame;
 	OutputDataFrame outputDataFrame;

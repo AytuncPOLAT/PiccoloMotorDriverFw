@@ -13,6 +13,7 @@ namespace HardwareLayer
 		virtual int GetSpeed() = 0;
 		virtual float GetRotorAngleInRadians(){};
 		virtual void SetRotorEncoderOffset(int16_t newOffset){};
+		virtual int GetMultiTurnPosition(){};
 
 		struct Callback
 		{

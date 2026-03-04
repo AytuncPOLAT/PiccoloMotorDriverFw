@@ -18,13 +18,16 @@ namespace HardwareLayer
 		float GetRotorAngleInRadians() override;
 		void SetRotorEncoderOffset(int16_t newOffset) override;
 		int GetSpeed() override;
-
+		int GetMultiTurnPosition() override;
 		void RegisterOnIndexPulseCallback(Callback* callback) override;
 
 	private:
 		int16_t offset;
 		int position;
+		int oldPosMultiTurn;
+		int multiTurnRev = 0;
 		int16_t oldPosition;
+
 
 		SPI_HandleTypeDef spiHandle;
 		uint16_t SPI_Read(uint16_t address);

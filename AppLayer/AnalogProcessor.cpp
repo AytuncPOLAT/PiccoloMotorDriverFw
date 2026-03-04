@@ -53,7 +53,7 @@ void AnalogProcessor::AnalogProcessTask(void *argument)
 		objectHandle->phaseOffsets[2] = objectHandle->phaseOffsets[2] * 0.99 +
 				objectHandle->adc.ReadChannel(Common::ADC_CHANNELS::PHASE_C_CURRENT) * 0.01;
 
-		osDelay(10);
+		osDelay(1);
 	}
 
 	objectHandle->isCalibrated = true;
@@ -131,7 +131,7 @@ void AnalogProcessor::SetCurrentSenseGain()
 
 }
 
-void AnalogProcessor::StartTask()
+void AnalogProcessor::Init()
 {
 	taskHandle = xTaskCreate(this->AnalogProcessTask,
 			"AnalogProcessTask",

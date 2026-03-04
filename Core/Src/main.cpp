@@ -15,7 +15,7 @@
 
 int Global_as5047 = 0;
 
-SPI_HandleTypeDef hspi2;
+
 
 TIM_HandleTypeDef htim1;
 
@@ -41,7 +41,7 @@ void PeriphCommonClock_Config(void);
 static void MPU_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_UART5_Init(void);
-static void MX_SPI2_Init(void);
+
 static void MX_TIM1_Init(void);
 static void MX_UART4_Init(void);
 void StartDefaultTask(void *argument);
@@ -56,7 +56,6 @@ int main(void)
 
 	MX_GPIO_Init();
 	MX_UART5_Init();
-	MX_SPI2_Init();
 
 	static Hardware hardware;
 	static App app(hardware);
@@ -66,6 +65,7 @@ int main(void)
 	hardware.externalQuadEncoder.Init();
 	hardware.as5047.Init();
 	hardware.rs485.Init();
+	hardware.drv8316.Init();
 
 	osKernelInitialize();
 
@@ -75,7 +75,7 @@ int main(void)
 	app.userInterface.Init();
 	app.motorControl.Init();
 	app.systemDataController.Init();
-	app.analogProcessor.StartTask();
+	app.analogProcessor.Init();
 
 	osKernelStart();
 	while (1)
@@ -87,35 +87,16 @@ void StartDefaultTask(void *argument)
 {
 	App* app = (App*)argument;
 
-	AppLayer::SinusPwm sinPwm;
-	AppLayer::TriPhase phase;
-
 	app->userInterface.SetUiState(UiState::HeartBeat);
-	// UserInterface *ui = (UserInterface*)argument;
-	// ui->SetUiState(UiState::HeartBeat);
-	static uint16_t cnt = 0;
-	AppLayer::PidController pid;
-	pid.SetParameters(1.0, 0, 0, 1000, 1000);
-	int setPoint = 0;
-	/* init code for USB_DEVICE */
 
-	// Drv8316rSpiDriver drv(hspi2);
-	/* USER CODE BEGIN 5 */
-	/* Infinite loop */
+	static uint16_t cnt = 0;
+
 
 	app->hwPtr.adc.Start();
 
 	for (;;)
 	{
 		osDelay(100);
-
-		//phase = sinPwm.Update3P(500, cnt);
-		//app->hw.motorPwm.SetPwmChannel1Duty(500);
-		//app->hw.motorPwm.SetPwmChannel2Duty(phase.b);
-		//app->hw.motorPwm.SetPwmChannel3Duty(500);
-
-
-
 
 		cnt++;
 		if(cnt > 4096) cnt = 0;
@@ -132,16 +113,7 @@ void StartDefaultTask(void *argument)
 				app->hwPtr.adc.ReadChannel(5),
 				app->hwPtr.adc.ReadChannel(6));
 
-		app->hwPtr.motorPwm.SetPwmChannel4Duty(999);
-
-
 		//app->hwPtr.rs485.Transmit(txBuffer, 100);
-
-		//app->simpleLogger.Print(txBuffer, size);
-
-		//app->communication.Plot(app->hwPtr.adc.ReadChannel(3));
-
-		//app->motorControl.SetDcMotor(pid.Calculate(app->hw.adc.ReadChannel(6), setPoint));
 	}
 }
 
@@ -150,37 +122,7 @@ void StartDefaultTask(void *argument)
  * @param None
  * @retval None
  */
-static void MX_SPI2_Init(void)
-{
-	hspi2.Instance = SPI2;
-	hspi2.Init.Mode = SPI_MODE_MASTER;
-	hspi2.Init.Direction = SPI_DIRECTION_2LINES;
-	hspi2.Init.DataSize = SPI_DATASIZE_16BIT;
-	hspi2.Init.CLKPolarity = SPI_POLARITY_LOW;
-	hspi2.Init.CLKPhase = SPI_PHASE_2EDGE;
-	hspi2.Init.NSS = SPI_NSS_HARD_OUTPUT;
-	hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256;
-	hspi2.Init.FirstBit = SPI_FIRSTBIT_MSB;
-	hspi2.Init.TIMode = SPI_TIMODE_DISABLE;
-	hspi2.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
-	hspi2.Init.CRCPolynomial = 0x0;
-	hspi2.Init.NSSPMode = SPI_NSS_PULSE_ENABLE;
-	hspi2.Init.NSSPolarity = SPI_NSS_POLARITY_LOW;
-	hspi2.Init.FifoThreshold = SPI_FIFO_THRESHOLD_01DATA;
-	hspi2.Init.TxCRCInitializationPattern =
-		SPI_CRC_INITIALIZATION_ALL_ZERO_PATTERN;
-	hspi2.Init.RxCRCInitializationPattern =
-		SPI_CRC_INITIALIZATION_ALL_ZERO_PATTERN;
-	hspi2.Init.MasterSSIdleness = SPI_MASTER_SS_IDLENESS_00CYCLE;
-	hspi2.Init.MasterInterDataIdleness = SPI_MASTER_INTERDATA_IDLENESS_00CYCLE;
-	hspi2.Init.MasterReceiverAutoSusp = SPI_MASTER_RX_AUTOSUSP_DISABLE;
-	hspi2.Init.MasterKeepIOState = SPI_MASTER_KEEP_IO_STATE_DISABLE;
-	hspi2.Init.IOSwap = SPI_IO_SWAP_DISABLE;
-	if (HAL_SPI_Init(&hspi2) != HAL_OK)
-	{
-		Error_Handler();
-	}
-}
+
 
 static void MX_UART5_Init(void)
 {

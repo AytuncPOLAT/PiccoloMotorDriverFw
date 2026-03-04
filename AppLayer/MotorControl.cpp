@@ -18,6 +18,8 @@ volatile float GLOBAL_BUS_VOLTAGE;
 volatile float GLOBAL_ROTOR_ANGLE_RAD;
 volatile float GLOBAL_ROTOR_ANGLE;
 volatile int GLOBAL_ROTOR_SPEED;
+volatile int GLOBAL_multiturn;
+
 
 float dFilter = 0.0;
 float qFilter = 0.0;
@@ -97,6 +99,9 @@ void MotorControl::MotorControlTask(void *argument)
 
 			GLOBAL_ROTOR_ANGLE = objectHandle->rotorEncoder.GetPosition();
 			float angleInRadians = objectHandle->rotorEncoder.GetRotorAngleInRadians();
+
+			GLOBAL_multiturn = objectHandle->rotorEncoder.GetMultiTurnPosition();
+
 			GLOBAL_ROTOR_ANGLE_RAD = angleInRadians;
 			GLOBAL_ROTOR_SPEED = objectHandle->rotorEncoder.GetSpeed();
 
@@ -108,14 +113,16 @@ void MotorControl::MotorControlTask(void *argument)
 				{
 					GLOBAL_POSITION_CMD = G_ADC_ext0;
 					objectHandle->speedCommand =
-											objectHandle->positionController.Calculate(GLOBAL_ROTOR_ANGLE, GLOBAL_POSITION_CMD);
+											objectHandle->positionController.Calculate(GLOBAL_multiturn, GLOBAL_POSITION_CMD);
 				}
 				else
 				{
-					GLOBAL_POSITION_CMD = objectHandle->systemData.runTimeData.position;
+					static float posCmdFilter = 0.0;
+					posCmdFilter = 0.01*objectHandle->systemData.runTimeData.position + posCmdFilter*0.99;
+					GLOBAL_POSITION_CMD = posCmdFilter;
 
 					objectHandle->speedCommand =
-						objectHandle->positionController.Calculate(GLOBAL_ROTOR_ANGLE, objectHandle->systemData.runTimeData.position);
+						objectHandle->positionController.Calculate(GLOBAL_multiturn, GLOBAL_POSITION_CMD);
 				}
 			}
 			else

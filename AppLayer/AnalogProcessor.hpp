@@ -25,7 +25,7 @@ namespace AppLayer
 		uint16_t GetExtAnalog(uint8_t channel);
 		bool IsCalibrated();
 		void SetVoltageCurrentRatio(float gain);
-		void StartTask();
+		void Init();
 		void ResetConversionDoneFlag();
 		bool GetConversionDoneFlag();
 		void SetCurrentSenseGain();

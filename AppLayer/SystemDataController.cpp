@@ -311,7 +311,6 @@ void SystemDataController::WriteToRam(Common::PROPERTY property, uint32_t newVal
 		memcpy(&systemData.configurationData.positionController.saturation, &newValue, sizeof(uint32_t));
 		break;
 
-
 	case Common::PROPERTY::MOTOR_ENCODER_OFFSET:
 		memcpy(&systemData.configurationData.motor.motorEncoderOffset, &newValue, sizeof(uint32_t));
 		break;

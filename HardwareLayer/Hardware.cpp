@@ -1,11 +1,9 @@
 #include "Hardware.hpp"
 
-extern SPI_HandleTypeDef hspi2;
-
 Hardware::Hardware()
 : usbCom()
 , motorPwm(timer1Handle)
-, drv8316(hspi2)
+, drv8316()
 {
 	SystemClockConfig();
 	PeriphCommonClockConfig();

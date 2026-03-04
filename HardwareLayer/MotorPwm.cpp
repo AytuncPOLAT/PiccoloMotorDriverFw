@@ -80,6 +80,8 @@ MotorPwm::MotorPwm(TIM_HandleTypeDef& timerRef)
 	HAL_TIMEx_PWMN_Start(&timerHandle, TIM_CHANNEL_1);
 	HAL_TIMEx_PWMN_Start(&timerHandle, TIM_CHANNEL_2);
 	HAL_TIMEx_PWMN_Start(&timerHandle, TIM_CHANNEL_3);
+
+	SetPwmChannel4Duty(999);
 }
 
 void HardwareLayer::MotorPwm::PwmIoInit()

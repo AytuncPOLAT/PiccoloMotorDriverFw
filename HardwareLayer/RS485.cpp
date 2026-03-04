@@ -70,7 +70,7 @@ void Rs485::Init()
 	//__HAL_UART_ENABLE_IT(&huart4, UART_IT_TXE); // Enable TX interrupt
 
 	huart4.Instance = UART4;
-	huart4.Init.BaudRate = 460800;
+	huart4.Init.BaudRate = 115200;
 	huart4.Init.WordLength = UART_WORDLENGTH_8B;
 	huart4.Init.StopBits = UART_STOPBITS_1;
 	huart4.Init.Parity = UART_PARITY_NONE;
