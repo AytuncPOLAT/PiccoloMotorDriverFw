@@ -1,0 +1,6 @@
+/home/aytunc/PiccoloMotorDriver/PiccoloMotorDriverFw/CMakeFiles/PiccoloMotorDriver.dir
+/home/aytunc/PiccoloMotorDriver/PiccoloMotorDriverFw/CMakeFiles/edit_cache.dir
+/home/aytunc/PiccoloMotorDriver/PiccoloMotorDriverFw/CMakeFiles/rebuild_cache.dir
+/home/aytunc/PiccoloMotorDriver/PiccoloMotorDriverFw/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir
+/home/aytunc/PiccoloMotorDriver/PiccoloMotorDriverFw/cmake/stm32cubemx/CMakeFiles/edit_cache.dir
+/home/aytunc/PiccoloMotorDriver/PiccoloMotorDriverFw/cmake/stm32cubemx/CMakeFiles/rebuild_cache.dir
