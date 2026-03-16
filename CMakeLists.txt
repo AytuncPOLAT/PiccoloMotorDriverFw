@@ -54,19 +54,20 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     AppLayer/SimpleLogger.cpp
     AppLayer/SinusPwm.cpp
     AppLayer/SystemDataController.cpp
+    AppLayer/Telemetry.cpp
+    AppLayer/UserInterface.cpp
     AppLayer/Common/Crc16.cpp
     AppLayer/Common/LinkLayer.cpp
     AppLayer/Common/SystemData.cpp
     HardwareLayer/AdcDriver.cpp
     HardwareLayer/AS5047_Driver.cpp
+    HardwareLayer/DRV8316R_SpiDriver.cpp
     HardwareLayer/FlashMemoryController.cpp
     HardwareLayer/Hardware.cpp
     HardwareLayer/MotorPwm.cpp
     HardwareLayer/QuadraticEncoderDriver.cpp
     HardwareLayer/RS485.cpp
     HardwareLayer/UsbVirtualCom.cpp
-    Core/Src/DRV8316R_SpiDriver.cpp
-    Core/Src/UserInterface.cpp
     Core/Src/freertos.c
     Core/Src/stm32h7xx_hal_timebase_tim.c
 )

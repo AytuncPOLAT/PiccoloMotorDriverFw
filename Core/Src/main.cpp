@@ -76,6 +76,7 @@ int main(void)
 	app.motorControl.Init();
 	app.systemDataController.Init();
 	app.analogProcessor.Init();
+	app.telemetry.Init();
 
 	osKernelStart();
 	while (1)

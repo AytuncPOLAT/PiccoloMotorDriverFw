@@ -9,6 +9,7 @@
 #include "UserInterface.hpp"
 #include "PidControl.hpp"
 #include "AnalogProcessor.hpp"
+#include "Telemetry.hpp"
 
 class App
 {
@@ -20,6 +21,7 @@ public:
 	AppLayer::SystemDataController systemDataController;
 	AppLayer::AnalogProcessor analogProcessor;
 	AppLayer::MotorControl motorControl;
+	AppLayer::Telemetry telemetry;
 	UserInterface userInterface;
 	AppLayer::PidController pidController;
 

@@ -118,7 +118,7 @@ void MotorControl::MotorControlTask(void *argument)
 				else
 				{
 					static float posCmdFilter = 0.0;
-					posCmdFilter = 0.01*objectHandle->systemData.runTimeData.position + posCmdFilter*0.99;
+					posCmdFilter = 0.01*objectHandle->systemData.realtimeData.position + posCmdFilter*0.99;
 					GLOBAL_POSITION_CMD = posCmdFilter;
 
 					objectHandle->speedCommand =
@@ -128,7 +128,7 @@ void MotorControl::MotorControlTask(void *argument)
 			else
 			{
 				//Speed Control or lower
-				objectHandle->speedCommand = objectHandle->systemData.runTimeData.speed;
+				objectHandle->speedCommand = objectHandle->systemData.realtimeData.speed;
 			}
 
 			if(objectHandle->systemData.configurationData.controlMode
@@ -141,7 +141,7 @@ void MotorControl::MotorControlTask(void *argument)
 			else
 			{
 				//Torque Control
-				objectHandle->torqueCommand = objectHandle->systemData.runTimeData.torque;
+				objectHandle->torqueCommand = objectHandle->systemData.realtimeData.torque;
 			}
 
 			if(objectHandle->systemData.configurationData.controlMode
@@ -154,7 +154,7 @@ void MotorControl::MotorControlTask(void *argument)
 			else if (objectHandle->systemData.configurationData.controlMode
 					>= (uint8_t) Common::CONTROLLER_TYPE::ELEC_ANGLE)
 			{
-				objectHandle->elecAngleCommand = objectHandle->systemData.runTimeData.elecAngle;
+				objectHandle->elecAngleCommand = objectHandle->systemData.realtimeData.elecAngle;
 				objectHandle->TorqueLoop(objectHandle->torqueCommand,
 										(float)(objectHandle->elecAngleCommand / 585.0) * 2.0 * (float)M_PI,
 										objectHandle->phaseCurrents);
@@ -204,9 +204,9 @@ float MotorControl::SpeedLoop(float setSpeed, float speedFb)
 
 void MotorControl::CheckConfigUpdates()
 {
-	if(systemData.runTimeData.isConfigChanged == true)
+	if(systemData.realtimeData.isConfigChanged == true)
 	{
-		systemData.runTimeData.isConfigChanged = false;
+		systemData.realtimeData.isConfigChanged = false;
 
 		SetControllerParameters();
 	}

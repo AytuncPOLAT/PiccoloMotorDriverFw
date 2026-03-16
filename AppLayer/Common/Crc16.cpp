@@ -5,10 +5,10 @@ using namespace Common;
 Crc16::Crc16()
 {}
 
-uint16_t Crc16::Calculate(uint16_t cksum, uint8_t *buf, int len)
+uint16_t Crc16::Calculate(uint16_t checksum, uint8_t *buffer, int length)
 {
-    for (int i = 0;  i < len;  i++)
-        cksum = crc16_tab[((cksum>>8) ^ *buf++) & 0xff] ^ (cksum << 8);
+    for (int i = 0;  i < length;  i++)
+        checksum = crc16Table[((checksum >> 8) ^ *buffer++) & 0xff] ^ (checksum << 8);
 
-    return cksum;
+    return checksum;
 }

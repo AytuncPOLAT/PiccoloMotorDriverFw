@@ -14,7 +14,7 @@ void SystemDataController::OnCallback(uint8_t arg)
 	if(communication.rxData.cmd == CMD_TYPE::WRITE_TO_DEVICE)
 	{
 		WriteToRam((Common::PROPERTY)communication.rxData.data0, communication.rxData.data1);
-		systemData.runTimeData.isConfigChanged = true;
+		systemData.realtimeData.isConfigChanged = true;
 	}
 
 	if(communication.rxData.cmd == CMD_TYPE::WRITE_TO_DEVICE_FLASH)
@@ -25,10 +25,10 @@ void SystemDataController::OnCallback(uint8_t arg)
 
 	if(communication.rxData.cmd == CMD_TYPE::MOTION_COMMAND)
 	{
-		memcpy(&systemData.runTimeData.elecAngle, &communication.rxData.data0, sizeof(uint32_t));
-		memcpy(&systemData.runTimeData.torque, &communication.rxData.data1, sizeof(uint32_t));
-		memcpy(&systemData.runTimeData.speed, &communication.rxData.data2, sizeof(uint32_t));
-		memcpy(&systemData.runTimeData.position, &communication.rxData.data3, sizeof(uint32_t));
+		memcpy(&systemData.realtimeData.elecAngle, &communication.rxData.data0, sizeof(uint32_t));
+		memcpy(&systemData.realtimeData.torque, &communication.rxData.data1, sizeof(uint32_t));
+		memcpy(&systemData.realtimeData.speed, &communication.rxData.data2, sizeof(uint32_t));
+		memcpy(&systemData.realtimeData.position, &communication.rxData.data3, sizeof(uint32_t));
 	}
 
 	if(communication.rxData.cmd == CMD_TYPE::READ_REALTIME)
@@ -217,8 +217,16 @@ void SystemDataController::DataReadResponse(Common::PROPERTY property)
 
 	// Motor Parameters
 	case Common::PROPERTY::MOTOR_ENCODER_OFFSET:
-			memcpy(&communication.txData.data0, &systemData.configurationData.motor.motorEncoderOffset, sizeof(uint32_t));
-			break;
+		memcpy(&communication.txData.data0, &systemData.configurationData.motor.motorEncoderOffset, sizeof(uint32_t));
+		break;
+
+	case Common::PROPERTY::DC_BUS_VOLTAGE:
+		memcpy(&communication.txData.data0, &systemData.realtimeData.dcBusVoltage, sizeof(uint32_t));
+		break;
+	
+	case Common::PROPERTY::MULTI_TURN_ENCODER:	
+		memcpy(&communication.txData.data0, &systemData.realtimeData.multiTurnEncoder, sizeof(uint32_t));
+		break;
 	}
 
 	communication.TransmitTxFrame();
@@ -246,6 +254,10 @@ void SystemDataController::WriteToRam(Common::PROPERTY property, uint32_t newVal
 
 	case Common::PROPERTY::DEV_CONTROL_MODE:
 		memcpy(&systemData.configurationData.controlMode, &newValue, sizeof(uint32_t));
+		break;
+
+	case Common::PROPERTY::DC_BUS_VOLTAGE:
+		// dcBusVoltage is updated by Telemetry and is read-only over the bus
 		break;
 
 	//DQ Controller

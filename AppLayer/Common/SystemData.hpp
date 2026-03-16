@@ -14,7 +14,7 @@ namespace Common
 	const uint16_t MOTOR_PWM_MAX_CNT = 1000;
 
 	constexpr uint8_t ADC_RESOLUTION_IN_BITS = 12U;
-	constexpr int16_t ADC_MAX = pow(2U, ADC_RESOLUTION_IN_BITS);
+    constexpr int16_t ADC_MAX = 4096;
 	constexpr int16_t ADC_MID_POINT = ADC_MAX / 2U;
 	constexpr float ADC_REF_IN_MILLI_VOLTS = 3300U;
 	constexpr float MILLIVOLTS_PER_COUNT = ADC_REF_IN_MILLI_VOLTS / ADC_MAX;
@@ -75,7 +75,9 @@ namespace Common
 		PID_POS_MAX_INTEGRAL_WU,
 		PID_POS_SAT,
 
-		MOTOR_ENCODER_OFFSET
+		MOTOR_ENCODER_OFFSET,
+        DC_BUS_VOLTAGE,
+        MULTI_TURN_ENCODER
 	};
 
 	struct __attribute__((packed)) ConfigurationData
@@ -133,13 +135,15 @@ namespace Common
 	static_assert(sizeof(ConfigurationData) % 32 == 0, "Configuration data struct alignment error"
 			", Configuration data must be aligned to 32 bytes");
 
-	struct RunTimeData
+	struct RealtimeData
 	{
 		int elecAngle;
 		int torque;
 		int speed;
 		int position;
+		int dcBusVoltage;
 		bool isConfigChanged;
+		int multiTurnEncoder;
 	};
 
 	class SystemData
@@ -149,7 +153,7 @@ namespace Common
 		void DefaultInitialization();
 
 		ConfigurationData configurationData;
-		RunTimeData runTimeData;
+		RealtimeData realtimeData;
 	private:
 	};
 }
