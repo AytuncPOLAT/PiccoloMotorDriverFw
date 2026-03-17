@@ -326,6 +326,10 @@ void SystemDataController::WriteToRam(Common::PROPERTY property, uint32_t newVal
 	case Common::PROPERTY::MOTOR_ENCODER_OFFSET:
 		memcpy(&systemData.configurationData.motor.motorEncoderOffset, &newValue, sizeof(uint32_t));
 		break;
+
+	case Common::PROPERTY::MULTI_TURN_ENCODER:
+		memcpy(&systemData.realtimeData.multiTurnEncoder, &newValue, sizeof(uint32_t));
+		break;
 	}
 }
 

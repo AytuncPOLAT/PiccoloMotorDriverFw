@@ -44,7 +44,7 @@
 #include "event_groups.h"
 #include "stream_buffer.h"
 #include "mpu_prototypes.h"
-#include "mpu_syscall_numbers.h"
+//#include "mpu_syscall_numbers.h"
 
 #undef MPU_WRAPPERS_INCLUDED_FROM_API_FILE
 /*-----------------------------------------------------------*/

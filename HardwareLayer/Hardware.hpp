@@ -9,6 +9,7 @@
 #include "QuadraticEncoderDriver.hpp"
 #include "AS5047_Driver.hpp"
 #include "RS485.hpp"
+#include "FdcanDriver.hpp"
 
 extern "C"
 {
@@ -30,6 +31,7 @@ public:
 	HardwareLayer::QuadraticEncoderDriver externalQuadEncoder;
 	HardwareLayer::AS5047 as5047;
 	HardwareLayer::Rs485 rs485;
+	HardwareLayer::FdCanDriver fdcan;
 
 private:
 	void SystemClockConfig();

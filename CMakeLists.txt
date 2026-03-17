@@ -67,6 +67,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     HardwareLayer/MotorPwm.cpp
     HardwareLayer/QuadraticEncoderDriver.cpp
     HardwareLayer/RS485.cpp
+    HardwareLayer/FdcanDriver.cpp
     HardwareLayer/UsbVirtualCom.cpp
     Core/Src/freertos.c
     Core/Src/stm32h7xx_hal_timebase_tim.c

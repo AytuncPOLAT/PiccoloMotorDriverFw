@@ -13,12 +13,7 @@
 #include "SinusPwm.hpp"
 #include "PidControl.hpp"
 
-int Global_as5047 = 0;
-
-
-
 TIM_HandleTypeDef htim1;
-
 
 UART_HandleTypeDef huart5;
 
@@ -66,6 +61,7 @@ int main(void)
 	hardware.as5047.Init();
 	hardware.rs485.Init();
 	hardware.drv8316.Init();
+	hardware.fdcan.Init();
 
 	osKernelInitialize();
 
@@ -97,8 +93,10 @@ void StartDefaultTask(void *argument)
 
 	for (;;)
 	{
-		osDelay(100);
+		osDelay(1000);
 
+		app->hwPtr.fdcan.AddMessageToTxQueue();
+		/*
 		cnt++;
 		if(cnt > 4096) cnt = 0;
 
@@ -114,7 +112,7 @@ void StartDefaultTask(void *argument)
 				app->hwPtr.adc.ReadChannel(5),
 				app->hwPtr.adc.ReadChannel(6));
 
-		//app->hwPtr.rs485.Transmit(txBuffer, 100);
+		app->hwPtr.rs485.Transmit(txBuffer, 100);*/
 	}
 }
 
