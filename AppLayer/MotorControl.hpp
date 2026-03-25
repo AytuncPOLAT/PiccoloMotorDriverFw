@@ -14,6 +14,7 @@ extern "C"
 #include "IEncoder.hpp"
 #include "PidControl.hpp"
 #include "AnalogProcessor.hpp"
+#include "SignalProcessing.hpp"
 
 namespace Common
 {
@@ -53,6 +54,13 @@ namespace AppLayer
 	    float c;
 	};
 
+	struct ElectricalAngle
+	{
+		float full;
+		float half;
+		float quarter;
+	};
+
 	class MotorControl
 	: public HardwareLayer::IEncoder::Callback
 	{
@@ -76,9 +84,13 @@ namespace AppLayer
 		ABC InverseClarkeTransform(AlphaBetaZero input);
 		DQZero ParkTransform(AlphaBetaZero abz, float angleInRad);
 		AlphaBetaZero InverseParkTransform(DQZero input, float theta);
-		void TorqueLoop(float setTorque, float angleInRadians, ABC phaseCurrents);
+		DQZero TorqueLoop(float setTorque, float angleInRadians, ABC phaseCurrents);
 		float SpeedLoop(float setSpeed, float speedFb);
+		void DebugMonitor();
 		void SetControllerParameters();
+		
+		float RotorAngleInCountsToElectricalAngleInRadians(int rotorAngleInCounts, uint8_t motorPoles);
+		void CalculateMotorParameters();
 
 		BaseType_t taskHandle;
 		HardwareLayer::MotorPwm& motorPwm;
@@ -87,14 +99,30 @@ namespace AppLayer
 		Common::SystemData& systemData;
 		Common::MotorMode mode;
 		bool armed = false;
+		
+		ElectricalAngle electricalAngle;
 
 		ABC phaseCurrents;
 		PidController dController, qController, speedController, positionController;
+
+		LowPassFilter positionCommandFilter;
+		LowPassFilter parkDFilter;
+		LowPassFilter parkQFilter;
+
+		// Debug monitor variables
+		float busVoltage;
+		float rotorAngle;
+		float angleInRadians;
+		int multiturn;
+		int rotorSpeed;
+		float positionCmd;
+		DQZero parkValues;
 
 		int elecAngleCommand;
 		float torqueCommand;
 		float speedCommand;
 		int positionCommand;
+
 	};
 }
 

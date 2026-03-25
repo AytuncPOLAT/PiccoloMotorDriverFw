@@ -1,6 +1,8 @@
 #ifndef PID_CONTROL_HPP
 #define PID_CONTROL_HPP
 
+#include "SignalProcessing.hpp"
+
 namespace AppLayer
 {
 	class PidController
@@ -17,8 +19,8 @@ namespace AppLayer
 		float p;
 		float i;
 		float d;
-		
-		float dFilter;
+			
+		LowPassFilter dFilter;
 		float errorDelta;
 		float errorOld;
 		float errorSum;

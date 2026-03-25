@@ -10,6 +10,7 @@ extern "C"
 #include "AdcDriver.hpp"
 #include "SystemData.hpp"
 #include "DRV8316R_SpiDriver.hpp"
+#include "SignalProcessing.hpp"
 
 namespace AppLayer
 {
@@ -41,6 +42,8 @@ namespace AppLayer
 
 		float currentGain;
 		float phaseOffsets[3] = {0.0, 0.0, 0.0};
+		LowPassFilter phaseOffsetFilter[3] = { LowPassFilter(0.01f), LowPassFilter(0.01f), LowPassFilter(0.01f) };
+		LowPassFilter phaseCurrentFilter[3] = { LowPassFilter(0.1f), LowPassFilter(0.1f), LowPassFilter(0.1f) };
 		bool isCalibrated = false;
 	};
 }

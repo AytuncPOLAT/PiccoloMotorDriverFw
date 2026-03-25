@@ -1,14 +1,5 @@
 #include "AnalogProcessor.hpp"
 
-//volatile int GLOBAL_ADC_0;
-float G_PHASE_CURRENT_A;
-float G_PHASE_CURRENT_B;
-float G_PHASE_CURRENT_C;
-uint16_t GLOBAL_ADC_3;
-uint16_t GLOBAL_ADC_4;
-uint16_t GLOBAL_ADC_5;
-//uint16_t GLOBAL_ADC_6;
-
 using namespace AppLayer;
 
 AnalogProcessor::AnalogProcessor(HardwareLayer::AdcDriver& adcRef,
@@ -18,6 +9,16 @@ AnalogProcessor::AnalogProcessor(HardwareLayer::AdcDriver& adcRef,
 , systemData(systemDataRef)
 , drv(drvRef)
 {
+}
+
+void AnalogProcessor::Init()
+{
+	taskHandle = xTaskCreate(this->AnalogProcessTask,
+			"AnalogProcessTask",
+			128 * 4,
+			(void*) this,
+			24,
+			NULL);
 }
 
 void AnalogProcessor::ResetConversionDoneFlag()
@@ -44,14 +45,14 @@ void AnalogProcessor::AnalogProcessTask(void *argument)
 		if(numberOfCalibCycles-- == 0)
 			break;
 
-		objectHandle->phaseOffsets[0] = objectHandle->phaseOffsets[0] * 0.99 +
-				objectHandle->adc.ReadChannel(Common::ADC_CHANNELS::PHASE_A_CURRENT) * 0.01;
+		objectHandle->phaseOffsets[0] = objectHandle->phaseOffsetFilter[0].Update(
+			objectHandle->adc.ReadChannel(Common::ADC_CHANNELS::PHASE_A_CURRENT));
 
-		objectHandle->phaseOffsets[1] = objectHandle->phaseOffsets[1] * 0.99 +
-				objectHandle->adc.ReadChannel(Common::ADC_CHANNELS::PHASE_B_CURRENT) * 0.01;
+		objectHandle->phaseOffsets[1] = objectHandle->phaseOffsetFilter[1].Update(
+			objectHandle->adc.ReadChannel(Common::ADC_CHANNELS::PHASE_B_CURRENT));
 
-		objectHandle->phaseOffsets[2] = objectHandle->phaseOffsets[2] * 0.99 +
-				objectHandle->adc.ReadChannel(Common::ADC_CHANNELS::PHASE_C_CURRENT) * 0.01;
+		objectHandle->phaseOffsets[2] = objectHandle->phaseOffsetFilter[2].Update(
+			objectHandle->adc.ReadChannel(Common::ADC_CHANNELS::PHASE_C_CURRENT));
 
 		osDelay(1);
 	}
@@ -80,17 +81,17 @@ float AnalogProcessor::GetPhaseCurrent(uint8_t channel)
 	{
 	case 0:
 		currentInAmps = (adc.ReadChannel(Common::ADC_CHANNELS::PHASE_A_CURRENT) - phaseOffsets[channel]) * Common::MILLIAMPS_PER_COUNT;
-		G_PHASE_CURRENT_A = currentInAmps;
+		currentInAmps = phaseCurrentFilter[0].Update(currentInAmps);
 		break;
 
 	case 1:
 		currentInAmps = (adc.ReadChannel(Common::ADC_CHANNELS::PHASE_B_CURRENT) - phaseOffsets[channel]) * Common::MILLIAMPS_PER_COUNT;
-		G_PHASE_CURRENT_B = currentInAmps;
+		currentInAmps = phaseCurrentFilter[1].Update(currentInAmps);
 		break;
 
 	case 2:
 		currentInAmps = (adc.ReadChannel(Common::ADC_CHANNELS::PHASE_C_CURRENT) - phaseOffsets[channel]) * Common::MILLIAMPS_PER_COUNT;
-		G_PHASE_CURRENT_C = currentInAmps;
+		currentInAmps = phaseCurrentFilter[2].Update(currentInAmps);
 		break;
 
 	default:
@@ -131,12 +132,3 @@ void AnalogProcessor::SetCurrentSenseGain()
 
 }
 
-void AnalogProcessor::Init()
-{
-	taskHandle = xTaskCreate(this->AnalogProcessTask,
-			"AnalogProcessTask",
-			128 * 4,
-			(void*) this,
-			24,
-			NULL);
-}

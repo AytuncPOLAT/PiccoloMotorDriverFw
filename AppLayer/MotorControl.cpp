@@ -3,6 +3,7 @@
 #include "SystemData.hpp"
 #include "PidControl.hpp"
 #include "AdcDriver.hpp"
+#include "SignalProcessing.hpp"
 #include "math.h"
 
 uint16_t G_ADC_ext0;
@@ -20,6 +21,9 @@ volatile float GLOBAL_ROTOR_ANGLE;
 volatile int GLOBAL_ROTOR_SPEED;
 volatile int GLOBAL_multiturn;
 
+volatile float GLOBAL_PHASE_CURRENT_A;
+volatile float GLOBAL_PHASE_CURRENT_B;
+volatile float GLOBAL_PHASE_CURRENT_C;
 
 float dFilter = 0.0;
 float qFilter = 0.0;
@@ -43,8 +47,9 @@ MotorControl::MotorControl(HardwareLayer::MotorPwm& motorPwmRef,
 : motorPwm(motorPwmRef)
 , analog(analogRef)
 , systemData(systemDataRef)
-, rotorEncoder(rotorEncoderRef)
-{
+, rotorEncoder(rotorEncoderRef), positionCommandFilter(0.01f)
+, parkDFilter(0.01f)
+, parkQFilter(0.01f){
 	SetControllerParameters();
 }
 void MotorControl::Init()
@@ -53,6 +58,15 @@ void MotorControl::Init()
 			24, NULL);
 
 	rotorEncoder.SetRotorEncoderOffset(systemData.configurationData.motor.motorEncoderOffset);
+
+	CalculateMotorParameters();
+}
+
+void MotorControl::CalculateMotorParameters()
+{
+	electricalAngle.full = 4096 / systemData.configurationData.motor.motorPoles;
+	electricalAngle.half = electricalAngle.full / 2;
+	electricalAngle.quarter = electricalAngle.full / 4;
 }
 
 Common::ErrorType MotorControl::SetArmed(bool isArmed)
@@ -74,8 +88,6 @@ void MotorControl::MotorControlTask(void *argument)
 {
 	MotorControl *objectHandle = static_cast<MotorControl*>(argument);
 
-	uint16_t angle = 0;
-
 	while (1)
 	{
 		if(objectHandle->analog.GetConversionDoneFlag()
@@ -89,21 +101,35 @@ void MotorControl::MotorControlTask(void *argument)
 			objectHandle->phaseCurrents.b = objectHandle->analog.GetPhaseCurrent(1);
 			objectHandle->phaseCurrents.c = objectHandle->analog.GetPhaseCurrent(2);
 
-			GLOBAL_BUS_VOLTAGE = objectHandle->analog.GetBusVoltage();
+			objectHandle->busVoltage = objectHandle->analog.GetBusVoltage();
 			G_ADC_ext0 = objectHandle->analog.GetExtAnalog(0);
 			G_ADC_ext1 = objectHandle->analog.GetExtAnalog(1);
 
-			//TODO: Motor type
-			//if(objectHandle->mode == Common::MotorMode::DC_AB)
-			//{}
+			objectHandle->rotorAngle = (float)objectHandle->rotorEncoder.GetPosition();
+			//objectHandle->angleInRadians = objectHandle->rotorEncoder.GetRotorAngleInRadians();
+			objectHandle->angleInRadians = objectHandle->RotorAngleInCountsToElectricalAngleInRadians(objectHandle->rotorEncoder.GetPosition(), 
+					objectHandle->systemData.configurationData.motor.motorPoles);
 
-			GLOBAL_ROTOR_ANGLE = objectHandle->rotorEncoder.GetPosition();
-			float angleInRadians = objectHandle->rotorEncoder.GetRotorAngleInRadians();
+			objectHandle->multiturn = objectHandle->rotorEncoder.GetMultiTurnPosition();
 
-			GLOBAL_multiturn = objectHandle->rotorEncoder.GetMultiTurnPosition();
+			objectHandle->rotorSpeed = objectHandle->rotorEncoder.GetSpeed();
 
-			GLOBAL_ROTOR_ANGLE_RAD = angleInRadians;
-			GLOBAL_ROTOR_SPEED = objectHandle->rotorEncoder.GetSpeed();
+			objectHandle->positionCmd = 0.0f;
+
+			//TODO: Refactor this control flow. It is very messy right now.
+			if (objectHandle->systemData.configurationData.controlMode
+								== 5)
+			{
+				objectHandle->parkValues = objectHandle->TorqueLoop(200,0,objectHandle->phaseCurrents);
+				osDelay(1000);
+
+				int angle = (objectHandle->rotorEncoder.GetPosition() >> 2) % (int)objectHandle->electricalAngle.full;
+
+				objectHandle->systemData.configurationData.motor.motorEncoderOffset = angle + objectHandle->electricalAngle.quarter/2;
+				objectHandle->systemData.configurationData.controlMode = 1;
+			}
+			else
+			{
 
 			if(objectHandle->systemData.configurationData.controlMode
 					>= (uint8_t) Common::CONTROLLER_TYPE::POSITION)
@@ -111,18 +137,16 @@ void MotorControl::MotorControlTask(void *argument)
 				//Position Control
 				if(objectHandle->systemData.configurationData.controlMode == 4)
 				{
-					GLOBAL_POSITION_CMD = G_ADC_ext0;
+					objectHandle->positionCmd = (float)G_ADC_ext0;
 					objectHandle->speedCommand =
-											objectHandle->positionController.Calculate(GLOBAL_multiturn, GLOBAL_POSITION_CMD);
+											objectHandle->positionController.Calculate(objectHandle->multiturn, objectHandle->positionCmd);
 				}
 				else
 				{
-					static float posCmdFilter = 0.0;
-					posCmdFilter = 0.01*objectHandle->systemData.realtimeData.position + posCmdFilter*0.99;
-					GLOBAL_POSITION_CMD = posCmdFilter;
+					objectHandle->positionCmd = objectHandle->positionCommandFilter.Update((float)objectHandle->systemData.realtimeData.position);
 
 					objectHandle->speedCommand =
-						objectHandle->positionController.Calculate(GLOBAL_multiturn, GLOBAL_POSITION_CMD);
+						objectHandle->positionController.Calculate(objectHandle->multiturn, objectHandle->positionCmd);
 				}
 			}
 			else
@@ -136,7 +160,6 @@ void MotorControl::MotorControlTask(void *argument)
 			{
 				//Speed Control
 				objectHandle->torqueCommand = objectHandle->SpeedLoop(objectHandle->speedCommand, GLOBAL_ROTOR_SPEED);
-				//objectHandle->torqueCommand = objectHandle->SpeedLoop(G_ADC_ext0/50.0, GLOBAL_ROTOR_SPEED);
 			}
 			else
 			{
@@ -147,31 +170,32 @@ void MotorControl::MotorControlTask(void *argument)
 			if(objectHandle->systemData.configurationData.controlMode
 								>= (uint8_t) Common::CONTROLLER_TYPE::TORQUE)
 			{
-				objectHandle->TorqueLoop(objectHandle->torqueCommand,
-						angleInRadians,
+				objectHandle->parkValues = objectHandle->TorqueLoop(objectHandle->torqueCommand,
+						objectHandle->angleInRadians,
 						objectHandle->phaseCurrents);
 			}
 			else if (objectHandle->systemData.configurationData.controlMode
 					>= (uint8_t) Common::CONTROLLER_TYPE::ELEC_ANGLE)
 			{
 				objectHandle->elecAngleCommand = objectHandle->systemData.realtimeData.elecAngle;
-				objectHandle->TorqueLoop(objectHandle->torqueCommand,
+				objectHandle->parkValues = objectHandle->TorqueLoop(objectHandle->torqueCommand,
 										(float)(objectHandle->elecAngleCommand / 585.0) * 2.0 * (float)M_PI,
 										objectHandle->phaseCurrents);
 			}
 
+			}
+
+			objectHandle->DebugMonitor();
 			objectHandle->CheckConfigUpdates();
 		}
 	}
 }
 
-void MotorControl::TorqueLoop(float setTorque, float angleInRadians, ABC phaseCurrents)
+DQZero MotorControl::TorqueLoop(float setTorque, float angleInRadians, ABC phaseCurrents)
 {
 	AlphaBetaZero abzFb, abzFw;
 	DQZero dqzFb, dqzFw;
 	ABC abcFw;
-
-	static DQZero filteredDQZeroFb;
 
 	// 3Phase 120deg AC >> 2 phase 90deg AC
 	abzFb = ClarkTransform(phaseCurrents);
@@ -179,15 +203,11 @@ void MotorControl::TorqueLoop(float setTorque, float angleInRadians, ABC phaseCu
 	// 2 phase 90deg AC >> 2 phase 90deg DC
 	dqzFb = ParkTransform(abzFb, angleInRadians);
 
-	filteredDQZeroFb.d = filteredDQZeroFb.d * 0.99 + dqzFb.d * 0.01;
-	filteredDQZeroFb.q = filteredDQZeroFb.q * 0.99 + dqzFb.q * 0.01;
+	dqzFb.d = parkDFilter.Update(dqzFb.d);
+	dqzFb.q = parkQFilter.Update(dqzFb.q);
 
-	GLOBAL_PARK_D = filteredDQZeroFb.d;
-	GLOBAL_PARK_Q = filteredDQZeroFb.q;
-	GLOBAL_TORQUE_CMD = setTorque;
-
-	dqzFw.d = dController.Calculate(filteredDQZeroFb.d, setTorque);
-	dqzFw.q = qController.Calculate(filteredDQZeroFb.q, 0.0);
+	dqzFw.d = dController.Calculate(dqzFb.d, setTorque);
+	dqzFw.q = qController.Calculate(dqzFb.q, 0.0);
 
 	abzFw = InverseParkTransform(dqzFw, angleInRadians);
 	abcFw = InverseClarkeTransform(abzFw);
@@ -195,11 +215,29 @@ void MotorControl::TorqueLoop(float setTorque, float angleInRadians, ABC phaseCu
 	motorPwm.SetPwmChannel1Duty(abcFw.a * 0.5 + 500);
 	motorPwm.SetPwmChannel3Duty(abcFw.b * 0.5 + 500);
 	motorPwm.SetPwmChannel2Duty(abcFw.c * 0.5 + 500);
+
+	return dqzFb; // return the filtered park values
 }
 
 float MotorControl::SpeedLoop(float setSpeed, float speedFb)
 {
 	return speedController.Calculate(speedFb, setSpeed);
+}
+
+void MotorControl::DebugMonitor()
+{
+	GLOBAL_PARK_D = parkValues.d;
+	GLOBAL_PARK_Q = parkValues.q;
+	GLOBAL_TORQUE_CMD = torqueCommand;
+	GLOBAL_POSITION_CMD = positionCmd;
+	GLOBAL_BUS_VOLTAGE = busVoltage;
+	GLOBAL_ROTOR_ANGLE_RAD = angleInRadians;
+	GLOBAL_ROTOR_ANGLE = rotorAngle;
+	GLOBAL_ROTOR_SPEED = rotorSpeed;
+	GLOBAL_multiturn = multiturn;
+	GLOBAL_PHASE_CURRENT_A = phaseCurrents.a;
+	GLOBAL_PHASE_CURRENT_B = phaseCurrents.b;
+	GLOBAL_PHASE_CURRENT_C = phaseCurrents.c;
 }
 
 void MotorControl::CheckConfigUpdates()
@@ -263,6 +301,15 @@ AlphaBetaZero MotorControl::InverseParkTransform(DQZero input, float theta)
     output.zero  = input.zero;
 
     return output;
+}
+
+float MotorControl::RotorAngleInCountsToElectricalAngleInRadians(int rotorAngleInCounts, uint8_t motorPoles)
+{
+	int angle = (rotorAngleInCounts >> 2) + systemData.configurationData.motor.motorEncoderOffset;
+	angle = angle % (4096 / motorPoles);
+
+	float angleInRadians = ((float)angle / (4096 / motorPoles)) * 2.0 * M_PI;
+	return angleInRadians;
 }
 
 void MotorControl::SetControllerParameters()

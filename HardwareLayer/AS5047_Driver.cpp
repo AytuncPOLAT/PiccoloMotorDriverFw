@@ -8,6 +8,7 @@ namespace
 }
 
 AS5047::AS5047()
+: speedFilter(0.1f)
 {}
 
 void AS5047::Init()
@@ -50,7 +51,7 @@ void AS5047::Init()
 	spiHandle.Init.CLKPolarity = SPI_POLARITY_LOW;
 	spiHandle.Init.CLKPhase = SPI_PHASE_2EDGE;
 	spiHandle.Init.NSS = SPI_NSS_HARD_OUTPUT;
-	spiHandle.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16;
+	spiHandle.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_4;
 	spiHandle.Init.FirstBit = SPI_FIRSTBIT_MSB;
 	spiHandle.Init.TIMode = SPI_TIMODE_DISABLE;
 	spiHandle.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -136,11 +137,15 @@ void AS5047::SetRotorEncoderOffset(int16_t newOffset)
 	offset = newOffset;
 }
 
+void AS5047::Reset()
+{
+	// No action required for this encoder implementation
+}
+
 int AS5047::GetSpeed()
 {
 	int16_t speed;
 	int16_t reducedPos = (int16_t)(position << 2);
-	static float speedFilter = 0;
 
 	if(reducedPos >= 0)
 		speed = abs(reducedPos) - abs(oldPosition);
@@ -149,12 +154,7 @@ int AS5047::GetSpeed()
 
 	oldPosition = reducedPos;
 
-	speedFilter = speed*0.1 + speedFilter*0.9;
-	return speedFilter;
-}
-
-void AS5047::Reset()
-{
+	return (int)speedFilter.Update((float)speed);
 
 }
 

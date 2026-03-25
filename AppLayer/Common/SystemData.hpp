@@ -76,6 +76,7 @@ namespace Common
 		PID_POS_SAT,
 
 		MOTOR_ENCODER_OFFSET,
+        MOTOR_POLES,
         DC_BUS_VOLTAGE,
         MULTI_TURN_ENCODER
 	};
@@ -125,9 +126,10 @@ namespace Common
 		struct __attribute__((packed)) Motor
 		{
 			int motorEncoderOffset;
+			int motorPoles;
 		} motor;
 
-		uint32_t padding32[12];
+		uint32_t padding32[19];
 		uint16_t padding16[1];
 		uint16_t crc16;
 	};

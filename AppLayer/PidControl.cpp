@@ -3,6 +3,7 @@
 using namespace AppLayer;
 
 PidController::PidController()
+: dFilter(0.01f)
 {}
 
 void PidController::SetParameters(float _kp, float _ki, float _kd, float _windUpLimit, float _pidOutputLimit)
@@ -23,9 +24,8 @@ float PidController::Calculate(float input, float setPoint)
 	errorDelta = error - errorOld;
 	d = errorDelta * kd;
 
-	dFilter = dFilter*0.99 + d*0.01;
-			
-	errorOld = error;		
+	float dFiltered = dFilter.Update(d);
+
 
 	errorSum += error;
 	i = errorSum * ki;
@@ -33,10 +33,13 @@ float PidController::Calculate(float input, float setPoint)
 	if(errorSum > integralWindUpLimit) errorSum = integralWindUpLimit;		
 	else if(errorSum < -integralWindUpLimit)errorSum = -integralWindUpLimit;
 
-	pidOutput = p + i + dFilter;		
+	pidOutput = p + i + dFiltered;
 
 	if(pidOutput > pidLimit) pidOutput = pidLimit;
-	else if(pidOutput < -pidLimit) pidOutput = -pidLimit;	  
+	else if(pidOutput < -pidLimit) pidOutput = -pidLimit;
+
+	errorOld = error;
 
 	return pidOutput;
 }
+

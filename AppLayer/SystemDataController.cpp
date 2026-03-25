@@ -220,6 +220,10 @@ void SystemDataController::DataReadResponse(Common::PROPERTY property)
 		memcpy(&communication.txData.data0, &systemData.configurationData.motor.motorEncoderOffset, sizeof(uint32_t));
 		break;
 
+	case Common::PROPERTY::MOTOR_POLES:
+		memcpy(&communication.txData.data0, &systemData.configurationData.motor.motorPoles, sizeof(uint32_t));
+		break;
+
 	case Common::PROPERTY::DC_BUS_VOLTAGE:
 		memcpy(&communication.txData.data0, &systemData.realtimeData.dcBusVoltage, sizeof(uint32_t));
 		break;
@@ -325,6 +329,10 @@ void SystemDataController::WriteToRam(Common::PROPERTY property, uint32_t newVal
 
 	case Common::PROPERTY::MOTOR_ENCODER_OFFSET:
 		memcpy(&systemData.configurationData.motor.motorEncoderOffset, &newValue, sizeof(uint32_t));
+		break;
+
+	case Common::PROPERTY::MOTOR_POLES:
+		memcpy(&systemData.configurationData.motor.motorPoles, &newValue, sizeof(uint32_t));
 		break;
 
 	case Common::PROPERTY::MULTI_TURN_ENCODER:

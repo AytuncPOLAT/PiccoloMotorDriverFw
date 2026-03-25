@@ -3,6 +3,7 @@
 
 #include "stm32h7xx_hal.h"
 #include "IEncoder.hpp"
+#include "SignalProcessing.hpp"
 
 namespace HardwareLayer
 {
@@ -28,6 +29,7 @@ namespace HardwareLayer
 		int multiTurnRev = 0;
 		int16_t oldPosition;
 
+		AppLayer::LowPassFilter speedFilter;
 
 		SPI_HandleTypeDef spiHandle;
 		uint16_t SPI_Read(uint16_t address);

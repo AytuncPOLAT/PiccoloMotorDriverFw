@@ -14,7 +14,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
 	if (hadc->Instance == ADC1)
 	{
-		//HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_8);
+		HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_9);
 		adcDriverPtr->isConversionDone = true;
 	}
 }

@@ -36,6 +36,7 @@ void Common::SystemData::DefaultInitialization()
 	configurationData.positionController.saturation = 500000;
 
 	configurationData.motor.motorEncoderOffset = 0;
+	configurationData.motor.motorPoles = Common::MOTOR_POLES;
 
 	configurationData.crc16 = 16U;
 }
