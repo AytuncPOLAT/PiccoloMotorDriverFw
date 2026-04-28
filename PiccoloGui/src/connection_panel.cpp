@@ -123,23 +123,4 @@ void drawConnectionPanel(ConnectionPanelState& state, SerialManager& serial, std
 
     ImGui::SameLine();
     ImGui::Text("Status: %s", serial.isConnected() ? "Connected" : "Disconnected");
-
-    ImGui::InputText("TX Message", state.txBuffer.data(), state.txBuffer.size());
-    if (ImGui::Button("Send") && serial.isConnected())
-    {
-        std::string error;
-        const std::string line(state.txBuffer.data());
-        if (!line.empty())
-        {
-            if (serial.writeLine(line, error))
-            {
-                addLog(logs, "TX > " + line);
-                state.txBuffer[0] = '\0';
-            }
-            else
-            {
-                addLog(logs, "TX failed: " + error);
-            }
-        }
-    }
 }

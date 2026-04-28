@@ -17,6 +17,7 @@ constexpr uint8_t kCmdPing = 0;
 constexpr uint8_t kCmdPingResponse = 1;
 constexpr uint8_t kCmdReadFromDevice = 2;
 constexpr uint8_t kCmdWriteToDevice = 3;
+constexpr uint8_t kCmdMotionCommand = 5;
 
 #pragma pack(push, 1)
 struct DataFrame
@@ -258,11 +259,11 @@ bool SerialManager::readProperty(uint8_t deviceAddress,
         return false;
     }
 
-    const auto start = std::chrono::steady_clock::now();
-    uint8_t rxBuffer[sizeof(DataFrame)] = {};
-    std::size_t rxCount = 0;
-
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    const auto start = std::chrono::steady_clock::now();
+    uint8_t rxBuffer[sizeof(DataFrame) * 2] = {}; // Larger buffer to detect frame misalignment
+    std::size_t rxCount = 0;
 
     while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count()
            < timeoutMs)
@@ -283,34 +284,30 @@ bool SerialManager::readProperty(uint8_t deviceAddress,
             rxCount += bytesRead;
         }
 
+        // Try to find a valid frame
         if (rxCount >= sizeof(DataFrame))
         {
-            DataFrame rx = {};
-            std::memcpy(&rx, rxBuffer, sizeof(rx));
-
-            const uint16_t expectedCrc
-                = crc.Calculate(0, reinterpret_cast<uint8_t*>(&rx), sizeof(rx) - sizeof(rx.checksum));
-
-            if (rx.checksum != expectedCrc)
+            for (std::size_t offset = 0; offset <= rxCount - sizeof(DataFrame); ++offset)
             {
-                errorMessage = "Property read response CRC mismatch.";
-                std::cout << "Property read debug: CRC mismatch. Received checksum=0x" << std::hex << rx.checksum
-                     << " expected=0x" << expectedCrc << std::dec << std::endl; 
-                //return false;
+                DataFrame rx = {};
+                std::memcpy(&rx, rxBuffer + offset, sizeof(rx));
+
+                const uint16_t expectedCrc
+                    = crc.Calculate(0, reinterpret_cast<uint8_t*>(&rx), sizeof(rx) - sizeof(rx.checksum));
+
+                if (rx.checksum == expectedCrc && rx.cmd == kCmdReadFromDevice && rx.address == deviceAddress)
+                {
+                    valueOut = static_cast<int32_t>(rx.data0);
+                    return true;
+                }
             }
-            if (rx.cmd != kCmdReadFromDevice)
+
+            // If no valid frame found in buffer, keep reading but limit buffer size
+            if (rxCount >= sizeof(rxBuffer) - 1)
             {
-                errorMessage = "Unexpected property read response command.";
+                errorMessage = "Property read response: no valid frame found in buffer.";
                 return false;
             }
-            if (rx.address != deviceAddress)
-            {
-                errorMessage = "Property read response address mismatch.";
-                return false;
-            }
-
-            valueOut = static_cast<int32_t>(rx.data0);
-            return true;
         }
 
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -336,6 +333,33 @@ bool SerialManager::writeProperty(uint8_t deviceAddress,
     tx.address = deviceAddress;
     tx.data0 = static_cast<uint32_t>(property);
     tx.data1 = static_cast<uint32_t>(value);
+
+    Common::Crc16 crc;
+    tx.checksum = crc.Calculate(0, reinterpret_cast<uint8_t*>(&tx), sizeof(tx) - sizeof(tx.checksum));
+
+    return serialPort_->write(reinterpret_cast<const uint8_t*>(&tx), sizeof(tx), errorMessage);
+}
+
+bool SerialManager::sendMotionCommand(uint8_t deviceAddress,
+                                      int32_t elecAngle,
+                                      int32_t torque,
+                                      int32_t speed,
+                                      int32_t position,
+                                      std::string& errorMessage)
+{
+    if (!isConnected())
+    {
+        errorMessage = "No serial connection.";
+        return false;
+    }
+
+    DataFrame tx = {};
+    tx.cmd = kCmdMotionCommand;
+    tx.address = deviceAddress;
+    tx.data0 = static_cast<uint32_t>(elecAngle);
+    tx.data1 = static_cast<uint32_t>(torque);
+    tx.data2 = static_cast<uint32_t>(speed);
+    tx.data3 = static_cast<uint32_t>(position);
 
     Common::Crc16 crc;
     tx.checksum = crc.Calculate(0, reinterpret_cast<uint8_t*>(&tx), sizeof(tx) - sizeof(tx.checksum));

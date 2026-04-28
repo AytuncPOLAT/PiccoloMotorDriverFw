@@ -39,6 +39,12 @@ public:
                       std::string& errorMessage,
                       int timeoutMs = 2000);
     bool writeProperty(uint8_t deviceAddress, Common::PROPERTY property, int32_t value, std::string& errorMessage);
+    bool sendMotionCommand(uint8_t deviceAddress,
+                          int32_t elecAngle,
+                          int32_t torque,
+                          int32_t speed,
+                          int32_t position,
+                          std::string& errorMessage);
 
 private:
     std::unique_ptr<ISerialPort> serialPort_;

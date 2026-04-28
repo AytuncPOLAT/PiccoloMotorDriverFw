@@ -79,6 +79,7 @@ namespace AppLayer
 	private:
 		void CheckConfigUpdates();
 		static void MotorControlTask(void *argument);
+		static void EncoderUpdater(void *argument);
 
 		AlphaBetaZero ClarkTransform(ABC input);
 		ABC InverseClarkeTransform(AlphaBetaZero input);
@@ -93,6 +94,7 @@ namespace AppLayer
 		void CalculateMotorParameters();
 
 		BaseType_t taskHandle;
+		BaseType_t encoderTaskHandle;
 		HardwareLayer::MotorPwm& motorPwm;
 		AnalogProcessor& analog;
 		HardwareLayer::IEncoder& rotorEncoder;

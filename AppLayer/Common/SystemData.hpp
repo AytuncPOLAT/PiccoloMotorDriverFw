@@ -78,7 +78,8 @@ namespace Common
 		MOTOR_ENCODER_OFFSET,
         MOTOR_POLES,
         DC_BUS_VOLTAGE,
-        MULTI_TURN_ENCODER
+        MULTI_TURN_ENCODER,
+        CURRENT_AMPLIFIER_GAIN
 	};
 
 	struct __attribute__((packed)) ConfigurationData
@@ -127,6 +128,7 @@ namespace Common
 		{
 			int motorEncoderOffset;
 			int motorPoles;
+			int currentAmplifierGain;
 		} motor;
 
 		uint32_t padding32[19];

@@ -8,7 +8,7 @@ namespace
 }
 
 AS5047::AS5047()
-: speedFilter(0.1f)
+: speedFilter(0.01f)
 {}
 
 void AS5047::Init()
@@ -154,7 +154,8 @@ int AS5047::GetSpeed()
 
 	oldPosition = reducedPos;
 
-	return (int)speedFilter.Update((float)speed);
+	//return (int)speedFilter.Update((float)speed);
+	return speed;
 
 }
 

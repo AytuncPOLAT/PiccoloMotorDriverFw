@@ -97,6 +97,8 @@ inline const char* toPropertyLabel(Common::PROPERTY property)
             return "DC Bus Voltage";
         case Property::MULTI_TURN_ENCODER:
             return "Multi Turn Encoder";
+        case Property::CURRENT_AMPLIFIER_GAIN:
+            return "Current Amplifier Gain";
         default:
             return "Unknown";
     }
@@ -164,14 +166,24 @@ struct TelemetryBuffer
     std::deque<double> speed;
     std::deque<double> current;
     std::deque<double> position;
+    std::deque<double> busVoltage;
+    std::deque<double> pwmPercent;
+    std::deque<double> driverTemp;
+    std::deque<double> motorTemp;
+    std::deque<double> multiTurnEncoder;
     std::size_t capacity = 1200;
 
-    void push(double timeS, double speedRps, double currentA, double positionDeg)
+    void push(double timeS, double speedRps, double currentA, double positionDeg, double busV, double pwm, double drvTemp, double motTemp, double encoder)
     {
         t.push_back(timeS);
         speed.push_back(speedRps);
         current.push_back(currentA);
         position.push_back(positionDeg);
+        busVoltage.push_back(busV);
+        pwmPercent.push_back(pwm);
+        driverTemp.push_back(drvTemp);
+        motorTemp.push_back(motTemp);
+        multiTurnEncoder.push_back(encoder);
 
         while (t.size() > capacity)
         {
@@ -179,6 +191,11 @@ struct TelemetryBuffer
             speed.pop_front();
             current.pop_front();
             position.pop_front();
+            busVoltage.pop_front();
+            pwmPercent.pop_front();
+            driverTemp.pop_front();
+            motorTemp.pop_front();
+            multiTurnEncoder.pop_front();
         }
     }
 };

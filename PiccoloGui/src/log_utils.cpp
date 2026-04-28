@@ -34,12 +34,12 @@ void addLog(std::vector<std::string>& logs, const std::string& line)
     }
 }
 
-bool parseTelemetryCsv(const std::string& line, double& speedRps, double& currentA, double& positionDeg)
+bool parseTelemetryCsv(const std::string& line, double& speedRps, double& currentA, double& positionDeg, double& busVoltage, double& pwmPercent, double& driverTemp, double& motorTemp)
 {
-    // Expected format: speed,current,position
+    // Expected format: speed,current,position,busVoltage,pwmPercent,driverTemp,motorTemp
     std::stringstream ss(line);
     std::string token;
-    std::array<double, 3> values = {};
+    std::array<double, 7> values = {};
 
     for (std::size_t i = 0; i < values.size(); ++i)
     {
@@ -60,5 +60,9 @@ bool parseTelemetryCsv(const std::string& line, double& speedRps, double& curren
     speedRps = values[0];
     currentA = values[1];
     positionDeg = values[2];
+    busVoltage = values[3];
+    pwmPercent = values[4];
+    driverTemp = values[5];
+    motorTemp = values[6];
     return true;
 }

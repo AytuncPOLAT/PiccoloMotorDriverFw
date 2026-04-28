@@ -97,13 +97,13 @@ void drawConfigurationPanel(std::vector<ConfigItem>& configItems,
                 const std::string idSuffix = "##prop_" + std::to_string(propertyId);
 
                 ImGui::PushID(propertyId);
-                ImGui::SetNextItemWidth(220.0f);
+                ImGui::SetNextItemWidth(150.0f);
                 ImGui::InputScalar((std::string(itemPtr->label) + idSuffix).c_str(),
                                    ImGuiDataType_S32,
                                    &itemPtr->value);
 
                 ImGui::SameLine();
-                if (ImGui::Button("Read"))
+                if (ImGui::Button("R##read", ImVec2(30, 0)))
                 {
                     readConfigItem(*itemPtr, deviceAddress, serial, logs);
                 }
@@ -114,7 +114,7 @@ void drawConfigurationPanel(std::vector<ConfigItem>& configItems,
                 {
                     ImGui::BeginDisabled();
                 }
-                if (ImGui::Button("Write"))
+                if (ImGui::Button("W##write", ImVec2(30, 0)))
                 {
                     writeConfigItem(*itemPtr, deviceAddress, serial, logs);
                 }

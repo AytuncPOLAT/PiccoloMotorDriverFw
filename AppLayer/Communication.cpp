@@ -124,6 +124,9 @@ void Communication::Print(uint8_t *data, uint32_t size)
 
 void Communication::TransmitTxFrame()
 {
+	Common::Crc16 crc;
+	txData.checksum = crc.Calculate(0, reinterpret_cast<uint8_t*>(&txData), sizeof (txData) - 2);
+	
 	if(interface == INTERFACE::RS485)
 	{
 		rs485.Transmit((uint8_t*)&txData, sizeof(txData));

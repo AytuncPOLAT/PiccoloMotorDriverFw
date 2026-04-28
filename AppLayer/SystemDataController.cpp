@@ -59,8 +59,6 @@ void SystemDataController::TaskThread(void *argument)
 
 	while(1)
 	{
-
-
 		if(objectHandle->state == State::FLASH_WRITE)
 		{
 			objectHandle->storageController.EraseUserSector();
@@ -231,6 +229,10 @@ void SystemDataController::DataReadResponse(Common::PROPERTY property)
 	case Common::PROPERTY::MULTI_TURN_ENCODER:	
 		memcpy(&communication.txData.data0, &systemData.realtimeData.multiTurnEncoder, sizeof(uint32_t));
 		break;
+
+	case Common::PROPERTY::CURRENT_AMPLIFIER_GAIN:
+		memcpy(&communication.txData.data0, &systemData.configurationData.motor.currentAmplifierGain, sizeof(uint32_t));
+		break;
 	}
 
 	communication.TransmitTxFrame();
@@ -337,6 +339,10 @@ void SystemDataController::WriteToRam(Common::PROPERTY property, uint32_t newVal
 
 	case Common::PROPERTY::MULTI_TURN_ENCODER:
 		memcpy(&systemData.realtimeData.multiTurnEncoder, &newValue, sizeof(uint32_t));
+		break;
+
+	case Common::PROPERTY::CURRENT_AMPLIFIER_GAIN:
+		memcpy(&systemData.configurationData.motor.currentAmplifierGain, &newValue, sizeof(uint32_t));
 		break;
 	}
 }

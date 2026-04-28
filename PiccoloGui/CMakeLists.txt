@@ -48,6 +48,8 @@ add_executable(
   src/plot_panel.cpp
   src/log_panel.cpp
   src/log_utils.cpp
+  src/telemetry_panel.cpp
+  src/jog_panel.cpp
   src/serial_manager.cpp
   src/serial_port.cpp
   ../AppLayer/Common/Crc16.cpp
