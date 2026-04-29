@@ -171,19 +171,25 @@ struct TelemetryBuffer
     std::deque<double> driverTemp;
     std::deque<double> motorTemp;
     std::deque<double> multiTurnEncoder;
+    std::deque<double> torque;
     std::size_t capacity = 1200;
+    double timeWindowSeconds = 10.0;
 
-    void push(double timeS, double speedRps, double currentA, double positionDeg, double busV, double pwm, double drvTemp, double motTemp, double encoder)
+    void trimToWindow()
     {
-        t.push_back(timeS);
-        speed.push_back(speedRps);
-        current.push_back(currentA);
-        position.push_back(positionDeg);
-        busVoltage.push_back(busV);
-        pwmPercent.push_back(pwm);
-        driverTemp.push_back(drvTemp);
-        motorTemp.push_back(motTemp);
-        multiTurnEncoder.push_back(encoder);
+        while (!t.empty() && (t.back() - t.front()) > timeWindowSeconds)
+        {
+            t.pop_front();
+            speed.pop_front();
+            current.pop_front();
+            position.pop_front();
+            busVoltage.pop_front();
+            pwmPercent.pop_front();
+            driverTemp.pop_front();
+            motorTemp.pop_front();
+            multiTurnEncoder.pop_front();
+            torque.pop_front();
+        }
 
         while (t.size() > capacity)
         {
@@ -196,6 +202,29 @@ struct TelemetryBuffer
             driverTemp.pop_front();
             motorTemp.pop_front();
             multiTurnEncoder.pop_front();
+            torque.pop_front();
         }
+    }
+
+    void setTimeWindowSeconds(double seconds)
+    {
+        timeWindowSeconds = seconds;
+        trimToWindow();
+    }
+
+    void push(double timeS, double speedRps, double currentA, double positionDeg, double busV, double pwm, double drvTemp, double motTemp, double encoder, double torqueVal)
+    {
+        t.push_back(timeS);
+        speed.push_back(speedRps);
+        current.push_back(currentA);
+        position.push_back(positionDeg);
+        busVoltage.push_back(busV);
+        pwmPercent.push_back(pwm);
+        driverTemp.push_back(drvTemp);
+        motorTemp.push_back(motTemp);
+        multiTurnEncoder.push_back(encoder);
+        torque.push_back(torqueVal);
+
+        trimToWindow();
     }
 };

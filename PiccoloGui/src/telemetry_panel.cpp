@@ -1,14 +1,32 @@
 #include "telemetry_panel.hpp"
 #include "imgui.h"
 
-void drawTelemetryPanel(const TelemetryBuffer& telemetry, bool& armed, int status, bool& autoRefresh)
+void drawTelemetryPanel(const TelemetryBuffer& telemetry, bool& armed, int status, bool& autoRefresh, int& refreshRateIndex, bool& loggingEnabled)
 {
     ImGui::Text("Telemetry");
     ImGui::SameLine();
-    if (ImGui::SmallButton(autoRefresh ? "Auto-Refresh: ON (10Hz)" : "Auto-Refresh: OFF"))
+    if (ImGui::SmallButton(autoRefresh ? "Auto-Refresh: ON" : "Auto-Refresh: OFF"))
     {
         autoRefresh = !autoRefresh;
     }
+    ImGui::SameLine();
+    if (ImGui::SmallButton(loggingEnabled ? "Logging: ON" : "Logging: OFF"))
+    {
+        loggingEnabled = !loggingEnabled;
+    }
+
+    ImGui::Text("Refresh rate:");
+    ImGui::SameLine();
+    if (ImGui::RadioButton("1Hz", &refreshRateIndex, 0)) {}
+    ImGui::SameLine();
+    if (ImGui::RadioButton("10Hz", &refreshRateIndex, 1)) {}
+    ImGui::SameLine();
+    if (ImGui::RadioButton("50Hz", &refreshRateIndex, 2)) {}
+
+    ImGui::SameLine();
+    static const char* rateLabels[] = {"1Hz", "10Hz", "50Hz"};
+    ImGui::Text("Current: %s", rateLabels[refreshRateIndex]);
+
     ImGui::Separator();
 
     // Fields
@@ -66,8 +84,8 @@ void drawTelemetryPanel(const TelemetryBuffer& telemetry, bool& armed, int statu
     if (!telemetry.multiTurnEncoder.empty())
     {
         // Encoder returns 0-16383 for 0-360 degrees
-        double encoderDegrees = (telemetry.multiTurnEncoder.back() / 16384.0) * 360.0;
-        ImGui::Text("Encoder (multi-turn): %.2f°", encoderDegrees);
+        int encoderCounts = telemetry.multiTurnEncoder.back();
+        ImGui::Text("Encoder (multi-turn): %d", encoderCounts);
     }
     else
     {

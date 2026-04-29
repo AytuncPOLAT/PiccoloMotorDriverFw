@@ -38,6 +38,14 @@ public:
                       int32_t& valueOut,
                       std::string& errorMessage,
                       int timeoutMs = 2000);
+    bool readProperty(uint8_t deviceAddress,
+                      Common::PROPERTY property,
+                      int32_t& value0Out,
+                      int32_t& value1Out,
+                      int32_t& value2Out,
+                      int32_t& value3Out,
+                      std::string& errorMessage,
+                      int timeoutMs = 2000);
     bool writeProperty(uint8_t deviceAddress, Common::PROPERTY property, int32_t value, std::string& errorMessage);
     bool sendMotionCommand(uint8_t deviceAddress,
                           int32_t elecAngle,

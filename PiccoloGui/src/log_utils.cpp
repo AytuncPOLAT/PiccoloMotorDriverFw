@@ -23,8 +23,15 @@ std::string timestampNow()
     return std::string(buf);
 }
 
+bool loggingEnabled = true;
+
 void addLog(std::vector<std::string>& logs, const std::string& line)
 {
+    if (!loggingEnabled)
+    {
+        return;
+    }
+
     logs.push_back("[" + timestampNow() + "] " + line);
 
     constexpr std::size_t kMaxLogLines = 2000;
@@ -34,9 +41,9 @@ void addLog(std::vector<std::string>& logs, const std::string& line)
     }
 }
 
-bool parseTelemetryCsv(const std::string& line, double& speedRps, double& currentA, double& positionDeg, double& busVoltage, double& pwmPercent, double& driverTemp, double& motorTemp)
+bool parseTelemetryCsv(const std::string& line, double& encoder, double& speedRps, double& torque, double& busVoltage, double& pwmPercent, double& driverTemp, double& motorTemp)
 {
-    // Expected format: speed,current,position,busVoltage,pwmPercent,driverTemp,motorTemp
+    // Expected format: encoder,speed,torque,busVoltage,pwmPercent,driverTemp,motorTemp
     std::stringstream ss(line);
     std::string token;
     std::array<double, 7> values = {};
@@ -57,9 +64,9 @@ bool parseTelemetryCsv(const std::string& line, double& speedRps, double& curren
         values[i] = parsed;
     }
 
-    speedRps = values[0];
-    currentA = values[1];
-    positionDeg = values[2];
+    encoder = values[0];
+    speedRps = values[1];
+    torque = values[2];
     busVoltage = values[3];
     pwmPercent = values[4];
     driverTemp = values[5];

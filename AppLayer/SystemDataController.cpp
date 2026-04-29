@@ -227,7 +227,14 @@ void SystemDataController::DataReadResponse(Common::PROPERTY property)
 		break;
 	
 	case Common::PROPERTY::MULTI_TURN_ENCODER:	
-		memcpy(&communication.txData.data0, &systemData.realtimeData.multiTurnEncoder, sizeof(uint32_t));
+		memcpy(&communication.txData.data0, &systemData.realtimeData.multiTurnEncoder, sizeof(int32_t));
+		break;
+
+	case Common::PROPERTY::MOTION_TELEMETRY:
+		memcpy(&communication.txData.data0, &systemData.realtimeData.multiTurnEncoder, sizeof(int32_t));
+		memcpy(&communication.txData.data1, &systemData.realtimeData.speed, sizeof(int32_t));
+		memcpy(&communication.txData.data2, &systemData.realtimeData.torque, sizeof(int32_t));
+		memcpy(&communication.txData.data3, &systemData.realtimeData.motorCurrent, sizeof(int32_t));
 		break;
 
 	case Common::PROPERTY::CURRENT_AMPLIFIER_GAIN:

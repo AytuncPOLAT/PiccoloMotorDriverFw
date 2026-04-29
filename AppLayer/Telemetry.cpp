@@ -27,8 +27,10 @@ void Telemetry::TelemetryTask(void *argument)
 	while(1)
 	{
 		float busVoltage = objectHandle->analogProcessor.GetBusVoltage();
+
 		objectHandle->systemData.realtimeData.dcBusVoltage = (int)busVoltage;
-		objectHandle->systemData.realtimeData.multiTurnEncoder = objectHandle->rotorEncoder.GetPosition();
-		osDelay(100);
+		//objectHandle->systemData.realtimeData.multiTurnEncoder = objectHandle->rotorEncoder.GetMultiTurnPosition();
+
+		osDelay(5);
 	}
 }

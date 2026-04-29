@@ -79,6 +79,7 @@ namespace Common
         MOTOR_POLES,
         DC_BUS_VOLTAGE,
         MULTI_TURN_ENCODER,
+		MOTION_TELEMETRY,
         CURRENT_AMPLIFIER_GAIN
 	};
 
@@ -115,7 +116,7 @@ namespace Common
 			int saturation;
 		}dqController;
 
-		struct __attribute__((packed)) PositionController //Torque
+		struct __attribute__((packed)) PositionController
 		{
 			int kp;
 			int ki;
@@ -131,7 +132,7 @@ namespace Common
 			int currentAmplifierGain;
 		} motor;
 
-		uint32_t padding32[19];
+		uint32_t padding32[18];
 		uint16_t padding16[1];
 		uint16_t crc16;
 	};
@@ -142,6 +143,7 @@ namespace Common
 	struct RealtimeData
 	{
 		int elecAngle;
+		int motorCurrent;
 		int torque;
 		int speed;
 		int position;

@@ -53,11 +53,18 @@ int main()
     bool armed = false;
     int status = 0; // 0: no error, 1: warning, 2: error
     bool autoScrollLogs = true;
+    extern bool loggingEnabled;
 
     static float leftPanelWidth = 600.0f;
     static float telemetryPanelHeight = 100.0f;
     bool autoRefresh = false;
-    double lastRefreshTime = glfwGetTime();
+    int refreshRateIndex = 1; // 0: 1Hz, 1: 10Hz, 2: 50Hz
+    double lastSlowRefreshTime = glfwGetTime();
+    double lastFastRefreshTime = glfwGetTime();
+    double lastBusVoltage = 0.0;
+    double lastEncoder = 0.0;
+    double lastSpeed = 0.0;
+    double lastTorque = 0.0;
 
     ConnectionPanelState connectionState;
     connectionState.ports = serial.listAvailablePorts();
@@ -87,64 +94,89 @@ int main()
         for (const std::string& line : incoming)
         {
             addLog(logs, "RX < " + line);
+            double encoder = 0.0;
             double speed = 0.0;
-            double current = 0.0;
-            double position = 0.0;
+            double torque = 0.0;
             double busVoltage = 0.0;
             double pwmPercent = 0.0;
             double driverTemp = 0.0;
             double motorTemp = 0.0;
-            if (parseTelemetryCsv(line, speed, current, position, busVoltage, pwmPercent, driverTemp, motorTemp))
+            if (parseTelemetryCsv(line, encoder, speed, torque, busVoltage, pwmPercent, driverTemp, motorTemp))
             {
-                telemetry.push(now, speed, current, position, busVoltage, pwmPercent, driverTemp, motorTemp, 0.0);
+                telemetry.push(now, speed, 0.0, 0.0, busVoltage, pwmPercent, driverTemp, motorTemp, encoder, torque);
             }
         }
 
-        // Auto-refresh telemetry at 10Hz
+        // Slow path: 1Hz for DC bus voltage
         if (autoRefresh && serial.isConnected())
         {
-            const double timeSinceRefresh = now - lastRefreshTime;
-            if (timeSinceRefresh >= 0.1) // 100ms for 10Hz
+            const double timeSinceSlow = now - lastSlowRefreshTime;
+            if (timeSinceSlow >= 1.0)
             {
-                lastRefreshTime = now;
-                
+                lastSlowRefreshTime = now;
+
                 int32_t busVoltageRaw = 0;
-                int32_t encoderRaw = 0;
                 std::string readError;
-                if (serial.readProperty(static_cast<uint8_t>(connectionState.deviceAddress), 
-                                       Common::PROPERTY::DC_BUS_VOLTAGE, 
+                if (serial.readProperty(static_cast<uint8_t>(connectionState.deviceAddress),
+                                       Common::PROPERTY::DC_BUS_VOLTAGE,
                                        busVoltageRaw, readError))
                 {
-                    // Convert raw value to voltage (assuming raw value is voltage * 100 or similar scaling)
-                    double busVoltage = busVoltageRaw / 100.0;
-                    
-                    // Also read the multi-turn encoder
-                    double encoder = 0.0;
-                    std::string encoderError;
-                    if (serial.readProperty(static_cast<uint8_t>(connectionState.deviceAddress), 
-                                           Common::PROPERTY::MULTI_TURN_ENCODER, 
-                                           encoderRaw, encoderError))
-                    {
-                        // Encoder returns 0-16383 for one full turn
-                        // Ensure it's treated as unsigned
-                        uint32_t encoderUnsigned = static_cast<uint32_t>(encoderRaw);
-                        encoder = static_cast<double>(encoderUnsigned);
-                    }
-                    
-                    // Push with last known values for other fields
+                    lastBusVoltage = busVoltageRaw / 100.0;
+
+                    // Push with updated busVoltage, last encoder
                     double lastSpeed = telemetry.speed.empty() ? 0.0 : telemetry.speed.back();
                     double lastCurrent = telemetry.current.empty() ? 0.0 : telemetry.current.back();
                     double lastPosition = telemetry.position.empty() ? 0.0 : telemetry.position.back();
                     double lastPwm = telemetry.pwmPercent.empty() ? 0.0 : telemetry.pwmPercent.back();
                     double lastDrvTemp = telemetry.driverTemp.empty() ? 0.0 : telemetry.driverTemp.back();
                     double lastMotTemp = telemetry.motorTemp.empty() ? 0.0 : telemetry.motorTemp.back();
-                    
-                    telemetry.push(now, lastSpeed, lastCurrent, lastPosition, busVoltage, lastPwm, lastDrvTemp, lastMotTemp, encoder);
-                    addLog(logs, "TX > Telemetry refresh: Bus Voltage = " + std::to_string(busVoltage) + "V, Encoder = " + std::to_string(static_cast<int32_t>(encoder)));
+
+                    telemetry.push(now, lastSpeed, lastCurrent, lastPosition, lastBusVoltage, lastPwm, lastDrvTemp, lastMotTemp, lastEncoder, lastTorque);
+                    addLog(logs, "TX > Slow telemetry refresh: Bus Voltage = " + std::to_string(lastBusVoltage) + "V");
                 }
                 else if (!readError.empty())
                 {
-                    addLog(logs, "Telemetry refresh error: " + readError);
+                    addLog(logs, "Slow telemetry refresh error: " + readError);
+                }
+            }
+        }
+
+        // Fast path: selected frequency for encoder
+        if (autoRefresh && serial.isConnected())
+        {
+            static const int refreshRates[] = {1, 10, 50};
+            const double refreshInterval = 1.0 / static_cast<double>(refreshRates[refreshRateIndex]);
+            const double timeSinceFast = now - lastFastRefreshTime;
+            if (timeSinceFast >= refreshInterval)
+            {
+                lastFastRefreshTime = now;
+
+                int32_t encoderRaw = 0;
+                int32_t speedRaw = 0;
+                int32_t torqueRaw = 0;
+                int32_t unusedData3 = 0;
+                std::string encoderError;
+                if (serial.readProperty(static_cast<uint8_t>(connectionState.deviceAddress),
+                                       Common::PROPERTY::MULTI_TURN_ENCODER,
+                                       encoderRaw, speedRaw, torqueRaw, unusedData3, encoderError))
+                {
+                    lastEncoder = static_cast<double>(encoderRaw);
+                    lastSpeed = static_cast<double>(speedRaw);
+                    lastTorque = static_cast<double>(torqueRaw);
+
+                    // Push with updated encoder, speed, torque, and last busVoltage
+                    double lastCurrent = telemetry.current.empty() ? 0.0 : telemetry.current.back();
+                    double lastPosition = telemetry.position.empty() ? 0.0 : telemetry.position.back();
+                    double lastPwm = telemetry.pwmPercent.empty() ? 0.0 : telemetry.pwmPercent.back();
+                    double lastDrvTemp = telemetry.driverTemp.empty() ? 0.0 : telemetry.driverTemp.back();
+                    double lastMotTemp = telemetry.motorTemp.empty() ? 0.0 : telemetry.motorTemp.back();
+
+                    telemetry.push(now, lastSpeed, lastCurrent, lastPosition, lastBusVoltage, lastPwm, lastDrvTemp, lastMotTemp, lastEncoder, lastTorque);
+                    addLog(logs, "TX > Fast telemetry refresh: Encoder = " + std::to_string(static_cast<int32_t>(lastEncoder)) + ", Speed = " + std::to_string(static_cast<int32_t>(lastSpeed)) + ", Torque = " + std::to_string(static_cast<int32_t>(lastTorque)));
+                }
+                else if (!encoderError.empty())
+                {
+                    addLog(logs, "Fast telemetry refresh error: " + encoderError);
                 }
             }
         }
@@ -210,7 +242,7 @@ int main()
 
         ImGui::BeginChild("TelemetryPanel", ImVec2(0, telemetryPanelHeight), true);
         {
-            drawTelemetryPanel(telemetry, armed, status, autoRefresh);
+            drawTelemetryPanel(telemetry, armed, status, autoRefresh, refreshRateIndex, loggingEnabled);
         }
         ImGui::EndChild();
 

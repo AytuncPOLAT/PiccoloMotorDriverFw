@@ -259,7 +259,7 @@ bool SerialManager::readProperty(uint8_t deviceAddress,
         return false;
     }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
     const auto start = std::chrono::steady_clock::now();
     uint8_t rxBuffer[sizeof(DataFrame) * 2] = {}; // Larger buffer to detect frame misalignment
@@ -310,7 +310,96 @@ bool SerialManager::readProperty(uint8_t deviceAddress,
             }
         }
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+
+    errorMessage = "Property read timeout.";
+    return false;
+}
+
+bool SerialManager::readProperty(uint8_t deviceAddress,
+                                 Common::PROPERTY property,
+                                 int32_t& value0Out,
+                                 int32_t& value1Out,
+                                 int32_t& value2Out,
+                                 int32_t& value3Out,
+                                 std::string& errorMessage,
+                                 int timeoutMs)
+{
+    if (!isConnected())
+    {
+        errorMessage = "No serial connection.";
+        return false;
+    }
+
+    DataFrame tx = {};
+    tx.cmd = kCmdReadFromDevice;
+    tx.address = deviceAddress;
+    tx.data0 = static_cast<uint32_t>(property);
+
+    Common::Crc16 crc;
+    tx.checksum = crc.Calculate(0, reinterpret_cast<uint8_t*>(&tx), sizeof(tx) - sizeof(tx.checksum));
+
+    if (!serialPort_->write(reinterpret_cast<const uint8_t*>(&tx), sizeof(tx), errorMessage))
+    {
+        return false;
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+
+    const auto start = std::chrono::steady_clock::now();
+    uint8_t rxBuffer[sizeof(DataFrame) * 2] = {}; // Larger buffer to detect frame misalignment
+    std::size_t rxCount = 0;
+
+    while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count()
+           < timeoutMs)
+    {
+        std::string readError;
+        std::size_t bytesRead = 0;
+        if (!serialPort_->read(rxBuffer + rxCount, sizeof(rxBuffer) - rxCount, bytesRead, readError))
+        {
+            if (!readError.empty())
+            {
+                errorMessage = "Property read response read failed: " + readError;
+                return false;
+            }
+        }
+
+        if (bytesRead > 0)
+        {
+            rxCount += bytesRead;
+        }
+
+        // Try to find a valid frame
+        if (rxCount >= sizeof(DataFrame))
+        {
+            for (std::size_t offset = 0; offset <= rxCount - sizeof(DataFrame); ++offset)
+            {
+                DataFrame rx = {};
+                std::memcpy(&rx, rxBuffer + offset, sizeof(rx));
+
+                const uint16_t expectedCrc
+                    = crc.Calculate(0, reinterpret_cast<uint8_t*>(&rx), sizeof(rx) - sizeof(rx.checksum));
+
+                if (rx.checksum == expectedCrc && rx.cmd == kCmdReadFromDevice && rx.address == deviceAddress)
+                {
+                    value0Out = static_cast<int32_t>(rx.data0);
+                    value1Out = static_cast<int32_t>(rx.data1);
+                    value2Out = static_cast<int32_t>(rx.data2);
+                    value3Out = static_cast<int32_t>(rx.data3);
+                    return true;
+                }
+            }
+
+            // If no valid frame found in buffer, keep reading but limit buffer size
+            if (rxCount >= sizeof(rxBuffer) - 1)
+            {
+                errorMessage = "Property read response: no valid frame found in buffer.";
+                return false;
+            }
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
     errorMessage = "Property read timeout.";

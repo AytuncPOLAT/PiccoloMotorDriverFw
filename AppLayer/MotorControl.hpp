@@ -116,6 +116,7 @@ namespace AppLayer
 		float rotorAngle;
 		float angleInRadians;
 		int multiturn;
+		int telemetryMotorCurrent;
 		int rotorSpeed;
 		float positionCmd;
 		DQZero parkValues;

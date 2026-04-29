@@ -93,8 +93,6 @@ void MotorControl::EncoderUpdater(void *argument)
 
 	while (1)
 	{
-
-
 		osDelay(1000);
 	}
 }
@@ -183,6 +181,8 @@ void MotorControl::MotorControlTask(void *argument)
 			if(objectHandle->systemData.configurationData.controlMode
 								>= (uint8_t) Common::CONTROLLER_TYPE::TORQUE)
 			{
+
+
 				objectHandle->parkValues = objectHandle->TorqueLoop(objectHandle->torqueCommand,
 						objectHandle->angleInRadians,
 						objectHandle->phaseCurrents);
@@ -197,6 +197,9 @@ void MotorControl::MotorControlTask(void *argument)
 			}
 
 			}
+
+			objectHandle->systemData.realtimeData.multiTurnEncoder = objectHandle->multiturn;
+			objectHandle->systemData.realtimeData.motorCurrent = objectHandle->telemetryMotorCurrent;
 
 			objectHandle->DebugMonitor();
 			objectHandle->CheckConfigUpdates();
@@ -228,6 +231,9 @@ DQZero MotorControl::TorqueLoop(float setTorque, float angleInRadians, ABC phase
 	motorPwm.SetPwmChannel1Duty(abcFw.a * 0.5 + 500);
 	motorPwm.SetPwmChannel3Duty(abcFw.b * 0.5 + 500);
 	motorPwm.SetPwmChannel2Duty(abcFw.c * 0.5 + 500);
+
+
+	telemetryMotorCurrent = static_cast<int> (dqzFw.d * 10);
 
 	return dqzFb; // return the filtered park values
 }

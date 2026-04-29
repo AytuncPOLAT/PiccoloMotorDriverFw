@@ -2,4 +2,4 @@
 
 #include "app_models.hpp"
 
-void drawPlotPanel(const TelemetryBuffer& telemetry);
+void drawPlotPanel(TelemetryBuffer& telemetry);
