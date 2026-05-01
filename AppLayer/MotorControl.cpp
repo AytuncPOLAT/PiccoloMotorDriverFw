@@ -199,7 +199,9 @@ void MotorControl::MotorControlTask(void *argument)
 			}
 
 			objectHandle->systemData.realtimeData.multiTurnEncoder = objectHandle->multiturn;
-			objectHandle->systemData.realtimeData.motorCurrent = objectHandle->telemetryMotorCurrent;
+
+			objectHandle->systemData.realtimeData.speedGet = objectHandle->rotorSpeed;
+			objectHandle->systemData.realtimeData.torqueGet = objectHandle->telemetryMotorCurrent;
 
 			objectHandle->DebugMonitor();
 			objectHandle->CheckConfigUpdates();
@@ -233,7 +235,7 @@ DQZero MotorControl::TorqueLoop(float setTorque, float angleInRadians, ABC phase
 	motorPwm.SetPwmChannel2Duty(abcFw.c * 0.5 + 500);
 
 
-	telemetryMotorCurrent = static_cast<int> (dqzFw.d * 10);
+	telemetryMotorCurrent = static_cast<int> (dqzFb.d * 10);
 
 	return dqzFb; // return the filtered park values
 }

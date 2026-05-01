@@ -70,12 +70,20 @@ void drawJogPanel(SerialManager& serial, uint8_t deviceAddress, std::vector<std:
     ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.2f, 1.0f), "Current %s: %.0f", modeStr.c_str(), selectedValue);
     ImGui::Spacing();
 
-    // Jog buttons layout: [-10x] [-1x] [Zero] [+1x] [+10x]
+    // Jog buttons layout: [-100x] [-10x] [-1x] [Zero] [+1x] [+10x] [+100x]
     ImVec2 buttonSize(60, 50);
-    float totalWidth = buttonSize.x * 5 + ImGui::GetStyle().ItemSpacing.x * 4;
+    float totalWidth = buttonSize.x * 7 + ImGui::GetStyle().ItemSpacing.x * 6;
     float startX = (ImGui::GetContentRegionAvail().x - totalWidth) * 0.5f + ImGui::GetCursorPosX();
 
     ImGui::SetCursorPosX(startX);
+
+    // -100x button
+    if (ImGui::Button("-100x##neg100", buttonSize))
+    {
+        sendJogCommand(serial, deviceAddress, selectedMode, -jogIncrement * 100.0f, currentTorque, currentSpeed, currentPosition, logs);
+    }
+
+    ImGui::SameLine();
 
     // -10x button
     if (ImGui::Button("-10x##neg10", buttonSize))
@@ -122,5 +130,13 @@ void drawJogPanel(SerialManager& serial, uint8_t deviceAddress, std::vector<std:
     if (ImGui::Button("+10x##pos10", buttonSize))
     {
         sendJogCommand(serial, deviceAddress, selectedMode, jogIncrement * 10.0f, currentTorque, currentSpeed, currentPosition, logs);
+    }
+
+    ImGui::SameLine();
+
+    // +100x button
+    if (ImGui::Button("+100x##pos100", buttonSize))
+    {
+        sendJogCommand(serial, deviceAddress, selectedMode, jogIncrement * 100.0f, currentTorque, currentSpeed, currentPosition, logs);
     }
 }

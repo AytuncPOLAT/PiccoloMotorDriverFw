@@ -91,30 +91,4 @@ void drawTelemetryPanel(const TelemetryBuffer& telemetry, bool& armed, int statu
     {
         ImGui::Text("Encoder (multi-turn): -- ");
     }
-
-    ImGui::Spacing();
-    ImGui::SameLine();
-    ImVec2 indicatorPos = ImGui::GetCursorScreenPos();
-    ImDrawList* drawList = ImGui::GetWindowDrawList();
-    ImVec4 indicatorColor;
-    if (status == 0) indicatorColor = ImVec4(0, 1, 0, 1); // Green
-    else if (status == 1) indicatorColor = ImVec4(1, 1, 0, 1); // Yellow
-    else indicatorColor = ImVec4(1, 0, 0, 1); // Red
-    drawList->AddCircleFilled(ImVec2(indicatorPos.x + 10, indicatorPos.y + 15), 10, ImGui::ColorConvertFloat4ToU32(indicatorColor));
-    ImGui::Dummy(ImVec2(25, 20)); // Space for the circle
-
-    // Arm/Disarm button
-    ImGui::SameLine();
-    ImVec2 buttonSize(60, 60);
-    ImVec2 pos = ImGui::GetCursorScreenPos();
-    ImVec4 buttonColor = armed ? ImVec4(0, 0.5, 0, 1) : ImVec4(0.5, 0, 0, 1);
-    drawList->AddCircleFilled(ImVec2(pos.x + buttonSize.x / 2, pos.y + buttonSize.y / 2), buttonSize.x / 2, ImGui::ColorConvertFloat4ToU32(buttonColor));
-    ImGui::InvisibleButton(armed ? "Disarm" : "Arm", buttonSize);
-    if (ImGui::IsItemClicked())
-    {
-        armed = !armed;
-        // TODO: send command to device
-    }
-    ImGui::SetCursorScreenPos(ImVec2(pos.x + buttonSize.x / 2 - ImGui::CalcTextSize(armed ? "Disarm" : "Arm").x / 2, pos.y + buttonSize.y / 2 - ImGui::GetTextLineHeight() / 2));
-    ImGui::Text(armed ? "Disarm" : "Arm");
 }

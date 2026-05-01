@@ -157,7 +157,7 @@ int main()
                 int32_t unusedData3 = 0;
                 std::string encoderError;
                 if (serial.readProperty(static_cast<uint8_t>(connectionState.deviceAddress),
-                                       Common::PROPERTY::MULTI_TURN_ENCODER,
+                                       Common::PROPERTY::MOTION_TELEMETRY,
                                        encoderRaw, speedRaw, torqueRaw, unusedData3, encoderError))
                 {
                     lastEncoder = static_cast<double>(encoderRaw);
@@ -263,6 +263,52 @@ int main()
             drawLogPanel(logs, autoScrollLogs);
         }
         ImGui::EndChild();
+
+        // Draw arm/disarm button and status indicator at bottom right
+        {
+            ImVec2 windowPos = ImGui::GetWindowPos();
+            ImVec2 windowSize = ImGui::GetWindowSize();
+            ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+            // Button and indicator dimensions
+            ImVec2 buttonSize(60, 60);
+            float indicatorRadius = 10.0f;
+            float padding = 10.0f;
+
+            // Position at bottom right
+            ImVec2 buttonPos = ImVec2(windowPos.x + windowSize.x - buttonSize.x - padding,
+                                      windowPos.y + windowSize.y - buttonSize.y - padding);
+            ImVec2 indicatorPos = ImVec2(buttonPos.x - indicatorRadius * 2 - padding,
+                                         buttonPos.y + buttonSize.y / 2);
+
+            // Draw status indicator circle
+            ImVec4 indicatorColor;
+            if (status == 0) indicatorColor = ImVec4(0, 1, 0, 1); // Green
+            else if (status == 1) indicatorColor = ImVec4(1, 1, 0, 1); // Yellow
+            else indicatorColor = ImVec4(1, 0, 0, 1); // Red
+            drawList->AddCircleFilled(indicatorPos, indicatorRadius, ImGui::ColorConvertFloat4ToU32(indicatorColor));
+
+            // Draw arm/disarm button
+            ImVec4 buttonColor = armed ? ImVec4(0, 0.5, 0, 1) : ImVec4(0.5, 0, 0, 1);
+            drawList->AddCircleFilled(ImVec2(buttonPos.x + buttonSize.x / 2, buttonPos.y + buttonSize.y / 2),
+                                      buttonSize.x / 2, ImGui::ColorConvertFloat4ToU32(buttonColor));
+
+            // Create invisible button for interaction
+            ImGui::SetCursorScreenPos(buttonPos);
+            ImGui::InvisibleButton(armed ? "Disarm##btn" : "Arm##btn", buttonSize);
+            if (ImGui::IsItemClicked())
+            {
+                armed = !armed;
+                // TODO: send command to device
+            }
+
+            // Draw button text
+            const char* buttonText = armed ? "Disarm" : "Arm";
+            ImVec2 textSize = ImGui::CalcTextSize(buttonText);
+            drawList->AddText(ImVec2(buttonPos.x + buttonSize.x / 2 - textSize.x / 2,
+                                     buttonPos.y + buttonSize.y / 2 - textSize.y / 2),
+                             ImGui::GetColorU32(ImVec4(1, 1, 1, 1)), buttonText);
+        }
 
         ImGui::End();
 

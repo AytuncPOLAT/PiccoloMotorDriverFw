@@ -145,7 +145,9 @@ namespace Common
 		int elecAngle;
 		int motorCurrent;
 		int torque;
+		int torqueGet;
 		int speed;
+		int speedGet;
 		int position;
 		int dcBusVoltage;
 		bool isConfigChanged;

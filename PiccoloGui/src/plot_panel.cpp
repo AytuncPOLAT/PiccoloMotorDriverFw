@@ -47,6 +47,8 @@ void drawPlotPanel(TelemetryBuffer& telemetry)
 
     if (ImPlot::BeginSubplots("Telemetry", 3, 1, ImVec2(-1, -1)))
     {
+        const ImVec4 amberColor = ImVec4(1.0f, 0.75f, 0.0f, 1.0f);
+
         // Subplot 1: Multi-Turn Encoder
         if (ImPlot::BeginPlot("Multi-Turn Encoder"))
         {
@@ -56,7 +58,9 @@ void drawPlotPanel(TelemetryBuffer& telemetry)
             {
                 std::vector<double> t(telemetry.t.begin(), telemetry.t.end());
                 std::vector<double> encoder(telemetry.multiTurnEncoder.begin(), telemetry.multiTurnEncoder.end());
+                ImPlot::PushStyleColor(ImPlotCol_Line, amberColor);
                 ImPlot::PlotLine("Encoder", t.data(), encoder.data(), static_cast<int>(t.size()));
+                ImPlot::PopStyleColor();
             }
             else
             {
@@ -74,7 +78,9 @@ void drawPlotPanel(TelemetryBuffer& telemetry)
             {
                 std::vector<double> t(telemetry.t.begin(), telemetry.t.end());
                 std::vector<double> speed(telemetry.speed.begin(), telemetry.speed.end());
+                ImPlot::PushStyleColor(ImPlotCol_Line, amberColor);
                 ImPlot::PlotLine("Speed", t.data(), speed.data(), static_cast<int>(t.size()));
+                ImPlot::PopStyleColor();
             }
             else
             {
@@ -92,7 +98,9 @@ void drawPlotPanel(TelemetryBuffer& telemetry)
             {
                 std::vector<double> t(telemetry.t.begin(), telemetry.t.end());
                 std::vector<double> torque(telemetry.torque.begin(), telemetry.torque.end());
+                ImPlot::PushStyleColor(ImPlotCol_Line, amberColor);
                 ImPlot::PlotLine("Torque", t.data(), torque.data(), static_cast<int>(t.size()));
+                ImPlot::PopStyleColor();
             }
             else
             {
