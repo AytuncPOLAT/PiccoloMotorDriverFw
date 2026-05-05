@@ -1,8 +1,11 @@
 #include <AdcDriver.hpp>
+#include "cmsis_os.h"
 
 using namespace HardwareLayer;
 
 DMA_HandleTypeDef hdma_adc1;
+
+extern TaskHandle_t gMotorControlTaskHandle;
 
 namespace
 {
@@ -16,6 +19,13 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 	{
 		HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_9);
 		adcDriverPtr->isConversionDone = true;
+
+		if (gMotorControlTaskHandle != NULL)
+		{
+			BaseType_t higherPriorityTaskWoken = pdFALSE;
+			vTaskNotifyGiveFromISR(gMotorControlTaskHandle, &higherPriorityTaskWoken);
+			portYIELD_FROM_ISR(higherPriorityTaskWoken);
+		}
 	}
 }
 
@@ -35,7 +45,7 @@ void AdcDriver::Init()
 	// DMA Init
 	__HAL_RCC_DMA1_CLK_ENABLE();
 
-	HAL_NVIC_SetPriority(DMA1_Stream0_IRQn, 0, 0);
+	HAL_NVIC_SetPriority(DMA1_Stream0_IRQn, 6, 0);
 	HAL_NVIC_EnableIRQ(DMA1_Stream0_IRQn);
 
 	// ADC Init

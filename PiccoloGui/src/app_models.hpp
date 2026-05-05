@@ -99,6 +99,10 @@ inline const char* toPropertyLabel(Common::PROPERTY property)
             return "Multi Turn Encoder";
         case Property::CURRENT_AMPLIFIER_GAIN:
             return "Current Amplifier Gain";
+        case Property::POSITION_HOME_MIN:
+            return "Position Home Min";
+        case Property::POSITION_HOME_MAX:
+            return "Position Home Max";
         default:
             return "Unknown";
     }
@@ -115,6 +119,10 @@ inline int32_t toDefaultPropertyValue(Common::PROPERTY property)
             return 1;
         case Property::MOTOR_POLES:
             return static_cast<int32_t>(Common::MOTOR_POLES);
+        case Property::POSITION_HOME_MIN:
+            return -1000000;
+        case Property::POSITION_HOME_MAX:
+            return 1000000;
         default:
             return 0;
     }
@@ -135,7 +143,7 @@ inline ConfigCategory toPropertyCategory(Common::PROPERTY property)
     {
         return ConfigCategory::PID;
     }
-    // Last 4 items (20-23): Motor Parameters
+    // Items 20+: Motor Parameters
     else
     {
         return ConfigCategory::MOTOR_PARAMETERS;
@@ -146,7 +154,7 @@ inline std::vector<ConfigItem> buildConfigItemsFromPropertyEnum()
 {
     using Property = Common::PROPERTY;
     const int first = static_cast<int>(Property::FLASH_MAGIC);
-    const int last = static_cast<int>(Property::MULTI_TURN_ENCODER);
+    const int last = static_cast<int>(Property::POSITION_HOME_MAX);
 
     std::vector<ConfigItem> items;
     items.reserve(static_cast<std::size_t>(last - first + 1));

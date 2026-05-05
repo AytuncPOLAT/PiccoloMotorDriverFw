@@ -5,48 +5,7 @@ using namespace AppLayer;
 
 void SystemDataController::OnCallback(uint8_t arg)
 {
-	if(communication.rxData.cmd == CMD_TYPE::READ_FROM_DEVICE)
-	{
-		DataReadResponse((Common::PROPERTY)communication.rxData.data0);
-		drv.ClearFaults();
-	}
-
-	if(communication.rxData.cmd == CMD_TYPE::WRITE_TO_DEVICE)
-	{
-		WriteToRam((Common::PROPERTY)communication.rxData.data0, communication.rxData.data1);
-		systemData.realtimeData.isConfigChanged = true;
-	}
-
-	if(communication.rxData.cmd == CMD_TYPE::WRITE_TO_DEVICE_FLASH)
-	{
-		if(state == State::IDLE)
-			state = State::FLASH_WRITE;
-	}
-
-	if(communication.rxData.cmd == CMD_TYPE::MOTION_COMMAND)
-	{
-		memcpy(&systemData.realtimeData.elecAngle, &communication.rxData.data0, sizeof(uint32_t));
-		memcpy(&systemData.realtimeData.torque, &communication.rxData.data1, sizeof(uint32_t));
-		memcpy(&systemData.realtimeData.speed, &communication.rxData.data2, sizeof(uint32_t));
-		memcpy(&systemData.realtimeData.position, &communication.rxData.data3, sizeof(uint32_t));
-	}
-
-	if(communication.rxData.cmd == CMD_TYPE::READ_REALTIME)
-	{
-		communication.txData.cmd = CMD_TYPE::READ_REALTIME;
-		communication.txData.address = systemData.configurationData.deviceAddress;
-		communication.TransmitTxFrame();
-	}
-
-	if(communication.rxData.cmd == CMD_TYPE::CURR_1)
-	{
-		drv.SetCurr1();
-	}
-
-	if(communication.rxData.cmd == CMD_TYPE::CURR_2)
-	{
-		drv.SetCurr2();
-	}
+	newPacket = true;
 }
 
 void SystemDataController::TaskThread(void *argument)
@@ -69,7 +28,69 @@ void SystemDataController::TaskThread(void *argument)
 			objectHandle->state = State::IDLE;
 		}
 
-		osDelay(20);
+		if(objectHandle->newPacket == true)
+		{
+			if(objectHandle->communication.rxData.cmd == CMD_TYPE::READ_FROM_DEVICE)
+			{
+				objectHandle->DataReadResponse((Common::PROPERTY)objectHandle->communication.rxData.data0);
+				objectHandle->drv.ClearFaults();
+			}
+
+			else if(objectHandle->communication.rxData.cmd == CMD_TYPE::WRITE_TO_DEVICE)
+			{
+				objectHandle->WriteToRam((Common::PROPERTY)objectHandle->communication.rxData.data0, objectHandle->communication.rxData.data1);
+				objectHandle->systemData.realtimeData.isConfigChanged = true;
+			}
+
+			else if(objectHandle->communication.rxData.cmd == CMD_TYPE::WRITE_TO_DEVICE_FLASH)
+			{
+				if(objectHandle->state == State::IDLE)
+					objectHandle->state = State::FLASH_WRITE;
+			}
+
+			else if(objectHandle->communication.rxData.cmd == CMD_TYPE::MOTION_COMMAND)
+			{
+				memcpy(&objectHandle->systemData.realtimeData.elecAngle, &objectHandle->communication.rxData.data0, sizeof(uint32_t));
+				memcpy(&objectHandle->systemData.realtimeData.torque, &objectHandle->communication.rxData.data1, sizeof(uint32_t));
+				memcpy(&objectHandle->systemData.realtimeData.speed, &objectHandle->communication.rxData.data2, sizeof(uint32_t));
+				memcpy(&objectHandle->systemData.realtimeData.position, &objectHandle->communication.rxData.data3, sizeof(uint32_t));
+			}
+
+			else if(objectHandle->communication.rxData.cmd == CMD_TYPE::READ_REALTIME)
+			{
+				objectHandle->communication.txData.cmd = CMD_TYPE::READ_REALTIME;
+				objectHandle->communication.txData.address = objectHandle->systemData.configurationData.deviceAddress;
+				objectHandle->communication.TransmitTxFrame();
+			}
+
+			else if(objectHandle->communication.rxData.cmd == CMD_TYPE::DRIVER_ARM)
+			{
+				objectHandle->motorControl.SetArmed(true);
+			}
+
+			else if(objectHandle->communication.rxData.cmd == CMD_TYPE::DRIVER_DISARM)
+			{
+				objectHandle->motorControl.SetArmed(false);
+			}
+
+			else if(objectHandle->communication.rxData.cmd == CMD_TYPE::POSITION_HOME)
+			{
+
+			}
+
+			else if(objectHandle->communication.rxData.cmd == CMD_TYPE::CURR_1)
+			{
+				objectHandle->drv.SetCurr1();
+			}
+
+			else if(objectHandle->communication.rxData.cmd == CMD_TYPE::CURR_2)
+			{
+				objectHandle->drv.SetCurr2();
+			}
+
+			objectHandle->newPacket = false;
+		}
+		osDelay(10);
 	}
 }
 
@@ -77,12 +98,14 @@ SystemDataController::SystemDataController(Common::SystemData &systemDataRef,
 										   Communication &communicationRef,
 		                                   HardwareLayer::FlashStorage &storageControllerRef,
 										   UserInterface& userInterfaceRef,
-										   Drv8316rSpiDriver& drvRef)
+										   Drv8316rSpiDriver& drvRef,
+										   MotorControl& motorControlRef)
 : systemData(systemDataRef)
 , communication(communicationRef)
 , storageController(storageControllerRef)
 , userInterface(userInterfaceRef)
 , drv(drvRef)
+, motorControl(motorControlRef)
 {
 	communication.RegisterCallback(this);
 	if(CheckIfConfigBlank() == true)
@@ -240,6 +263,14 @@ void SystemDataController::DataReadResponse(Common::PROPERTY property)
 	case Common::PROPERTY::CURRENT_AMPLIFIER_GAIN:
 		memcpy(&communication.txData.data0, &systemData.configurationData.motor.currentAmplifierGain, sizeof(uint32_t));
 		break;
+
+	case Common::PROPERTY::POSITION_HOME_MIN:
+		memcpy(&communication.txData.data0, &systemData.configurationData.motor.positionHomeMin, sizeof(uint32_t));
+		break;
+
+	case Common::PROPERTY::POSITION_HOME_MAX:
+		memcpy(&communication.txData.data0, &systemData.configurationData.motor.positionHomeMax, sizeof(uint32_t));
+		break;
 	}
 
 	communication.TransmitTxFrame();
@@ -350,6 +381,14 @@ void SystemDataController::WriteToRam(Common::PROPERTY property, uint32_t newVal
 
 	case Common::PROPERTY::CURRENT_AMPLIFIER_GAIN:
 		memcpy(&systemData.configurationData.motor.currentAmplifierGain, &newValue, sizeof(uint32_t));
+		break;
+
+	case Common::PROPERTY::POSITION_HOME_MIN:
+		memcpy(&systemData.configurationData.motor.positionHomeMin, &newValue, sizeof(uint32_t));
+		break;
+
+	case Common::PROPERTY::POSITION_HOME_MAX:
+		memcpy(&systemData.configurationData.motor.positionHomeMax, &newValue, sizeof(uint32_t));
 		break;
 	}
 }

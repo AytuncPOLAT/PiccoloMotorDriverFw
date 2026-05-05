@@ -284,34 +284,23 @@ void drawConfigurationPanel(std::vector<ConfigItem>& configItems,
 
     ImGui::SameLine();
 
-    if (ImGui::Button("Apply All Settings"))
+    if (ImGui::Button("Store"))
     {
         if (!serial.isConnected())
         {
-            addLog(logs, "Apply settings failed: not connected.");
+            addLog(logs, "Store failed: not connected.");
         }
         else
         {
-            std::size_t successCount = 0;
-            for (const auto& item : configItems)
+            std::string error;
+            if (serial.sendFlashWriteCommand(deviceAddress, error))
             {
-                if (!isPropertyWritable(item.property))
-                {
-                    continue;
-                }
-
-                std::string error;
-                if (serial.writeProperty(deviceAddress, item.property, item.value, error))
-                {
-                    ++successCount;
-                }
-                else
-                {
-                    addLog(logs, std::string("Write failed for ") + item.label + ": " + error);
-                }
+                addLog(logs, "Store command sent successfully.");
             }
-
-            addLog(logs, "Apply settings completed: " + std::to_string(successCount) + " values written.");
+            else
+            {
+                addLog(logs, std::string("Store failed: ") + error);
+            }
         }
     }
 

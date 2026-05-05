@@ -38,6 +38,8 @@ void Common::SystemData::DefaultInitialization()
 	configurationData.motor.motorEncoderOffset = 0;
 	configurationData.motor.motorPoles = Common::MOTOR_POLES;
 	configurationData.motor.currentAmplifierGain = 0;
+	configurationData.motor.positionHomeMin = -1000000;
+	configurationData.motor.positionHomeMax = 1000000;
 	
 	configurationData.crc16 = 16U;
 }

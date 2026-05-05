@@ -17,7 +17,11 @@ constexpr uint8_t kCmdPing = 0;
 constexpr uint8_t kCmdPingResponse = 1;
 constexpr uint8_t kCmdReadFromDevice = 2;
 constexpr uint8_t kCmdWriteToDevice = 3;
+constexpr uint8_t kCmdWriteToDeviceFlash = 4;
 constexpr uint8_t kCmdMotionCommand = 5;
+constexpr uint8_t kCmdReadRealtime = 6;
+constexpr uint8_t kCmdDriverArm = 7;
+constexpr uint8_t kCmdDriverDisarm = 8;
 
 #pragma pack(push, 1)
 struct DataFrame
@@ -449,6 +453,60 @@ bool SerialManager::sendMotionCommand(uint8_t deviceAddress,
     tx.data1 = static_cast<uint32_t>(torque);
     tx.data2 = static_cast<uint32_t>(speed);
     tx.data3 = static_cast<uint32_t>(position);
+
+    Common::Crc16 crc;
+    tx.checksum = crc.Calculate(0, reinterpret_cast<uint8_t*>(&tx), sizeof(tx) - sizeof(tx.checksum));
+
+    return serialPort_->write(reinterpret_cast<const uint8_t*>(&tx), sizeof(tx), errorMessage);
+}
+
+bool SerialManager::sendFlashWriteCommand(uint8_t deviceAddress, std::string& errorMessage)
+{
+    if (!isConnected())
+    {
+        errorMessage = "No serial connection.";
+        return false;
+    }
+
+    DataFrame tx = {};
+    tx.cmd = kCmdWriteToDeviceFlash;
+    tx.address = deviceAddress;
+
+    Common::Crc16 crc;
+    tx.checksum = crc.Calculate(0, reinterpret_cast<uint8_t*>(&tx), sizeof(tx) - sizeof(tx.checksum));
+
+    return serialPort_->write(reinterpret_cast<const uint8_t*>(&tx), sizeof(tx), errorMessage);
+}
+
+bool SerialManager::sendArmCommand(uint8_t deviceAddress, std::string& errorMessage)
+{
+    if (!isConnected())
+    {
+        errorMessage = "No serial connection.";
+        return false;
+    }
+
+    DataFrame tx = {};
+    tx.cmd = kCmdDriverArm;
+    tx.address = deviceAddress;
+
+    Common::Crc16 crc;
+    tx.checksum = crc.Calculate(0, reinterpret_cast<uint8_t*>(&tx), sizeof(tx) - sizeof(tx.checksum));
+
+    return serialPort_->write(reinterpret_cast<const uint8_t*>(&tx), sizeof(tx), errorMessage);
+}
+
+bool SerialManager::sendDisarmCommand(uint8_t deviceAddress, std::string& errorMessage)
+{
+    if (!isConnected())
+    {
+        errorMessage = "No serial connection.";
+        return false;
+    }
+
+    DataFrame tx = {};
+    tx.cmd = kCmdDriverDisarm;
+    tx.address = deviceAddress;
 
     Common::Crc16 crc;
     tx.checksum = crc.Calculate(0, reinterpret_cast<uint8_t*>(&tx), sizeof(tx) - sizeof(tx.checksum));

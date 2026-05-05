@@ -80,7 +80,9 @@ namespace Common
         DC_BUS_VOLTAGE,
         MULTI_TURN_ENCODER,
 		MOTION_TELEMETRY,
-        CURRENT_AMPLIFIER_GAIN
+        CURRENT_AMPLIFIER_GAIN,
+        POSITION_HOME_MIN,
+        POSITION_HOME_MAX,
 	};
 
 	struct __attribute__((packed)) ConfigurationData
@@ -130,9 +132,11 @@ namespace Common
 			int motorEncoderOffset;
 			int motorPoles;
 			int currentAmplifierGain;
+			int positionHomeMin;
+			int positionHomeMax;
 		} motor;
 
-		uint32_t padding32[18];
+		uint32_t padding32[16];
 		uint16_t padding16[1];
 		uint16_t crc16;
 	};

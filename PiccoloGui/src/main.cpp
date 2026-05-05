@@ -242,7 +242,7 @@ int main()
 
         ImGui::BeginChild("TelemetryPanel", ImVec2(0, telemetryPanelHeight), true);
         {
-            drawTelemetryPanel(telemetry, armed, status, autoRefresh, refreshRateIndex, loggingEnabled);
+            drawTelemetryPanel(telemetry, armed, status, autoRefresh, refreshRateIndex, loggingEnabled, serial, connectionState);
         }
         ImGui::EndChild();
 

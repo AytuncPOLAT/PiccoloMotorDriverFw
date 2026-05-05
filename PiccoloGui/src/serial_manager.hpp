@@ -53,6 +53,9 @@ public:
                           int32_t speed,
                           int32_t position,
                           std::string& errorMessage);
+    bool sendFlashWriteCommand(uint8_t deviceAddress, std::string& errorMessage);
+    bool sendArmCommand(uint8_t deviceAddress, std::string& errorMessage);
+    bool sendDisarmCommand(uint8_t deviceAddress, std::string& errorMessage);
 
 private:
     std::unique_ptr<ISerialPort> serialPort_;

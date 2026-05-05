@@ -68,7 +68,8 @@ namespace AppLayer
 		MotorControl(HardwareLayer::MotorPwm& motorPwmRef,
 					 AnalogProcessor& analogRef,
 					 Common::SystemData& systemDataRef,
-					 HardwareLayer::IEncoder& rotorEncoderRef);
+					 HardwareLayer::IEncoder& rotorEncoderRef,
+					 HardwareLayer::IEncoder& quadEncoderRef);
 
 		void SetDcMotor(int16_t duty);
 		Common::ErrorType SetArmed(bool isArmed);
@@ -92,15 +93,17 @@ namespace AppLayer
 		
 		float RotorAngleInCountsToElectricalAngleInRadians(int rotorAngleInCounts, uint8_t motorPoles);
 		void CalculateMotorParameters();
+		void UpdateSVPWM(float v_alpha, float v_beta);
 
-		BaseType_t taskHandle;
-		BaseType_t encoderTaskHandle;
+		TaskHandle_t taskHandle;
+		TaskHandle_t encoderTaskHandle;
 		HardwareLayer::MotorPwm& motorPwm;
 		AnalogProcessor& analog;
 		HardwareLayer::IEncoder& rotorEncoder;
+		HardwareLayer::IEncoder& quadEncoder;
 		Common::SystemData& systemData;
 		Common::MotorMode mode;
-		bool armed = false;
+		bool armed = true;
 		
 		ElectricalAngle electricalAngle;
 

@@ -31,10 +31,10 @@ void QuadraticEncoderDriver::Init()
 	htim5.Instance = TIM5;
 	htim5.Init.Prescaler = 0;
 	htim5.Init.CounterMode = TIM_COUNTERMODE_UP;
-	htim5.Init.Period = 0xFFFFFFFF;
+	htim5.Init.Period = 0x800;
 	htim5.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
 	htim5.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-	sConfig.EncoderMode = TIM_ENCODERMODE_TI1;
+	sConfig.EncoderMode = TIM_ENCODERMODE_TI12;
 	sConfig.IC1Polarity = TIM_ICPOLARITY_RISING;
 	sConfig.IC1Selection = TIM_ICSELECTION_DIRECTTI;
 	sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
@@ -60,7 +60,7 @@ void QuadraticEncoderDriver::Init()
 
 int QuadraticEncoderDriver::GetPosition()
 {
-	return TIM5->CNT;
+	return TIM5->CNT << 1;
 }
 
 int QuadraticEncoderDriver::GetSpeed()

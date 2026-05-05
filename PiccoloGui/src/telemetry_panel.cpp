@@ -1,7 +1,9 @@
 #include "telemetry_panel.hpp"
 #include "imgui.h"
+#include "serial_manager.hpp"
+#include "connection_panel.hpp"
 
-void drawTelemetryPanel(const TelemetryBuffer& telemetry, bool& armed, int status, bool& autoRefresh, int& refreshRateIndex, bool& loggingEnabled)
+void drawTelemetryPanel(const TelemetryBuffer& telemetry, bool& armed, int status, bool& autoRefresh, int& refreshRateIndex, bool& loggingEnabled, SerialManager& serial, const ConnectionPanelState& connectionState)
 {
     ImGui::Text("Telemetry");
     ImGui::SameLine();
@@ -26,6 +28,32 @@ void drawTelemetryPanel(const TelemetryBuffer& telemetry, bool& armed, int statu
     ImGui::SameLine();
     static const char* rateLabels[] = {"1Hz", "10Hz", "50Hz"};
     ImGui::Text("Current: %s", rateLabels[refreshRateIndex]);
+
+    // Arm/Disarm button
+    ImGui::SameLine();
+    ImVec4 buttonColor = armed ? ImVec4(0, 0.5, 0, 1) : ImVec4(0.5, 0, 0, 1);
+    ImGui::PushStyleColor(ImGuiCol_Button, buttonColor);
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(buttonColor.x + 0.1f, buttonColor.y + 0.1f, buttonColor.z + 0.1f, 1));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(buttonColor.x + 0.2f, buttonColor.y + 0.2f, buttonColor.z + 0.2f, 1));
+    
+    const char* buttonText = armed ? "Disarm" : "Arm";
+    if (ImGui::Button(buttonText, ImVec2(80, 0)))
+    {
+        if (serial.isConnected())
+        {
+            std::string errorMessage;
+            if (armed)
+            {
+                serial.sendDisarmCommand(static_cast<uint8_t>(connectionState.deviceAddress), errorMessage);
+            }
+            else
+            {
+                serial.sendArmCommand(static_cast<uint8_t>(connectionState.deviceAddress), errorMessage);
+            }
+            armed = !armed;
+        }
+    }
+    ImGui::PopStyleColor(3);
 
     ImGui::Separator();
 

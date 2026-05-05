@@ -7,6 +7,7 @@
 #include "FlashMemoryController.hpp"
 #include "UserInterface.hpp"
 #include "DRV8316R_SpiDriver.hpp"
+#include "MotorControl.hpp"
 
 namespace AppLayer
 {
@@ -24,7 +25,9 @@ namespace AppLayer
 							 Communication& communicationRef,
 							 HardwareLayer::FlashStorage& storageControllerRef,
 							 UserInterface& userInterfaceRef,
-							 Drv8316rSpiDriver& drvRef);
+							 Drv8316rSpiDriver& drvRef,
+							 MotorControl& motorControlRef
+							 );
 		void Init();
 	private:
 		bool CheckIfConfigBlank();
@@ -37,11 +40,14 @@ namespace AppLayer
 		BaseType_t taskHandle;
 		static void TaskThread(void *argument);
 
+		bool newPacket = false;
+
 		Common::SystemData& systemData;
 		Communication& communication;
 		HardwareLayer::FlashStorage& storageController;
 		UserInterface& userInterface;
 		Drv8316rSpiDriver& drv;
+		MotorControl& motorControl;
 
 		State state = State::IDLE;
 	};
