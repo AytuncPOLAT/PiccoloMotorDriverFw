@@ -11,7 +11,7 @@ MotorPwm::MotorPwm(TIM_HandleTypeDef& timerRef)
 	TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig = {0};
 
 	timerHandle.Instance = TIM1;
-	timerHandle.Init.Prescaler = 1;
+	timerHandle.Init.Prescaler = 2;
 	timerHandle.Init.CounterMode = TIM_COUNTERMODE_CENTERALIGNED2;
 	timerHandle.Init.Period = Common::MOTOR_PWM_MAX_CNT;
 	timerHandle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;

@@ -5,11 +5,48 @@ using namespace HardwareLayer;
 namespace
 {
 	constexpr uint16_t ADDR_ANGLECOM = 0x3FFF;
+	AS5047* as5047ptr;
 }
+
+extern "C"
+{
+	void SPI3_IRQHandler(void)
+	{
+		HAL_SPI_IRQHandler(&as5047ptr->spiHandle);
+	}
+	void DMA1_Stream3_IRQHandler(void)   // RX complete
+	{
+		HAL_DMA_IRQHandler(&as5047ptr->hdma_spi3_rx);
+	}
+
+	void DMA1_Stream4_IRQHandler(void)   // TX complete
+	{
+		HAL_DMA_IRQHandler(&as5047ptr->hdma_spi3_tx);
+	}
+	void HAL_SPI_TxRxHalfCpltCallback(SPI_HandleTypeDef *hspi)
+	{
+		if (hspi->Instance == SPI3)
+		{
+			//as5047ptr->OnTransferComplete();
+		}
+	}
+
+	void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
+	{
+	    if (hspi->Instance == SPI3)
+	    {
+	    	as5047ptr->OnTransferComplete();
+	    }
+	}
+}
+
+
 
 AS5047::AS5047()
 : speedFilter(0.01f)
-{}
+{
+	as5047ptr = this;
+}
 
 void AS5047::Init()
 {
@@ -51,7 +88,7 @@ void AS5047::Init()
 	spiHandle.Init.CLKPolarity = SPI_POLARITY_LOW;
 	spiHandle.Init.CLKPhase = SPI_PHASE_2EDGE;
 	spiHandle.Init.NSS = SPI_NSS_HARD_OUTPUT;
-	spiHandle.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_4;
+	spiHandle.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
 	spiHandle.Init.FirstBit = SPI_FIRSTBIT_MSB;
 	spiHandle.Init.TIMode = SPI_TIMODE_DISABLE;
 	spiHandle.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -68,12 +105,102 @@ void AS5047::Init()
 	spiHandle.Init.MasterReceiverAutoSusp = SPI_MASTER_RX_AUTOSUSP_DISABLE;
 	spiHandle.Init.MasterKeepIOState = SPI_MASTER_KEEP_IO_STATE_DISABLE;
 	spiHandle.Init.IOSwap = SPI_IO_SWAP_DISABLE;
+
+	spiHandle.Init.MasterKeepIOState = SPI_MASTER_KEEP_IO_STATE_ENABLE;
 	if (HAL_SPI_Init(&spiHandle) != HAL_OK)
 	{
 		//Error_Handler();
 	}
+
+	DMA_Init();
 }
 
+
+void AS5047::DMA_Init()
+{
+	// ── DMA clocks ─────────────────────────────────────────────────────────────
+	__HAL_RCC_DMA1_CLK_ENABLE();
+	//__HAL_RCC_DMAMUX1_CLK_ENABLE();   // Required on H7 — often forgotten!
+
+	// ── RX: DMA1 Stream0, DMAMUX1 request 61 (SPI3_RX) ────────────────────────
+	hdma_spi3_rx.Instance                 = DMA1_Stream3;
+	hdma_spi3_rx.Init.Request             = DMA_REQUEST_SPI3_RX;      // 61
+	hdma_spi3_rx.Init.Direction           = DMA_PERIPH_TO_MEMORY;
+	hdma_spi3_rx.Init.PeriphInc           = DMA_PINC_DISABLE;
+	hdma_spi3_rx.Init.MemInc              = DMA_MINC_DISABLE;         // single word
+	hdma_spi3_rx.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;  // 16-bit SPI
+	hdma_spi3_rx.Init.MemDataAlignment    = DMA_MDATAALIGN_HALFWORD;
+	hdma_spi3_rx.Init.Mode                = DMA_NORMAL;
+	hdma_spi3_rx.Init.Priority            = DMA_PRIORITY_HIGH;
+	hdma_spi3_rx.Init.FIFOMode            = DMA_FIFOMODE_DISABLE;     // required for 16-bit
+	HAL_DMA_Init(&hdma_spi3_rx) != HAL_OK;
+	__HAL_LINKDMA(&spiHandle, hdmarx, hdma_spi3_rx);
+
+	// ── TX: DMA1 Stream1, DMAMUX1 request 62 (SPI3_TX) ────────────────────────
+	hdma_spi3_tx.Instance                 = DMA1_Stream4;
+	hdma_spi3_tx.Init.Request             = DMA_REQUEST_SPI3_TX;      // 62
+	hdma_spi3_tx.Init.Direction           = DMA_MEMORY_TO_PERIPH;
+	hdma_spi3_tx.Init.PeriphInc           = DMA_PINC_DISABLE;
+	hdma_spi3_tx.Init.MemInc              = DMA_MINC_DISABLE;         // single word
+	hdma_spi3_tx.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
+	hdma_spi3_tx.Init.MemDataAlignment    = DMA_MDATAALIGN_HALFWORD;
+	hdma_spi3_tx.Init.Mode                = DMA_NORMAL;
+	hdma_spi3_tx.Init.Priority            = DMA_PRIORITY_LOW;
+	hdma_spi3_tx.Init.FIFOMode            = DMA_FIFOMODE_DISABLE;
+	HAL_DMA_Init(&hdma_spi3_tx) != HAL_OK;
+	__HAL_LINKDMA(&spiHandle, hdmatx, hdma_spi3_tx);
+
+	// ── NVIC ───────────────────────────────────────────────────────────────────
+	// Only RX interrupt needed — it fires last, signalling full duplex done
+	HAL_NVIC_SetPriority(DMA1_Stream3_IRQn, 5, 0);
+	HAL_NVIC_EnableIRQ(DMA1_Stream3_IRQn);
+	// TX interrupt optional, enable if you need it
+	HAL_NVIC_SetPriority(DMA1_Stream4_IRQn, 6, 0);
+	HAL_NVIC_EnableIRQ(DMA1_Stream4_IRQn);
+	// SPI3 interrupt
+	HAL_NVIC_SetPriority(SPI3_IRQn, 5,0);
+	HAL_NVIC_EnableIRQ(SPI3_IRQn);
+}
+
+void AS5047::StartAsyncRead()
+{
+    //uint16_t cmd = ADDR_ANGLECOM | 0x4000 | 0x8000; // read + parity bit set
+	uint16_t rxWord;
+	uint16_t cmd = 0;
+	uint16_t sumOfOnes = 0;
+	cmd = ADDR_ANGLECOM;
+	cmd |= 0x4000; //Read cmd
+
+	/*
+	for(uint8_t i = 0; i <= 14; i++)
+	{
+		uint16_t bitState = (cmd & (1U << i)) >> i;
+		sumOfOnes += bitState;
+	}
+
+	cmd |= (~(sumOfOnes%2)) << 15;
+ 	*/
+
+	cmd |= 0x8000;
+
+    dmaTxBuf = cmd;
+    dmaTransferDone = false;
+    HAL_SPI_TransmitReceive_DMA(&spiHandle,
+                                 (uint8_t*)&dmaTxBuf,
+                                 (uint8_t*)&dmaRxBuf,
+                                 1);  // 1 = one 16-bit frame (set by DataSize)
+}
+
+void AS5047::OnTransferComplete()
+{
+    position = (int)(dmaRxBuf & 0x3FFF);
+    dmaTransferDone = true;
+}
+
+int AS5047::GetPosition_Async()
+{
+    return position;   // always returns last DMA-settled value
+}
 
 uint16_t AS5047::SPI_Read(uint16_t address)
 {
@@ -104,8 +231,8 @@ uint16_t AS5047::SPI_Read(uint16_t address)
 
 int AS5047::GetPosition()
 {
-	position = (int)SPI_Read(ADDR_ANGLECOM);
-	return position;
+	//position = (int)SPI_Read(ADDR_ANGLECOM);
+	//return position;
 }
 
 int AS5047::GetMultiTurnPosition()

@@ -121,13 +121,13 @@ void MotorControl::MotorControlTask(void *argument)
 	{
 		ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 		HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8, (GPIO_PinState)1);
+		HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8, (GPIO_PinState)0);
 
-
-		if(objectHandle->analog.GetConversionDoneFlag()
-				//&& objectHandle->analog.IsCalibrated()
-				)
+		if(
+				//objectHandle->analog.GetConversionDoneFlag() &&
+				objectHandle->analog.IsCalibrated())
 		{
-			//GLOBAL_Q_ENCODER = objectHandle->quadEncoder.GetPosition();
+			//GLOBAL_Q_ENCODER = objectHandle->rotorEncoder.GetPosition_Async();
 
 			objectHandle->phaseCurrents.a = objectHandle->analog.GetPhaseCurrent(0);
 			objectHandle->phaseCurrents.b = objectHandle->analog.GetPhaseCurrent(1);
@@ -136,8 +136,10 @@ void MotorControl::MotorControlTask(void *argument)
 			//G_ADC_ext0 = objectHandle->analog.GetExtAnalog(0);
 			//G_ADC_ext1 = objectHandle->analog.GetExtAnalog(1);
 
-			//objectHandle->angleInRadians = objectHandle->RotorAngleInCountsToElectricalAngleInRadians(objectHandle->rotorEncoder.GetPosition(),
-			//					objectHandle->systemData.configurationData.motor.motorPoles);
+
+
+			objectHandle->angleInRadians = objectHandle->RotorAngleInCountsToElectricalAngleInRadians(objectHandle->rotorEncoder.GetPosition_Async(),
+								objectHandle->systemData.configurationData.motor.motorPoles);
 
 			objectHandle->multiturn = objectHandle->rotorEncoder.GetMultiTurnPosition();
 			objectHandle->rotorSpeed = objectHandle->rotorEncoder.GetSpeed();
@@ -220,6 +222,13 @@ void MotorControl::MotorControlTask(void *argument)
 											(float)(objectHandle->elecAngleCommand / 585.0) * 2.0 * (float)M_PI,
 											objectHandle->phaseCurrents);
 				}
+
+				if(objectHandle->systemData.configurationData.controlMode
+						> (uint8_t) Common::CONTROLLER_TYPE::ELEC_ANGLE)
+				{
+					objectHandle->rotorEncoder.StartAsyncRead();
+				}
+
 			}
 
 			objectHandle->systemData.realtimeData.multiTurnEncoder = objectHandle->multiturn;
@@ -230,7 +239,7 @@ void MotorControl::MotorControlTask(void *argument)
 			objectHandle->DebugMonitor();
 			objectHandle->CheckConfigUpdates();
 
-			HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8, (GPIO_PinState)0);
+
 		}
 	}
 }

@@ -22,6 +22,16 @@ namespace HardwareLayer
 		int GetMultiTurnPosition() override;
 		void RegisterOnIndexPulseCallback(Callback* callback) override;
 
+	    SPI_HandleTypeDef* GetSpiHandle() { return &spiHandle; }
+	    void OnTransferComplete();
+	    void StartAsyncRead();          // kick off a new transfer
+
+	    int GetPosition_Async();
+
+	    SPI_HandleTypeDef spiHandle;
+	    DMA_HandleTypeDef hdma_spi3_rx;
+	    DMA_HandleTypeDef hdma_spi3_tx;
+
 	private:
 		int16_t offset;
 		int position;
@@ -31,8 +41,15 @@ namespace HardwareLayer
 
 		AppLayer::LowPassFilter speedFilter;
 
-		SPI_HandleTypeDef spiHandle;
+
+
 		uint16_t SPI_Read(uint16_t address);
+		void DMA_Init();
+
+	    volatile uint16_t dmaTxBuf;
+	    volatile uint16_t dmaRxBuf;
+
+	    volatile bool dmaTransferDone = false;
 	};
 }
 

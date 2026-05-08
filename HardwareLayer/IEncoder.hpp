@@ -14,6 +14,8 @@ namespace HardwareLayer
 		virtual float GetRotorAngleInRadians(){};
 		virtual void SetRotorEncoderOffset(int16_t newOffset){};
 		virtual int GetMultiTurnPosition(){};
+		virtual int GetPosition_Async(){};
+		virtual void StartAsyncRead(){};
 
 		struct Callback
 		{
