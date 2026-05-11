@@ -262,7 +262,7 @@ DQZero MotorControl::TorqueLoop(float setTorque, float angleInRadians, ABC phase
 	abzFw = InverseParkTransform(dqzFw, angleInRadians);
 	abcFw = InverseClarkeTransform(abzFw);
 
-	UpdateSVPWM(abzFw.alpha, abzFw.beta);
+	UpdateSVPWM(abzFw.alpha / 100.0, abzFw.beta / 100.0);
 
 	telemetryMotorCurrent = static_cast<int> (dqzFb.d * 10);
 

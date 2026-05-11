@@ -1,0 +1,144 @@
+{
+  "configuration": [
+    {
+      "property_id": 0,
+      "label": "Flash Magic",
+      "value": -1091584273
+    },
+    {
+      "property_id": 1,
+      "label": "Serial Number",
+      "value": 1
+    },
+    {
+      "property_id": 2,
+      "label": "Firmware Version",
+      "value": 2
+    },
+    {
+      "property_id": 3,
+      "label": "Device Address",
+      "value": 3
+    },
+    {
+      "property_id": 4,
+      "label": "Control Mode",
+      "value": 3
+    },
+    {
+      "property_id": 5,
+      "label": "PID DQ Kp",
+      "value": 40
+    },
+    {
+      "property_id": 6,
+      "label": "PID DQ Ki",
+      "value": 5
+    },
+    {
+      "property_id": 7,
+      "label": "PID DQ Kd",
+      "value": 0
+    },
+    {
+      "property_id": 8,
+      "label": "PID DQ Max Integral WU",
+      "value": 50000000
+    },
+    {
+      "property_id": 9,
+      "label": "PID DQ Saturation",
+      "value": 50000
+    },
+    {
+      "property_id": 10,
+      "label": "PID Speed Kp",
+      "value": 2000
+    },
+    {
+      "property_id": 11,
+      "label": "PID Speed Ki",
+      "value": 10
+    },
+    {
+      "property_id": 12,
+      "label": "PID Speed Kd",
+      "value": 0
+    },
+    {
+      "property_id": 13,
+      "label": "PID Speed Max Integral WU",
+      "value": 1000000
+    },
+    {
+      "property_id": 14,
+      "label": "PID Speed Saturation",
+      "value": 1000000
+    },
+    {
+      "property_id": 15,
+      "label": "PID Position Kp",
+      "value": 100
+    },
+    {
+      "property_id": 16,
+      "label": "PID Position Ki",
+      "value": 15
+    },
+    {
+      "property_id": 17,
+      "label": "PID Position Kd",
+      "value": 20000
+    },
+    {
+      "property_id": 18,
+      "label": "PID Position Max Integral WU",
+      "value": 1000000
+    },
+    {
+      "property_id": 19,
+      "label": "PID Position Saturation",
+      "value": 1000000
+    },
+    {
+      "property_id": 20,
+      "label": "Motor Encoder Offset",
+      "value": 129
+    },
+    {
+      "property_id": 21,
+      "label": "Motor Poles",
+      "value": 7
+    },
+    {
+      "property_id": 22,
+      "label": "DC Bus Voltage",
+      "value": 9938
+    },
+    {
+      "property_id": 23,
+      "label": "Multi Turn Encoder",
+      "value": 0
+    },
+    {
+      "property_id": 24,
+      "label": "Unknown",
+      "value": 0
+    },
+    {
+      "property_id": 25,
+      "label": "Current Amplifier Gain",
+      "value": 0
+    },
+    {
+      "property_id": 26,
+      "label": "Position Home Min",
+      "value": -100000
+    },
+    {
+      "property_id": 27,
+      "label": "Position Home Max",
+      "value": 100000
+    }
+  ]
+}

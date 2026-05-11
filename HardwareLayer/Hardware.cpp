@@ -36,10 +36,10 @@ void Hardware::SystemClockConfig(void)
 	RCC_OscInitStruct.HSI48State = RCC_HSI48_ON;
 	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
 	RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-	RCC_OscInitStruct.PLL.PLLM = 5; //25
+	RCC_OscInitStruct.PLL.PLLM = 5;
 	RCC_OscInitStruct.PLL.PLLN = 80;
 	RCC_OscInitStruct.PLL.PLLP = 1;
-	RCC_OscInitStruct.PLL.PLLQ = 2;
+	RCC_OscInitStruct.PLL.PLLQ = 1;
 	RCC_OscInitStruct.PLL.PLLR = 1;
 	RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1VCIRANGE_0;
 	RCC_OscInitStruct.PLL.PLLVCOSEL = RCC_PLL1VCOMEDIUM;
@@ -64,7 +64,7 @@ void Hardware::SystemClockConfig(void)
 	{
 		Error_Handler();
 	}
-	HAL_RCC_MCOConfig(RCC_MCO1, RCC_MCO1SOURCE_HSI, RCC_MCODIV_1);
+	HAL_RCC_MCOConfig(RCC_MCO1, RCC_MCO1SOURCE_PLL1QCLK, RCC_MCODIV_10);
 }
 
 void Hardware::PeriphCommonClockConfig(void)
