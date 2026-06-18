@@ -1,6 +1,8 @@
 #include "Communication.hpp"
 #include <cstring>
 
+#include "cmsis_os2.h"
+
 using namespace AppLayer;
 
 namespace
@@ -8,14 +10,43 @@ namespace
 
 }
 
-Communication::Communication(Common::IUart& uartRef, Common::IUart& rs485Ref, Common::SystemData &systemDataRef, UserInterface& userInterfaceRef)
+Communication::Communication(Common::IUart& uartRef,
+							Common::IUart& rs485Ref,
+							HardwareLayer::FdCanDriver &canBusRef,
+							Common::SystemData &systemDataRef,
+							UserInterface& userInterfaceRef)
 : usbCdc(uartRef)
 , rs485(rs485Ref)
+, canBus(canBusRef)
 , systemData(systemDataRef)
 , userInterface(userInterfaceRef)
 {
 	usbCdc.RegisterOnReceiveCallback(this);
 	rs485.RegisterOnReceiveCallback(this);
+}
+
+void Communication::Init()
+{
+	xTaskCreate(this->TaskThread, "commTask", 128 * 4, (void*) this,
+			24, NULL);
+}
+
+void Communication::TaskThread(void *argument)
+{
+	Communication *objectHandle = static_cast<Communication*>(argument);
+
+	while(1)
+	{
+		if(objectHandle->canBus.newData == true)
+		{
+			objectHandle->canBus.newData = false;
+
+			objectHandle->userInterface.PingActivity();
+
+		}
+
+		osDelay(1);
+	}
 }
 
 void Communication::RegisterCallback(Common::ICallback::GenericCallback* callback)

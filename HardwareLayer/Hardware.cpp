@@ -39,7 +39,7 @@ void Hardware::SystemClockConfig(void)
 	RCC_OscInitStruct.PLL.PLLM = 5;
 	RCC_OscInitStruct.PLL.PLLN = 80;
 	RCC_OscInitStruct.PLL.PLLP = 1;
-	RCC_OscInitStruct.PLL.PLLQ = 1;
+	RCC_OscInitStruct.PLL.PLLQ = 4;
 	RCC_OscInitStruct.PLL.PLLR = 1;
 	RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1VCIRANGE_0;
 	RCC_OscInitStruct.PLL.PLLVCOSEL = RCC_PLL1VCOMEDIUM;

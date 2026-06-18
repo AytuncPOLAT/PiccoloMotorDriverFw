@@ -22,6 +22,7 @@ extern "C"
     void HAL_FDCAN_RxBufferNewMessageCallback(FDCAN_HandleTypeDef *hcan)
     {
     	HAL_FDCAN_GetRxMessage(hcan, FDCAN_RX_BUFFER0, &global_fdcan->RxHeader, global_fdcan->RxData);
+    	global_fdcan->newData = true;
     }
 }
 
@@ -62,7 +63,7 @@ void FdCanDriver::Init()
     hfdcan.Init.AutoRetransmission = DISABLE;
     hfdcan.Init.TransmitPause = DISABLE;
     hfdcan.Init.ProtocolException = DISABLE;
-    hfdcan.Init.NominalPrescaler = 16;
+    hfdcan.Init.NominalPrescaler = 25;
     hfdcan.Init.NominalSyncJumpWidth = 1;
     hfdcan.Init.NominalTimeSeg1 = 2;
     hfdcan.Init.NominalTimeSeg2 = 1;
@@ -139,8 +140,8 @@ void FdCanDriver::Init()
 
 void FdCanDriver::AddMessageToTxQueue()
 {
-    uint8_t TxData1[] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88};
-    TxHeader.Identifier = 0x11;
+    uint8_t TxData1[] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08};
+    TxHeader.Identifier = 0x01;
     TxHeader.IdType = FDCAN_STANDARD_ID;
     TxHeader.TxFrameType = FDCAN_DATA_FRAME;
     TxHeader.DataLength = FDCAN_DLC_BYTES_8;

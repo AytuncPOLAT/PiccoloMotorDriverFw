@@ -6,6 +6,7 @@
 #include "Crc16.hpp"
 #include "SystemData.hpp"
 #include "UserInterface.hpp"
+#include "FdcanDriver.hpp"
 
 namespace AppLayer
 {
@@ -48,9 +49,11 @@ namespace AppLayer
 	, public Common::ICallback
 	{
 	public:
-		Communication(Common::IUart& uartRef, Common::IUart& rs485Ref, Common::SystemData &systemDataRef, UserInterface& userInterfaceRef);
+		Communication(Common::IUart& uartRef, Common::IUart& rs485Ref, HardwareLayer::FdCanDriver &canBusRef, Common::SystemData &systemDataRef, UserInterface& userInterfaceRef);
 		void OnReceiveCallback(uint8_t *Buf, uint32_t Len, void* instance) override;
 		void Print(uint8_t *data, uint32_t size);
+
+        static void TaskThread(void *argument);
 
 		void TransmitTxFrame(); //TODO de-commission this one
 
@@ -60,6 +63,8 @@ namespace AppLayer
 	                            uint32_t data1,
 	                            uint32_t data2,
 	                            uint32_t data3);
+
+	    void Init();
 
 		void Filters(uint16_t len);
 
@@ -74,6 +79,7 @@ namespace AppLayer
 	private:
 		Common::IUart &usbCdc;
 		Common::IUart &rs485;
+		HardwareLayer::FdCanDriver canBus;
 
 		uint8_t rxByte;
 		uint32_t size;

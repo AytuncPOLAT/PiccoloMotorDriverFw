@@ -20,6 +20,7 @@ namespace HardwareLayer
         FDCAN_HandleTypeDef hfdcan;
         uint8_t RxData[12];
         FDCAN_RxHeaderTypeDef RxHeader;
+        bool newData = false;
 
     private:
         FDCAN_TxHeaderTypeDef TxHeader;

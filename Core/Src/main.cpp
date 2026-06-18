@@ -63,6 +63,7 @@ int main(void)
 	hardware.drv8316.Init();
 	hardware.fdcan.Init();
 
+
 	osKernelInitialize();
 
 	defaultTaskHandle = osThreadNew(StartDefaultTask, (void*)&app,
@@ -73,7 +74,7 @@ int main(void)
 	app.systemDataController.Init();
 	app.analogProcessor.Init();
 	app.telemetry.Init();
-
+	app.communication.Init();
 	osKernelStart();
 	while (1)
 	{
@@ -95,7 +96,7 @@ void StartDefaultTask(void *argument)
 	{
 		osDelay(1000);
 
-		app->hwPtr.fdcan.AddMessageToTxQueue();
+		//app->hwPtr.fdcan.AddMessageToTxQueue();
 		/*
 		cnt++;
 		if(cnt > 4096) cnt = 0;
