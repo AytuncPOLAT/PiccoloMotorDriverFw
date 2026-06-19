@@ -8,6 +8,7 @@
 #include "log_panel.hpp"
 #include "log_utils.hpp"
 #include "plot_panel.hpp"
+#include "cartesian_panel.hpp"
 #include "serial_manager.hpp"
 #include "telemetry_panel.hpp"
 #include <GLFW/glfw3.h>
@@ -15,6 +16,7 @@
 #include <implot.h>
 #include <string>
 #include <vector>
+#include <cstdio>
 
 int main()
 {
@@ -234,7 +236,24 @@ int main()
 
         ImGui::BeginChild("RightPanel", ImVec2(rightWidth, topHeight), true);
         {
-            drawPlotPanel(telemetry);
+            if (ImGui::BeginTabBar("RightTabs"))
+            {
+                if (ImGui::BeginTabItem("Plots"))
+                {
+                    drawPlotPanel(telemetry);
+                    ImGui::EndTabItem();
+                }
+
+                if (ImGui::BeginTabItem("Cartesian"))
+                {
+                    drawCartesianPanel([](float x, float y, float z){
+                        std::printf("Cartesian: x=%.2f y=%.2f z=%.2f\n", x, y, z);
+                    });
+                    ImGui::EndTabItem();
+                }
+
+                ImGui::EndTabBar();
+            }
         }
         ImGui::EndChild();
 

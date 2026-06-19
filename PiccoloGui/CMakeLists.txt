@@ -46,6 +46,7 @@ add_executable(
   src/connection_panel.cpp
   src/configuration_panel.cpp
   src/plot_panel.cpp
+  src/cartesian_panel.cpp
   src/log_panel.cpp
   src/log_utils.cpp
   src/telemetry_panel.cpp
