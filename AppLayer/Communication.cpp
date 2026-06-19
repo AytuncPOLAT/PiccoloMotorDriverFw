@@ -12,7 +12,7 @@ namespace
 
 Communication::Communication(Common::IUart& uartRef,
 							Common::IUart& rs485Ref,
-							HardwareLayer::FdCanDriver &canBusRef,
+						HardwareLayer::FdCanDriver &canBusRef,
 							Common::SystemData &systemDataRef,
 							UserInterface& userInterfaceRef)
 : usbCdc(uartRef)
@@ -20,9 +20,13 @@ Communication::Communication(Common::IUart& uartRef,
 , canBus(canBusRef)
 , systemData(systemDataRef)
 , userInterface(userInterfaceRef)
+, usbCdcCallback(*this, &Communication::OnUsbCdcReceive)
+, rs485Callback(*this, &Communication::OnRs485Receive)
+ , canCallbackAdapter(*this)
 {
-	usbCdc.RegisterOnReceiveCallback(this);
-	rs485.RegisterOnReceiveCallback(this);
+	usbCdc.RegisterOnReceiveCallback(&usbCdcCallback);
+	rs485.RegisterOnReceiveCallback(&rs485Callback);
+	canBus.RegisterCallback(&canCallbackAdapter);
 }
 
 void Communication::Init()
@@ -40,9 +44,7 @@ void Communication::TaskThread(void *argument)
 		if(objectHandle->canBus.newData == true)
 		{
 			objectHandle->canBus.newData = false;
-
 			objectHandle->userInterface.PingActivity();
-
 		}
 
 		osDelay(1);
@@ -54,20 +56,35 @@ void Communication::RegisterCallback(Common::ICallback::GenericCallback* callbac
 	callbackHandle = callback;
 }
 
-void Communication::OnReceiveCallback(uint8_t *Buf, uint32_t Len, void* instance)
+void Communication::OnUsbCdcReceive(uint8_t *Buf, uint32_t Len)
 {
-	void* rs485Instance = rs485.GetInstance();
-	void* usbInstance = usbCdc.GetInstance();
+	interface = INTERFACE::USB_CDC;
+	ProcessFrame(Buf, Len);
+}
 
-	if(instance == rs485Instance)
-	{
-		interface = INTERFACE::RS485;
-	}
-	else if(instance == usbInstance)
-	{
-		interface = INTERFACE::USB_CDC;
-	}
+void Communication::OnRs485Receive(uint8_t *Buf, uint32_t Len)
+{
+	interface = INTERFACE::RS485;
+	ProcessFrame(Buf, Len);
+}
 
+void Communication::OnCanReceive(uint8_t* Buf, uint32_t Len)
+{
+	interface = INTERFACE::CAN;
+	// If CAN delivers a full frame, process it similar to other interfaces
+	if(Len == sizeof(dataFrame))
+	{
+		ProcessFrame(Buf, Len);
+	}
+	else
+	{
+		// minimal feedback: mark ping activity
+		userInterface.PingActivity();
+	}
+}
+
+void Communication::ProcessFrame(uint8_t *Buf, uint32_t Len)
+{
 	Common::Crc16 crc;
 
 	if(Len == sizeof(dataFrame))

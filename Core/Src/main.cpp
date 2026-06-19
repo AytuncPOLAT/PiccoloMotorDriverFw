@@ -96,7 +96,7 @@ void StartDefaultTask(void *argument)
 	{
 		osDelay(1000);
 
-		//app->hwPtr.fdcan.AddMessageToTxQueue();
+		app->hwPtr.fdcan.AddMessageToTxQueue();
 		/*
 		cnt++;
 		if(cnt > 4096) cnt = 0;

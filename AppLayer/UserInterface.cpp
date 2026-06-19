@@ -77,7 +77,7 @@ void UserInterface::UiTask(void *argument)
 
 		case UiState::Ping:
 			objectHandle->pingAct.Play(objectHandle->tenMsCounter);
-			objectHandle->state = objectHandle->oldState;
+			objectHandle->state = UiState::HeartBeat;
 			break;
 
 		case UiState::Comm:

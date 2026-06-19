@@ -23,6 +23,16 @@ extern "C"
     {
     	HAL_FDCAN_GetRxMessage(hcan, FDCAN_RX_BUFFER0, &global_fdcan->RxHeader, global_fdcan->RxData);
     	global_fdcan->newData = true;
+    	if(global_fdcan->callbackHandle != nullptr)
+    	{
+    		// forward buffer and length via the GenericCallback OnReceive
+    		uint32_t len = FDCAN_DLC_BYTES_8; // default
+    		// try to infer length from RxHeader if possible
+    		#ifdef FDCAN_DLC_BYTES_8
+    		(void)len; // keep if unused
+    		#endif
+    		global_fdcan->callbackHandle->OnReceive(global_fdcan->RxData, 8, global_fdcan);
+    	}
     }
 }
 
@@ -152,4 +162,9 @@ void FdCanDriver::AddMessageToTxQueue()
     TxHeader.MessageMarker = 0x0;
     HAL_FDCAN_AddMessageToTxBuffer(&hfdcan, &TxHeader, TxData1, FDCAN_TX_BUFFER0);
     HAL_FDCAN_EnableTxBufferRequest(&hfdcan, FDCAN_TX_BUFFER0);
+}
+
+void FdCanDriver::RegisterCallback(Common::ICallback::GenericCallback* callback)
+{
+    callbackHandle = callback;
 }

@@ -15,6 +15,7 @@ namespace AppLayer
 		NONE = 0,
 		USB_CDC,
 		RS485
+		, CAN
 	};
 
 	enum class CMD_TYPE : uint8_t
@@ -45,12 +46,12 @@ namespace AppLayer
 	};
 
 	class Communication
-	: public Common::IUart::Callback
-	, public Common::ICallback
+	: public Common::ICallback
 	{
 	public:
 		Communication(Common::IUart& uartRef, Common::IUart& rs485Ref, HardwareLayer::FdCanDriver &canBusRef, Common::SystemData &systemDataRef, UserInterface& userInterfaceRef);
-		void OnReceiveCallback(uint8_t *Buf, uint32_t Len, void* instance) override;
+		void OnUsbCdcReceive(uint8_t *Buf, uint32_t Len);
+		void OnRs485Receive(uint8_t *Buf, uint32_t Len);
 		void Print(uint8_t *data, uint32_t size);
 
         static void TaskThread(void *argument);
@@ -79,7 +80,15 @@ namespace AppLayer
 	private:
 		Common::IUart &usbCdc;
 		Common::IUart &rs485;
-		HardwareLayer::FdCanDriver canBus;
+		HardwareLayer::FdCanDriver &canBus;
+
+		struct CanCallbackAdapter : public Common::ICallback::GenericCallback
+		{
+			Communication &parent;
+			CanCallbackAdapter(Communication &p) : parent(p) {}
+			void OnReceive(uint8_t* Buf, uint32_t Len, void* instance) override { parent.OnCanReceive(Buf, Len); }
+			void OnCallback(uint8_t arg) override { (void)arg; }
+		} canCallbackAdapter;
 
 		uint8_t rxByte;
 		uint32_t size;
@@ -88,8 +97,15 @@ namespace AppLayer
 		INTERFACE interface = INTERFACE::NONE;
 
 		Common::SystemData& systemData;
-		ICallback::GenericCallback* callbackHandle;
+		Common::ICallback::GenericCallback* callbackHandle;
 		UserInterface& userInterface;
+
+		void OnCanReceive(uint8_t* Buf, uint32_t Len);
+
+		Common::UartReceiveAdapter<Communication> usbCdcCallback;
+		Common::UartReceiveAdapter<Communication> rs485Callback;
+
+		void ProcessFrame(uint8_t *Buf, uint32_t Len);
 	};
 }
 #endif // COMMUNICATION_HPP
