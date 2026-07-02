@@ -17,7 +17,9 @@ namespace HardwareLayer
         FdCanDriver();
         void Init();
 
-        void AddMessageToTxQueue();
+        void AddMessageToTxQueue(uint8_t msgId, uint8_t* payload);
+
+        void SetSingleFilter(uint16_t canId);
 
         void RegisterCallback(Common::ICallback::GenericCallback* callBack) override;
 
@@ -30,6 +32,8 @@ namespace HardwareLayer
     private:
         FDCAN_TxHeaderTypeDef TxHeader;
         FDCAN_FilterTypeDef sFilterConfig;
+
+        uint8_t filterIndex = 0;
     };
 }
 

@@ -23,14 +23,9 @@ extern "C"
     {
     	HAL_FDCAN_GetRxMessage(hcan, FDCAN_RX_BUFFER0, &global_fdcan->RxHeader, global_fdcan->RxData);
     	global_fdcan->newData = true;
+
     	if(global_fdcan->callbackHandle != nullptr)
     	{
-    		// forward buffer and length via the GenericCallback OnReceive
-    		uint32_t len = FDCAN_DLC_BYTES_8; // default
-    		// try to infer length from RxHeader if possible
-    		#ifdef FDCAN_DLC_BYTES_8
-    		(void)len; // keep if unused
-    		#endif
     		global_fdcan->callbackHandle->OnReceive(global_fdcan->RxData, 8, global_fdcan);
     	}
     }
@@ -106,7 +101,7 @@ void FdCanDriver::Init()
     sFilterConfig.FilterID1 = 0x111;
     sFilterConfig.FilterID2 = 0x555;
     sFilterConfig.RxBufferIndex = 0;
-    HAL_FDCAN_ConfigFilter(&hfdcan, &sFilterConfig);
+    //HAL_FDCAN_ConfigFilter(&hfdcan, &sFilterConfig);
 
     /* Configure extended ID reception filter to Rx FIFO 1 */
     //sFilterConfig.IdType = FDCAN_EXTENDED_ID;
@@ -116,19 +111,6 @@ void FdCanDriver::Init()
     //sFilterConfig.FilterID1 = 0x1111111;
     //sFilterConfig.FilterID2 = 0x2222222;
     //HAL_FDCAN_ConfigFilter(&hfdcan, &sFilterConfig);
-
-    /* Configure Tx buffer message */
-    uint8_t TxData0[] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88};
-    TxHeader.Identifier = 0x11;
-    TxHeader.IdType = FDCAN_STANDARD_ID;
-    TxHeader.TxFrameType = FDCAN_DATA_FRAME;
-    TxHeader.DataLength = FDCAN_DLC_BYTES_8;
-    TxHeader.ErrorStateIndicator = FDCAN_ESI_PASSIVE;
-    TxHeader.BitRateSwitch = FDCAN_BRS_OFF;
-    TxHeader.FDFormat = FDCAN_CLASSIC_CAN;
-    TxHeader.TxEventFifoControl = FDCAN_STORE_TX_EVENTS;
-    TxHeader.MessageMarker = 0x0;
-    HAL_FDCAN_AddMessageToTxBuffer(&hfdcan, &TxHeader, TxData0, FDCAN_TX_BUFFER0);
 
 
     HAL_FDCAN_ActivateNotification(&hfdcan, FDCAN_IT_RX_BUFFER_NEW_MESSAGE, FDCAN_IT_TX_COMPLETE);
@@ -148,10 +130,9 @@ void FdCanDriver::Init()
     HAL_FDCAN_GetRxMessage(&hfdcan, FDCAN_RX_BUFFER0, &RxHeader, RxData);
 }
 
-void FdCanDriver::AddMessageToTxQueue()
+void FdCanDriver::AddMessageToTxQueue(uint8_t msgId, uint8_t* payload)
 {
-    uint8_t TxData1[] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08};
-    TxHeader.Identifier = 0x01;
+    TxHeader.Identifier = msgId;
     TxHeader.IdType = FDCAN_STANDARD_ID;
     TxHeader.TxFrameType = FDCAN_DATA_FRAME;
     TxHeader.DataLength = FDCAN_DLC_BYTES_8;
@@ -160,9 +141,25 @@ void FdCanDriver::AddMessageToTxQueue()
     TxHeader.FDFormat = FDCAN_CLASSIC_CAN;
     TxHeader.TxEventFifoControl = FDCAN_STORE_TX_EVENTS;
     TxHeader.MessageMarker = 0x0;
-    HAL_FDCAN_AddMessageToTxBuffer(&hfdcan, &TxHeader, TxData1, FDCAN_TX_BUFFER0);
+    HAL_FDCAN_AddMessageToTxBuffer(&hfdcan, &TxHeader, payload, FDCAN_TX_BUFFER0);
     HAL_FDCAN_EnableTxBufferRequest(&hfdcan, FDCAN_TX_BUFFER0);
 }
+
+void FdCanDriver::SetSingleFilter(uint16_t canId)
+{
+    /* Configure standard ID reception filter to Rx buffer 0 */
+    sFilterConfig.IdType = FDCAN_STANDARD_ID;
+    sFilterConfig.FilterIndex = filterIndex;
+    sFilterConfig.FilterType = FDCAN_FILTER_DUAL;
+    sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXBUFFER;
+    sFilterConfig.FilterID1 = canId;
+    sFilterConfig.FilterID2 = 0x999;
+    sFilterConfig.RxBufferIndex = 0;
+    HAL_FDCAN_ConfigFilter(&hfdcan, &sFilterConfig);
+
+    filterIndex++;
+}
+
 
 void FdCanDriver::RegisterCallback(Common::ICallback::GenericCallback* callback)
 {

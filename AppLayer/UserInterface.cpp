@@ -30,9 +30,9 @@ void WarningState::Play(uint8_t time)
 
 void CommActivityState::Play(uint8_t time)
 {
-	HAL_GPIO_WritePin(GPIOE, GPIO_PIN_2, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_SET);
 	osDelay(5);
-	HAL_GPIO_WritePin(GPIOE, GPIO_PIN_2, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_RESET);
 }
 
 void PingState::Play(uint8_t time)

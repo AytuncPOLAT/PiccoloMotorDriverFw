@@ -41,13 +41,7 @@ void Communication::TaskThread(void *argument)
 
 	while(1)
 	{
-		if(objectHandle->canBus.newData == true)
-		{
-			objectHandle->canBus.newData = false;
-			objectHandle->userInterface.PingActivity();
-		}
-
-		osDelay(1);
+		osDelay(100);
 	}
 }
 
@@ -71,16 +65,12 @@ void Communication::OnRs485Receive(uint8_t *Buf, uint32_t Len)
 void Communication::OnCanReceive(uint8_t* Buf, uint32_t Len)
 {
 	interface = INTERFACE::CAN;
-	// If CAN delivers a full frame, process it similar to other interfaces
-	if(Len == sizeof(dataFrame))
-	{
-		ProcessFrame(Buf, Len);
-	}
-	else
-	{
-		// minimal feedback: mark ping activity
-		userInterface.PingActivity();
-	}
+
+	rxData.cmd = (AppLayer::CMD_TYPE) Buf[0];
+	rxData.data0 = Buf[1];
+	rxData.data3 = Buf[4] + (Buf[5] << 8) + (Buf[6] << 16) + (Buf[7] << 24);
+
+	Filters(16);
 }
 
 void Communication::ProcessFrame(uint8_t *Buf, uint32_t Len)

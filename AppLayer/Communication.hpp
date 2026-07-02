@@ -76,6 +76,7 @@ namespace AppLayer
 		DataFrame dataFrame;
 		DataFrame rxData;
 		DataFrame txData;
+		DataFrame canData;
 
 	private:
 		Common::IUart &usbCdc;

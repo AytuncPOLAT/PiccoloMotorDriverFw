@@ -75,6 +75,9 @@ int main(void)
 	app.analogProcessor.Init();
 	app.telemetry.Init();
 	app.communication.Init();
+
+	hardware.fdcan.SetSingleFilter(app.systemData.configurationData.deviceAddress);
+
 	osKernelStart();
 	while (1)
 	{
@@ -95,8 +98,8 @@ void StartDefaultTask(void *argument)
 	for (;;)
 	{
 		osDelay(1000);
-
-		app->hwPtr.fdcan.AddMessageToTxQueue();
+		uint8_t canBuffer[8] = {0,1,2,3,4,5,6,7};
+		app->hwPtr.fdcan.AddMessageToTxQueue(app->systemData.configurationData.deviceAddress, canBuffer);
 		/*
 		cnt++;
 		if(cnt > 4096) cnt = 0;
