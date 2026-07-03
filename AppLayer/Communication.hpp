@@ -31,7 +31,10 @@ namespace AppLayer
 		DRIVER_DISARM,
 		POSITION_HOME,
 	    CURR_1,
-	    CURR_2
+	    CURR_2,
+		MOTION_POS_COMMAND,
+		MOTION_SPEED_COMMAND,
+		MOTION_TORQUE_COMMAND
 	};
 
 	struct __attribute__((packed)) DataFrame
@@ -43,6 +46,26 @@ namespace AppLayer
 		uint32_t data2;
 		uint32_t data3;
 		uint16_t checksum;
+	};
+
+	struct __attribute__((packed)) Payload
+	{
+		uint8_t payload[8];
+	};
+
+	struct __attribute__((packed)) DataFrameCanBridge
+	{
+		CMD_TYPE cmd;
+		uint8_t address;
+		Payload payload;
+		uint16_t checksum;
+	};
+
+	struct __attribute__((packed)) RealTimeCommand
+	{
+		CMD_TYPE cmd;
+		uint8_t padding[3];
+		uint8_t data[4];
 	};
 
 	class Communication
@@ -57,6 +80,8 @@ namespace AppLayer
         static void TaskThread(void *argument);
 
 		void TransmitTxFrame(); //TODO de-commission this one
+
+		void NotifySystemData(AppLayer::CMD_TYPE cmd, uint8_t* data);
 
 	    void TransmitDataFrame(CMD_TYPE cmd,
 	                            uint32_t deviceAddress,
@@ -76,7 +101,9 @@ namespace AppLayer
 		DataFrame dataFrame;
 		DataFrame rxData;
 		DataFrame txData;
-		DataFrame canData;
+		DataFrameCanBridge canOverSerialData;
+
+		RealTimeCommand realtimeCommand;
 
 	private:
 		Common::IUart &usbCdc;
@@ -90,9 +117,6 @@ namespace AppLayer
 			void OnReceive(uint8_t* Buf, uint32_t Len, void* instance) override { parent.OnCanReceive(Buf, Len); }
 			void OnCallback(uint8_t arg) override { (void)arg; }
 		} canCallbackAdapter;
-
-		uint8_t rxByte;
-		uint32_t size;
 
 		bool isDataReceived;
 		INTERFACE interface = INTERFACE::NONE;

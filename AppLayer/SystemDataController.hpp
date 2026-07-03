@@ -41,6 +41,7 @@ namespace AppLayer
 		static void TaskThread(void *argument);
 
 		bool newPacket = false;
+		bool newRealtimePacket = false;
 
 		Common::SystemData& systemData;
 		Communication& communication;

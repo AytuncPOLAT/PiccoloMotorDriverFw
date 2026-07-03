@@ -12,7 +12,7 @@ namespace
 
 Communication::Communication(Common::IUart& uartRef,
 							Common::IUart& rs485Ref,
-						HardwareLayer::FdCanDriver &canBusRef,
+							HardwareLayer::FdCanDriver &canBusRef,
 							Common::SystemData &systemDataRef,
 							UserInterface& userInterfaceRef)
 : usbCdc(uartRef)
@@ -22,7 +22,7 @@ Communication::Communication(Common::IUart& uartRef,
 , userInterface(userInterfaceRef)
 , usbCdcCallback(*this, &Communication::OnUsbCdcReceive)
 , rs485Callback(*this, &Communication::OnRs485Receive)
- , canCallbackAdapter(*this)
+, canCallbackAdapter(*this)
 {
 	usbCdc.RegisterOnReceiveCallback(&usbCdcCallback);
 	rs485.RegisterOnReceiveCallback(&rs485Callback);
@@ -31,8 +31,10 @@ Communication::Communication(Common::IUart& uartRef,
 
 void Communication::Init()
 {
+	/*
 	xTaskCreate(this->TaskThread, "commTask", 128 * 4, (void*) this,
 			24, NULL);
+	*/
 }
 
 void Communication::TaskThread(void *argument)
@@ -66,18 +68,15 @@ void Communication::OnCanReceive(uint8_t* Buf, uint32_t Len)
 {
 	interface = INTERFACE::CAN;
 
-	rxData.cmd = (AppLayer::CMD_TYPE) Buf[0];
-	rxData.data0 = Buf[1];
-	rxData.data3 = Buf[4] + (Buf[5] << 8) + (Buf[6] << 16) + (Buf[7] << 24);
-
-	Filters(16);
+	NotifySystemData((AppLayer::CMD_TYPE)Buf[0], &Buf[4]);
+	userInterface.CommActivity();
 }
 
 void Communication::ProcessFrame(uint8_t *Buf, uint32_t Len)
 {
 	Common::Crc16 crc;
 
-	if(Len == sizeof(dataFrame))
+	if(Len == sizeof(dataFrame)) // Configuration packet
 	{
 		memcpy((void*)&dataFrame, (void*)Buf, sizeof(dataFrame));
 		auto localChecksum = crc.Calculate(0, reinterpret_cast<uint8_t*>(&dataFrame), sizeof (dataFrame) - 2);
@@ -90,22 +89,36 @@ void Communication::ProcessFrame(uint8_t *Buf, uint32_t Len)
 
 				Filters(Len);
 			}
-			else
+		}
+	}
+
+	else if(Len == sizeof(canOverSerialData)) // Realtime packet
+	{
+		memcpy((void*)&canOverSerialData, (void*)Buf, sizeof(canOverSerialData));
+		auto localChecksum = crc.Calculate(0, reinterpret_cast<uint8_t*>(&canOverSerialData), sizeof (canOverSerialData) - 2);
+		if(canOverSerialData.checksum == localChecksum)
+		{
+			if(canOverSerialData.address == systemData.configurationData.deviceAddress) // Address match
 			{
-				/*
-				if(interface == INTERFACE::RS485)
-				{
-					usbCdc.Transmit((uint8_t*)&rxData, sizeof(rxData));
-				}
-				else if(interface == INTERFACE::USB_CDC)
-				{
-					rs485.Transmit((uint8_t*)&rxData, sizeof(rxData));
-				}*/
+				NotifySystemData(canOverSerialData.cmd, &canOverSerialData.payload.payload[4]);
+				userInterface.CommActivity();
+			}
+			else // Redirect to CAN
+			{
+				uint8_t canPayload[8];
+				memcpy(canPayload, (uint8_t*)&canOverSerialData.payload, 8);
+				canBus.AddMessageToTxQueue(canOverSerialData.address, canPayload);
+				userInterface.PingActivity();
 			}
 		}
 	}
-	rxByte = Buf[0];
-	size = Len;
+}
+
+void Communication::NotifySystemData(AppLayer::CMD_TYPE cmd, uint8_t* data)
+{
+	realtimeCommand.cmd = cmd;
+	memcpy(realtimeCommand.data, data, 4);
+	callbackHandle->OnCallback(111);
 }
 
 void Communication::Filters(uint16_t len)
@@ -117,7 +130,7 @@ void Communication::Filters(uint16_t len)
 	}
 	else
 	{
-		callbackHandle->OnCallback(len);
+		callbackHandle->OnCallback(222);
 		userInterface.CommActivity();
 	}
 }

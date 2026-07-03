@@ -20,12 +20,26 @@ void sendJogCommand(SerialManager& serial, uint8_t deviceAddress, int selectedMo
         currentPosition += delta;
     
     // Send motion command - only the selected mode value is active, others are 0
-    int32_t elecAngle = 0;
-    int32_t torque = (selectedMode == 0) ? static_cast<int32_t>(currentTorque) : 0;
-    int32_t speed = (selectedMode == 1) ? static_cast<int32_t>(currentSpeed) : 0;
-    int32_t position = (selectedMode == 2) ? static_cast<int32_t>(currentPosition) : 0;
-    
-    if (serial.sendMotionCommand(deviceAddress, elecAngle, torque, speed, position, error))
+    int32_t value = 0;
+    RealtimeCommandType cmd = RealtimeCommandType::MOTION_TORQUE_COMMAND;
+
+    if (selectedMode == 0)
+    {
+        value = static_cast<int32_t>(currentTorque);
+        cmd = RealtimeCommandType::MOTION_TORQUE_COMMAND;
+    }
+    else if (selectedMode == 1)
+    {
+        value = static_cast<int32_t>(currentSpeed);
+        cmd = RealtimeCommandType::MOTION_SPEED_COMMAND;
+    }
+    else if (selectedMode == 2)
+    {
+        value = static_cast<int32_t>(currentPosition);
+        cmd = RealtimeCommandType::MOTION_POS_COMMAND;
+    }
+
+    if (serial.sendRealtimeCommand(deviceAddress, cmd, value, error))
     {
         std::string modeStr = (selectedMode == 0) ? "Torque" : (selectedMode == 1) ? "Speed" : "Position";
         float currentValue = (selectedMode == 0) ? currentTorque : (selectedMode == 1) ? currentSpeed : currentPosition;
@@ -38,7 +52,7 @@ void sendJogCommand(SerialManager& serial, uint8_t deviceAddress, int selectedMo
 }
 } // namespace
 
-void drawJogPanel(SerialManager& serial, uint8_t deviceAddress, std::vector<std::string>& logs)
+void drawJogPanel(SerialManager& serial, uint8_t deviceAddress, std::vector<std::string>& logs, float& jogIncrement)
 {
     ImGui::Text("Jog Control");
     ImGui::Separator();
@@ -54,7 +68,6 @@ void drawJogPanel(SerialManager& serial, uint8_t deviceAddress, std::vector<std:
     ImGui::Spacing();
 
     // Jog increment
-    static float jogIncrement = 100.0f; // Adjust based on control mode
     ImGui::SliderFloat("Increment##jog", &jogIncrement, 1.0f, 1000.0f);
 
     ImGui::Spacing();

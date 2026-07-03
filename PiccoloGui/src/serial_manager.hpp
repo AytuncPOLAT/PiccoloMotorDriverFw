@@ -13,6 +13,20 @@
 #undef __attribute__
 #endif
 
+enum class RealtimeCommandType : uint8_t
+{
+    MOTION_POS_COMMAND = 12,
+    MOTION_SPEED_COMMAND = 13,
+    MOTION_TORQUE_COMMAND = 14
+};
+
+struct RealTimeCommand
+{
+    RealtimeCommandType cmd;
+    uint8_t padding[3];
+    uint8_t data[4];
+};
+
 class ISerialPort;
 
 class SerialManager
@@ -53,6 +67,10 @@ public:
                           int32_t speed,
                           int32_t position,
                           std::string& errorMessage);
+    bool sendRealtimeCommand(uint8_t deviceAddress,
+                             RealtimeCommandType cmd,
+                             int32_t value,
+                             std::string& errorMessage);
     bool sendFlashWriteCommand(uint8_t deviceAddress, std::string& errorMessage);
     bool sendArmCommand(uint8_t deviceAddress, std::string& errorMessage);
     bool sendDisarmCommand(uint8_t deviceAddress, std::string& errorMessage);

@@ -56,6 +56,7 @@ int main()
     int status = 0; // 0: no error, 1: warning, 2: error
     bool autoScrollLogs = true;
     extern bool loggingEnabled;
+    float cartesianJogIncrement = 100.0f;
 
     static float leftPanelWidth = 600.0f;
     static float telemetryPanelHeight = 100.0f;
@@ -207,7 +208,7 @@ int main()
             ImGui::Dummy(ImVec2(0.0f, spacing));
 
             ImGui::BeginChild("JogPanel", ImVec2(0, 180), true);
-            drawJogPanel(serial, static_cast<uint8_t>(connectionState.deviceAddress), logs);
+            drawJogPanel(serial, static_cast<uint8_t>(connectionState.deviceAddress), logs, cartesianJogIncrement);
             ImGui::EndChild();
 
             ImGui::Dummy(ImVec2(0.0f, spacing));
@@ -246,8 +247,32 @@ int main()
 
                 if (ImGui::BeginTabItem("Cartesian"))
                 {
-                    drawCartesianPanel([](float x, float y, float z){
-                        std::printf("Cartesian: x=%.2f y=%.2f z=%.2f\n", x, y, z);
+                    drawCartesianPanel([&serial, &logs, &cartesianJogIncrement](float x, float y, float z, float angle1, float angle2){
+                        static bool first = true;
+                        static float prevAngle1 = 0.0f;
+                        static float prevAngle2 = 0.0f;
+
+                        if (first || angle1 != prevAngle1)
+                        {
+                            int32_t a1 = static_cast<int32_t>(angle1 * cartesianJogIncrement * 180.0f / 3.14159265f);
+                            std::string err;
+                            serial.sendRealtimeCommand(static_cast<uint8_t>(2), RealtimeCommandType::MOTION_POS_COMMAND, a1, err);
+                            if (!err.empty()) addLog(logs, std::string("Cartesian link1 send failed: ") + err);
+                            prevAngle1 = angle1;
+                        }
+
+                        if (first || angle2 != prevAngle2)
+                        {
+                            int32_t a2 = static_cast<int32_t>(angle2 * cartesianJogIncrement * 180.0f / 3.14159265f);
+                            std::string err;
+                            serial.sendRealtimeCommand(static_cast<uint8_t>(3), RealtimeCommandType::MOTION_POS_COMMAND, a2, err);
+                            if (!err.empty()) addLog(logs, std::string("Cartesian link2 send failed: ") + err);
+                            prevAngle2 = angle2;
+                        }
+
+                        first = false;
+
+                        std::printf("Cartesian: x=%.2f y=%.2f z=%.2f θ1=%.1f° θ2=%.1f°\n", x, y, z, angle1 * 180.0f / 3.14159265f, angle2 * 180.0f / 3.14159265f);
                     });
                     ImGui::EndTabItem();
                 }

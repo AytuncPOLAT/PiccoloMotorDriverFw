@@ -5,13 +5,18 @@ using namespace AppLayer;
 
 void SystemDataController::OnCallback(uint8_t arg)
 {
-	newPacket = true;
+	if(arg == 222)
+		newPacket = true;
+
+	else if(arg == 111)
+		newRealtimePacket = true;
 }
 
 void SystemDataController::TaskThread(void *argument)
 {
 	SystemDataController *objectHandle = static_cast<SystemDataController*>(argument);
 
+	// TODO move into drv init
 	objectHandle->drv.SendCommand(0, 0);
 	objectHandle->drv.SetCurr2();
 	objectHandle->drv.SetOCP();
@@ -26,6 +31,27 @@ void SystemDataController::TaskThread(void *argument)
 							sizeof(objectHandle->systemData.configurationData), 32);
 
 			objectHandle->state = State::IDLE;
+		}
+
+		if(objectHandle->newRealtimePacket == true)
+		{
+			objectHandle->newRealtimePacket = false;
+
+			// Realtime command handling
+			switch(objectHandle->communication.realtimeCommand.cmd)
+			{
+			case CMD_TYPE::MOTION_POS_COMMAND:
+				memcpy(&objectHandle->systemData.realtimeData.position, &objectHandle->communication.realtimeCommand.data[0], sizeof(uint32_t));
+				break;
+
+			case CMD_TYPE::MOTION_SPEED_COMMAND:
+				memcpy(&objectHandle->systemData.realtimeData.speed, &objectHandle->communication.realtimeCommand.data[0], sizeof(uint32_t));
+				break;
+
+			case CMD_TYPE::MOTION_TORQUE_COMMAND:
+				memcpy(&objectHandle->systemData.realtimeData.torque, &objectHandle->communication.realtimeCommand.data[0], sizeof(uint32_t));
+				break;
+			}
 		}
 
 		if(objectHandle->newPacket == true)
@@ -90,7 +116,7 @@ void SystemDataController::TaskThread(void *argument)
 
 			objectHandle->newPacket = false;
 		}
-		osDelay(10);
+		osDelay(1);
 	}
 }
 

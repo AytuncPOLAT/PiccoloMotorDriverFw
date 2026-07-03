@@ -231,8 +231,7 @@ uint16_t AS5047::SPI_Read(uint16_t address)
 
 int AS5047::GetPosition()
 {
-	//position = (int)SPI_Read(ADDR_ANGLECOM);
-	//return position;
+	return position % 585;
 }
 
 int AS5047::GetMultiTurnPosition()

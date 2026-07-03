@@ -104,12 +104,12 @@ void FdCanDriver::Init()
     //HAL_FDCAN_ConfigFilter(&hfdcan, &sFilterConfig);
 
     /* Configure extended ID reception filter to Rx FIFO 1 */
-    //sFilterConfig.IdType = FDCAN_EXTENDED_ID;
-    //sFilterConfig.FilterIndex = 0;
-    //sFilterConfig.FilterType = FDCAN_FILTER_RANGE_NO_EIDM;
-    //sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO1;
-    //sFilterConfig.FilterID1 = 0x1111111;
-    //sFilterConfig.FilterID2 = 0x2222222;
+    sFilterConfig.IdType = FDCAN_EXTENDED_ID;
+    sFilterConfig.FilterIndex = 0;
+    sFilterConfig.FilterType = FDCAN_FILTER_RANGE_NO_EIDM;
+    sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO1;
+    sFilterConfig.FilterID1 = 0x1111111;
+    sFilterConfig.FilterID2 = 0x2222222;
     //HAL_FDCAN_ConfigFilter(&hfdcan, &sFilterConfig);
 
 

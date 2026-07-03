@@ -99,7 +99,7 @@ void StartDefaultTask(void *argument)
 	{
 		osDelay(1000);
 		uint8_t canBuffer[8] = {0,1,2,3,4,5,6,7};
-		app->hwPtr.fdcan.AddMessageToTxQueue(app->systemData.configurationData.deviceAddress, canBuffer);
+		//app->hwPtr.fdcan.AddMessageToTxQueue(app->systemData.configurationData.deviceAddress, canBuffer);
 		/*
 		cnt++;
 		if(cnt > 4096) cnt = 0;

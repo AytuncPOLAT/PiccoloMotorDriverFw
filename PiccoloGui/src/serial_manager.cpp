@@ -34,9 +34,18 @@ struct DataFrame
     uint32_t data3;
     uint16_t checksum;
 };
-#pragma pack(pop)
+
+struct DataFrameCanBridge
+{
+    uint8_t cmd;
+    uint8_t address;
+    uint8_t payload[8];
+    uint16_t checksum;
+};
 
 static_assert(sizeof(DataFrame) == 20, "DataFrame size must match firmware protocol");
+static_assert(sizeof(DataFrameCanBridge) == 12, "DataFrameCanBridge size must be 12 bytes");
+#pragma pack(pop)
 
 std::string formatPingFrame(const DataFrame& frame, uint16_t expectedCrc)
 {
@@ -453,6 +462,32 @@ bool SerialManager::sendMotionCommand(uint8_t deviceAddress,
     tx.data1 = static_cast<uint32_t>(torque);
     tx.data2 = static_cast<uint32_t>(speed);
     tx.data3 = static_cast<uint32_t>(position);
+
+    Common::Crc16 crc;
+    tx.checksum = crc.Calculate(0, reinterpret_cast<uint8_t*>(&tx), sizeof(tx) - sizeof(tx.checksum));
+
+    return serialPort_->write(reinterpret_cast<const uint8_t*>(&tx), sizeof(tx), errorMessage);
+}
+
+bool SerialManager::sendRealtimeCommand(uint8_t deviceAddress,
+                                       RealtimeCommandType cmd,
+                                       int32_t value,
+                                       std::string& errorMessage)
+{
+    if (!isConnected())
+    {
+        errorMessage = "No serial connection.";
+        return false;
+    }
+
+    RealTimeCommand realtime = {};
+    realtime.cmd = cmd;
+    std::memcpy(&realtime.data[0], &value, sizeof(value));
+
+    DataFrameCanBridge tx = {};
+    tx.cmd = static_cast<uint8_t>(cmd);
+    tx.address = deviceAddress;
+    std::memcpy(tx.payload, &realtime, sizeof(realtime));
 
     Common::Crc16 crc;
     tx.checksum = crc.Calculate(0, reinterpret_cast<uint8_t*>(&tx), sizeof(tx) - sizeof(tx.checksum));
