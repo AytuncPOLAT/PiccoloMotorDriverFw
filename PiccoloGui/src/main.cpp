@@ -254,7 +254,7 @@ int main()
 
                         if (first || angle1 != prevAngle1)
                         {
-                            int32_t a1 = static_cast<int32_t>(angle1 * cartesianJogIncrement * 180.0f / 3.14159265f);
+                            int32_t a1 = static_cast<int32_t>(-angle1 * cartesianJogIncrement * 2 * 180.0f / 3.14159265f);
                             std::string err;
                             serial.sendRealtimeCommand(static_cast<uint8_t>(2), RealtimeCommandType::MOTION_POS_COMMAND, a1, err);
                             if (!err.empty()) addLog(logs, std::string("Cartesian link1 send failed: ") + err);
@@ -263,7 +263,7 @@ int main()
 
                         if (first || angle2 != prevAngle2)
                         {
-                            int32_t a2 = static_cast<int32_t>(angle2 * cartesianJogIncrement * 180.0f / 3.14159265f);
+                            int32_t a2 = static_cast<int32_t>((angle2 + angle1) * cartesianJogIncrement * 2 * 180.0f / 3.14159265f);
                             std::string err;
                             serial.sendRealtimeCommand(static_cast<uint8_t>(3), RealtimeCommandType::MOTION_POS_COMMAND, a2, err);
                             if (!err.empty()) addLog(logs, std::string("Cartesian link2 send failed: ") + err);
