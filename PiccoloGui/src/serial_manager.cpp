@@ -35,16 +35,25 @@ struct DataFrame
     uint16_t checksum;
 };
 
-struct DataFrameCanBridge
+struct CANBusFrame
 {
+    uint8_t msgID;
+    uint8_t subAddress;
     uint8_t cmd;
-    uint8_t address;
-    uint8_t payload[8];
+    uint8_t flags;
+    uint8_t padding;
+    uint8_t data[4];
+};
+
+struct SerialFrame
+{
+    CANBusFrame canFrame;
     uint16_t checksum;
 };
 
 static_assert(sizeof(DataFrame) == 20, "DataFrame size must match firmware protocol");
-static_assert(sizeof(DataFrameCanBridge) == 12, "DataFrameCanBridge size must be 12 bytes");
+static_assert(sizeof(CANBusFrame) == 9, "CANBusFrame size must match firmware protocol");
+static_assert(sizeof(SerialFrame) == 11, "SerialFrame size must match firmware protocol");
 #pragma pack(pop)
 
 std::string formatPingFrame(const DataFrame& frame, uint16_t expectedCrc)
@@ -480,14 +489,13 @@ bool SerialManager::sendRealtimeCommand(uint8_t deviceAddress,
         return false;
     }
 
-    RealTimeCommand realtime = {};
-    realtime.cmd = cmd;
-    std::memcpy(&realtime.data[0], &value, sizeof(value));
-
-    DataFrameCanBridge tx = {};
-    tx.cmd = static_cast<uint8_t>(cmd);
-    tx.address = deviceAddress;
-    std::memcpy(tx.payload, &realtime, sizeof(realtime));
+    SerialFrame tx = {};
+    tx.canFrame.msgID = deviceAddress;
+    tx.canFrame.subAddress = static_cast<uint8_t>(cmd);
+    tx.canFrame.cmd = static_cast<uint8_t>(cmd);
+    tx.canFrame.flags = 0;
+    tx.canFrame.padding = 0;
+    std::memcpy(tx.canFrame.data, &value, sizeof(value));
 
     Common::Crc16 crc;
     tx.checksum = crc.Calculate(0, reinterpret_cast<uint8_t*>(&tx), sizeof(tx) - sizeof(tx.checksum));

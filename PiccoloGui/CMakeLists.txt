@@ -83,6 +83,8 @@ target_include_directories(
 
 target_link_libraries(PiccoloGui PRIVATE glfw)
 
+target_compile_definitions(PiccoloGui PRIVATE PICCOLO_GUI)
+
 if(WIN32)
   target_link_libraries(PiccoloGui PRIVATE opengl32)
 elseif(UNIX)

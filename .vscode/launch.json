@@ -1,21 +1,38 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
         {
-            "type": "jlinkgdbtarget",
+            "type": "cortex-debug",
             "request": "launch",
-            "name": "STM32Cube: Launch JLink GDB Server",
-            "origin": "snippet",
+            "name": "STM32H7: J-Link Debug",
             "cwd": "${workspaceFolder}",
-            "preBuild": "${command:st-stm32-ide-debug-launch.build}",
-            "runEntry": "main",
-            "imagesAndSymbols": [
-                {
-                    "imageFileName": "${command:st-stm32-ide-debug-launch.get-projects-binary-from-context1}"
-                }
+            "preLaunchTask": "build-and-flash",
+            "servertype": "jlink",
+            "device": "STM32H723VG",
+            "interface": "swd",
+            "runToEntryPoint": "main",
+            "executable": "${workspaceFolder}/build/Release/PiccoloMotorDriver.elf",
+            "serverpath": "/opt/st/stm32cubeide_2.0.0/plugins/com.st.stm32cube.ide.mcu.externaltools.jlink.linux64_2.5.100.202509120932/tools/bin/JLinkGDBServerCLExe",
+            "gdbPath": "/opt/st/stm32cubeide_2.0.0/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.13.3.rel1.linux64_1.0.100.202509120712/tools/bin/arm-none-eabi-gdb",
+            "armToolchainPath": "/opt/st/stm32cubeide_2.0.0/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.13.3.rel1.linux64_1.0.100.202509120712/tools/bin",
+            "svdFile": ""
+        },
+        {
+            "type": "cortex-debug",
+            "request": "launch",
+            "name": "STM32H7: J-Link Flash Only",
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "build-and-flash",
+            "servertype": "jlink",
+            "device": "STM32H723VG",
+            "interface": "swd",
+            "executable": "${workspaceFolder}/build/Release/PiccoloMotorDriver.elf",
+            "serverpath": "/opt/st/stm32cubeide_2.0.0/plugins/com.st.stm32cube.ide.mcu.externaltools.jlink.linux64_2.5.100.202509120932/tools/bin/JLinkGDBServerCLExe",
+            "gdbPath": "/opt/st/stm32cubeide_2.0.0/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.13.3.rel1.linux64_1.0.100.202509120712/tools/bin/arm-none-eabi-gdb",
+            "armToolchainPath": "/opt/st/stm32cubeide_2.0.0/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.13.3.rel1.linux64_1.0.100.202509120712/tools/bin",
+            "svdFile": "",
+            "postStartSessionCommands": [
+                "quit"
             ]
         }
     ]

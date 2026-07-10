@@ -12,6 +12,23 @@
 			"group": "build",
 			"problemMatcher": [],
 			"detail": "CMake template build task"
+		},
+		{
+			"label": "CMake: configure Release",
+			"type": "shell",
+			"command": "cmake --preset Release",
+			"group": "build",
+			"problemMatcher": [],
+			"detail": "Configure the Release build directory"
+		},
+		{
+			"label": "build-and-flash",
+			"type": "shell",
+			"command": "cmake --build build/Release",
+			"dependsOn": "CMake: configure Release",
+			"group": "build",
+			"problemMatcher": [],
+			"detail": "Build the firmware (flashing handled by GDB debug session)"
 		}
 	]
 }

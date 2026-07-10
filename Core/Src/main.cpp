@@ -66,6 +66,8 @@ int main(void)
 
 	osKernelInitialize();
 
+	Common::remoteCommandQueue = xQueueCreate(5, sizeof(Common::RemoteCommand));
+	
 	defaultTaskHandle = osThreadNew(StartDefaultTask, (void*)&app,
 									&defaultTask_attributes);
 

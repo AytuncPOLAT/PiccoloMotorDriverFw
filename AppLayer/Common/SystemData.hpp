@@ -3,6 +3,10 @@
 
 #include <stdint.h>
 #include <math.h>
+#ifndef PICCOLO_GUI
+#include "FreeRTOS.h"
+#include "queue.h"
+#endif
 
 namespace Common
 {
@@ -23,6 +27,17 @@ namespace Common
 	constexpr float DC_BUS_SENSE_LOW_SIDE = 1000U;
 	constexpr float DC_BUS_SENSE_HIGH_SIDE = 47000U;
 	constexpr float DC_BUS_SENSE_RATIO = DC_BUS_SENSE_LOW_SIDE / (DC_BUS_SENSE_LOW_SIDE + DC_BUS_SENSE_HIGH_SIDE);
+
+	struct RemoteCommand
+	{
+		uint8_t subAddress;
+		uint8_t flags;
+		uint8_t data[4];
+	};
+
+#ifndef PICCOLO_GUI
+	extern QueueHandle_t remoteCommandQueue;
+#endif
 
 	enum class CONTROLLER_TYPE : uint8_t
 	{

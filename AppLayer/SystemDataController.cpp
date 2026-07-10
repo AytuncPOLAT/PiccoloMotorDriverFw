@@ -3,6 +3,11 @@
 
 using namespace AppLayer;
 
+namespace Common
+{
+	QueueHandle_t remoteCommandQueue = NULL;
+}
+
 void SystemDataController::OnCallback(uint8_t arg)
 {
 	if(arg == 222)
@@ -16,6 +21,8 @@ void SystemDataController::TaskThread(void *argument)
 {
 	SystemDataController *objectHandle = static_cast<SystemDataController*>(argument);
 
+	Common::RemoteCommand remoteCommand;
+
 	// TODO move into drv init
 	objectHandle->drv.SendCommand(0, 0);
 	objectHandle->drv.SetCurr2();
@@ -23,6 +30,24 @@ void SystemDataController::TaskThread(void *argument)
 
 	while(1)
 	{
+		if(xQueueReceive(Common::remoteCommandQueue, &remoteCommand, portMAX_DELAY) == pdTRUE)
+		{
+			switch((CMD_TYPE)remoteCommand.subAddress)
+			{
+			case CMD_TYPE::MOTION_POS_COMMAND:
+				memcpy(&objectHandle->systemData.realtimeData.position, &remoteCommand.data[0], sizeof(uint32_t));
+				break;
+
+			case CMD_TYPE::MOTION_SPEED_COMMAND:
+				memcpy(&objectHandle->systemData.realtimeData.speed, &remoteCommand.data[0], sizeof(uint32_t));
+				break;
+
+			case CMD_TYPE::MOTION_TORQUE_COMMAND:
+				memcpy(&objectHandle->systemData.realtimeData.torque, &remoteCommand.data[0], sizeof(uint32_t));
+				break;
+			}
+		}
+
 		if(objectHandle->state == State::FLASH_WRITE)
 		{
 			objectHandle->storageController.EraseUserSector();
@@ -31,27 +56,6 @@ void SystemDataController::TaskThread(void *argument)
 							sizeof(objectHandle->systemData.configurationData), 32);
 
 			objectHandle->state = State::IDLE;
-		}
-
-		if(objectHandle->newRealtimePacket == true)
-		{
-			objectHandle->newRealtimePacket = false;
-
-			// Realtime command handling
-			switch(objectHandle->communication.realtimeCommand.cmd)
-			{
-			case CMD_TYPE::MOTION_POS_COMMAND:
-				memcpy(&objectHandle->systemData.realtimeData.position, &objectHandle->communication.realtimeCommand.data[0], sizeof(uint32_t));
-				break;
-
-			case CMD_TYPE::MOTION_SPEED_COMMAND:
-				memcpy(&objectHandle->systemData.realtimeData.speed, &objectHandle->communication.realtimeCommand.data[0], sizeof(uint32_t));
-				break;
-
-			case CMD_TYPE::MOTION_TORQUE_COMMAND:
-				memcpy(&objectHandle->systemData.realtimeData.torque, &objectHandle->communication.realtimeCommand.data[0], sizeof(uint32_t));
-				break;
-			}
 		}
 
 		if(objectHandle->newPacket == true)

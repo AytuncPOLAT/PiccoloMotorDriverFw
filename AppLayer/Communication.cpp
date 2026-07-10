@@ -1,7 +1,6 @@
 #include "Communication.hpp"
 #include <cstring>
-
-#include "cmsis_os2.h"
+#include "SystemData.hpp"
 
 using namespace AppLayer;
 
@@ -75,8 +74,40 @@ void Communication::OnCanReceive(uint8_t* Buf, uint32_t Len)
 void Communication::ProcessFrame(uint8_t *Buf, uint32_t Len)
 {
 	Common::Crc16 crc;
+	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
-	if(Len == sizeof(dataFrame)) // Configuration packet
+	if(Len == sizeof(Common::SerialFrame)) // Serial packet
+	{
+		memcpy((void*)&serialFrameRx, (void*)Buf, sizeof(Common::SerialFrame));
+		auto localChecksum = crc.Calculate(0, reinterpret_cast<uint8_t*>(&serialFrameRx), sizeof (serialFrameRx) - 2);
+
+		if(serialFrameRx.checksum == localChecksum) // Valid frame 
+		{
+			if(serialFrameRx.canFrame.msgID == systemData.configurationData.deviceAddress) // Address match, consume the frame
+			{
+				Common::RemoteCommand remoteCommand;
+
+				remoteCommand.subAddress = serialFrameRx.canFrame.subAddress;
+				remoteCommand.flags = serialFrameRx.canFrame.flags;
+				memcpy(remoteCommand.data, serialFrameRx.canFrame.data, 4);
+				xQueueSendToBackFromISR(Common::remoteCommandQueue, &remoteCommand, &xHigherPriorityTaskWoken);
+
+				userInterface.PingActivity();
+				userInterface.CommActivity();
+			}
+			else // Redirect to CAN
+			{
+				uint8_t canPayload[8];
+				memcpy(canPayload, (uint8_t*)&serialFrameRx.canFrame.data, 8);
+				canBus.AddMessageToTxQueue(serialFrameRx.canFrame.subAddress, canPayload);
+				userInterface.PingActivity();
+			}
+		}
+	}
+
+	
+/*
+	else if(Len == sizeof(dataFrame)) // Configuration packet
 	{
 		memcpy((void*)&dataFrame, (void*)Buf, sizeof(dataFrame));
 		auto localChecksum = crc.Calculate(0, reinterpret_cast<uint8_t*>(&dataFrame), sizeof (dataFrame) - 2);
@@ -111,7 +142,7 @@ void Communication::ProcessFrame(uint8_t *Buf, uint32_t Len)
 				userInterface.PingActivity();
 			}
 		}
-	}
+	}*/
 }
 
 void Communication::NotifySystemData(AppLayer::CMD_TYPE cmd, uint8_t* data)

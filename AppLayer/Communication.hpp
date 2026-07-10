@@ -6,7 +6,12 @@
 #include "Crc16.hpp"
 #include "SystemData.hpp"
 #include "UserInterface.hpp"
+#ifndef PICCOLO_GUI
 #include "FdcanDriver.hpp"
+#endif
+#include "LinkLayer.hpp"
+
+#include "cmsis_os2.h"
 
 namespace AppLayer
 {
@@ -72,7 +77,11 @@ namespace AppLayer
 	: public Common::ICallback
 	{
 	public:
+#ifndef PICCOLO_GUI
 		Communication(Common::IUart& uartRef, Common::IUart& rs485Ref, HardwareLayer::FdCanDriver &canBusRef, Common::SystemData &systemDataRef, UserInterface& userInterfaceRef);
+#else
+		Communication(Common::IUart& uartRef, Common::IUart& rs485Ref, Common::SystemData &systemDataRef, UserInterface& userInterfaceRef);
+#endif
 		void OnUsbCdcReceive(uint8_t *Buf, uint32_t Len);
 		void OnRs485Receive(uint8_t *Buf, uint32_t Len);
 		void Print(uint8_t *data, uint32_t size);
@@ -97,6 +106,13 @@ namespace AppLayer
 		void SendPingResponse();
 
 		void RegisterCallback(GenericCallback* callBack) override;
+		
+#ifndef PICCOLO_GUI
+		QueueHandle_t remoteCommand = NULL;
+#endif
+
+		Common::SerialFrame serialFrameRx;
+		Common::SerialFrame serialFrameTx;	
 
 		DataFrame dataFrame;
 		DataFrame rxData;
@@ -108,6 +124,7 @@ namespace AppLayer
 	private:
 		Common::IUart &usbCdc;
 		Common::IUart &rs485;
+#ifndef PICCOLO_GUI
 		HardwareLayer::FdCanDriver &canBus;
 
 		struct CanCallbackAdapter : public Common::ICallback::GenericCallback
@@ -117,6 +134,7 @@ namespace AppLayer
 			void OnReceive(uint8_t* Buf, uint32_t Len, void* instance) override { parent.OnCanReceive(Buf, Len); }
 			void OnCallback(uint8_t arg) override { (void)arg; }
 		} canCallbackAdapter;
+#endif
 
 		bool isDataReceived;
 		INTERFACE interface = INTERFACE::NONE;
@@ -125,7 +143,9 @@ namespace AppLayer
 		Common::ICallback::GenericCallback* callbackHandle;
 		UserInterface& userInterface;
 
+#ifndef PICCOLO_GUI
 		void OnCanReceive(uint8_t* Buf, uint32_t Len);
+#endif
 
 		Common::UartReceiveAdapter<Communication> usbCdcCallback;
 		Common::UartReceiveAdapter<Communication> rs485Callback;
