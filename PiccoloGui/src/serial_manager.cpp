@@ -1,5 +1,6 @@
 #include "serial_manager.hpp"
 #include "serial_port.hpp"
+#include "SystemData.hpp"
 #include "../../AppLayer/Common/Crc16.hpp"
 #include <algorithm>
 #include <chrono>
@@ -11,66 +12,48 @@
 #include <stdio.h>
 #include <iostream>
 
+#define RESPONSE_TIMEOUT_MS 500
+
 namespace
 {
-constexpr uint8_t kCmdPing = 0;
-constexpr uint8_t kCmdPingResponse = 1;
-constexpr uint8_t kCmdReadFromDevice = 2;
-constexpr uint8_t kCmdWriteToDevice = 3;
-constexpr uint8_t kCmdWriteToDeviceFlash = 4;
-constexpr uint8_t kCmdMotionCommand = 5;
-constexpr uint8_t kCmdReadRealtime = 6;
-constexpr uint8_t kCmdDriverArm = 7;
-constexpr uint8_t kCmdDriverDisarm = 8;
+static_assert(sizeof(Common::CANBusFrame) == 9, "CANBusFrame size must match firmware protocol");
+static_assert(sizeof(Common::SerialFrame) == 11, "SerialFrame size must match firmware protocol");
 
-#pragma pack(push, 1)
-struct DataFrame
-{
-    uint8_t cmd;
-    uint8_t address;
-    uint32_t data0;
-    uint32_t data1;
-    uint32_t data2;
-    uint32_t data3;
-    uint16_t checksum;
-};
-
-struct CANBusFrame
-{
-    uint8_t msgID;
-    uint8_t subAddress;
-    uint8_t cmd;
-    uint8_t flags;
-    uint8_t padding;
-    uint8_t data[4];
-};
-
-struct SerialFrame
-{
-    CANBusFrame canFrame;
-    uint16_t checksum;
-};
-
-static_assert(sizeof(DataFrame) == 20, "DataFrame size must match firmware protocol");
-static_assert(sizeof(CANBusFrame) == 9, "CANBusFrame size must match firmware protocol");
-static_assert(sizeof(SerialFrame) == 11, "SerialFrame size must match firmware protocol");
-#pragma pack(pop)
-
-std::string formatPingFrame(const DataFrame& frame, uint16_t expectedCrc)
+std::string formatPingFrame(const Common::SerialFrame& frame, uint16_t expectedCrc)
 {
     char frameText[256] = {};
     std::snprintf(frameText,
                   sizeof(frameText),
-                  "Ping response frame: cmd=%u address=%u data0=%lu data1=%lu data2=%lu data3=%lu checksum=0x%04X expected=0x%04X",
-                  static_cast<unsigned int>(frame.cmd),
-                  static_cast<unsigned int>(frame.address),
-                  static_cast<unsigned long>(frame.data0),
-                  static_cast<unsigned long>(frame.data1),
-                  static_cast<unsigned long>(frame.data2),
-                  static_cast<unsigned long>(frame.data3),
+                  "Ping response frame: cmd=%u address=%u subAddress=%u data=%u,%u,%u,%u checksum=0x%04X expected=0x%04X",
+                  static_cast<unsigned int>(static_cast<uint8_t>(frame.canFrame.command)),
+                  static_cast<unsigned int>(frame.canFrame.messageID),
+                  static_cast<unsigned int>(frame.canFrame.registerAddress),
+                  static_cast<unsigned int>(frame.canFrame.data[0]),
+                  static_cast<unsigned int>(frame.canFrame.data[1]),
+                  static_cast<unsigned int>(frame.canFrame.data[2]),
+                  static_cast<unsigned int>(frame.canFrame.data[3]),
                   static_cast<unsigned int>(frame.checksum),
                   static_cast<unsigned int>(expectedCrc));
     return frameText;
+}
+
+void populateSerialFrame(Common::SerialFrame& frame,
+                         uint8_t deviceAddress,
+                         Common::CMD_TYPE cmd,
+                         uint8_t subAddress,
+                         const uint8_t* payload,
+                         uint8_t flags = 0)
+{
+    frame.canFrame.messageID = deviceAddress;
+    frame.canFrame.registerAddress = subAddress;
+    frame.canFrame.command = cmd;
+    frame.canFrame.flags = flags;
+    frame.canFrame.sourceID = 1;
+    std::memset(frame.canFrame.data, 0, sizeof(frame.canFrame.data));
+    if (payload != nullptr)
+    {
+        std::memcpy(frame.canFrame.data, payload, std::min<std::size_t>(sizeof(frame.canFrame.data), 4u));
+    }
 }
 } // namespace
 
@@ -182,9 +165,8 @@ bool SerialManager::sendPing(uint8_t deviceAddress, std::string& errorMessage, i
         return false;
     }
 
-    DataFrame tx = {};
-    tx.cmd = kCmdPing;
-    tx.address = deviceAddress;
+    Common::SerialFrame tx = {};
+    populateSerialFrame(tx, deviceAddress, Common::CMD_TYPE::PING, 0, nullptr);
     Common::Crc16 crc;
     tx.checksum = crc.Calculate(0, reinterpret_cast<uint8_t*>(&tx), sizeof(tx) - sizeof(tx.checksum));
     debugMessages_.push_back("Ping TX: cmd=0 address=" + std::to_string(deviceAddress));
@@ -195,19 +177,17 @@ bool SerialManager::sendPing(uint8_t deviceAddress, std::string& errorMessage, i
         return false;
     }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
     debugMessages_.push_back("Ping debug: waiting for response...");
 
     const auto start = std::chrono::steady_clock::now();
-
-    DataFrame rxBuffer = {};
+    uint8_t rxBuffer[sizeof(Common::SerialFrame)] = {};
 
     while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count()
-           < timeoutMs)
+           < RESPONSE_TIMEOUT_MS)
     {
         std::string readError;
         std::size_t bytesRead = 0;
-        if (!serialPort_->read((uint8_t*)&rxBuffer, sizeof(rxBuffer), bytesRead, readError))
+        if (!serialPort_->read(rxBuffer, sizeof(rxBuffer), bytesRead, readError))
         {
             if (!readError.empty())
             {
@@ -216,45 +196,54 @@ bool SerialManager::sendPing(uint8_t deviceAddress, std::string& errorMessage, i
             }
         }
 
-        if (bytesRead >= sizeof(DataFrame))
+        std::cout << "Ping debug: bytesRead=" << bytesRead << std::endl;
+
+        if (bytesRead == sizeof(Common::SerialFrame))
         {
-            DataFrame rx = {};
-            std::memcpy(&rx, &rxBuffer, sizeof(rx));
+            Common::SerialFrame rx = {};
+            std::memcpy(&rx, rxBuffer, sizeof(rx));
 
             const uint16_t expectedCrc
                 = crc.Calculate(0, reinterpret_cast<uint8_t*>(&rx), sizeof(rx) - sizeof(rx.checksum));
-            debugMessages_.push_back(formatPingFrame(rx, expectedCrc));
 
-            if (rx.checksum != expectedCrc)
+            if (rx.checksum == expectedCrc && rx.canFrame.command == Common::CMD_TYPE::PING_RESPONSE
+                && rx.canFrame.messageID == deviceAddress)
             {
-                errorMessage = "Ping response CRC mismatch.";
-                debugMessages_.push_back("Ping debug: CRC mismatch.");
-                return false;
+                auto latency = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count();
+                debugMessages_.push_back("Ping O.K. (latency: " + std::to_string(latency) + " ms)");
+                return true;
             }
-            if (rx.cmd != kCmdPingResponse)
+
+            else if (rx.checksum != expectedCrc)
             {
-                errorMessage = "Unexpected response command.";
-                debugMessages_.push_back("Ping debug: unexpected response command.");
-                return false;
-            }
-            if (rx.address != deviceAddress)
-            {
-                errorMessage = "Ping response address mismatch.";
-                debugMessages_.push_back("Ping debug: address mismatch.");
+                errorMessage = "Property read response: checksum mismatch.";
                 return false;
             }
 
-            debugMessages_.push_back("Ping debug: valid response received.");
-            return true;
+            else if (rx.canFrame.command != Common::CMD_TYPE::PING_RESPONSE)
+            {
+                errorMessage = "Property read response: unexpected command.";
+                return false;
+            }
+
+            else if (rx.canFrame.messageID != deviceAddress)
+            {
+                errorMessage = "Property read response: unexpected device address.";
+                return false;
+            }
         }
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
     errorMessage = "Ping timeout.";
     debugMessages_.push_back("Ping debug: timeout waiting for response.");
     return false;
 }
+
+/////////////////////////////////////////////////////////////////////
+// Read Property
+/////////////////////////////////////////////////////////////////////
 
 bool SerialManager::readProperty(uint8_t deviceAddress,
                                  Common::PROPERTY property,
@@ -268,10 +257,10 @@ bool SerialManager::readProperty(uint8_t deviceAddress,
         return false;
     }
 
-    DataFrame tx = {};
-    tx.cmd = kCmdReadFromDevice;
-    tx.address = deviceAddress;
-    tx.data0 = static_cast<uint32_t>(property);
+    Common::SerialFrame tx = {};
+    uint8_t payload[4] = {};
+    std::memcpy(payload, &property, sizeof(property));
+    populateSerialFrame(tx, deviceAddress, Common::CMD_TYPE::READ_FROM_DEVICE, static_cast<uint8_t>(property), payload);
 
     Common::Crc16 crc;
     tx.checksum = crc.Calculate(0, reinterpret_cast<uint8_t*>(&tx), sizeof(tx) - sizeof(tx.checksum));
@@ -283,16 +272,15 @@ bool SerialManager::readProperty(uint8_t deviceAddress,
 
     std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
-    const auto start = std::chrono::steady_clock::now();
-    uint8_t rxBuffer[sizeof(DataFrame) * 2] = {}; // Larger buffer to detect frame misalignment
-    std::size_t rxCount = 0;
+    uint8_t rxBuffer[sizeof(Common::SerialFrame) * 2] = {};
 
+    const auto start = std::chrono::steady_clock::now();
     while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count()
-           < timeoutMs)
+           < RESPONSE_TIMEOUT_MS)
     {
         std::string readError;
         std::size_t bytesRead = 0;
-        if (!serialPort_->read(rxBuffer + rxCount, sizeof(rxBuffer) - rxCount, bytesRead, readError))
+        if (!serialPort_->read(rxBuffer, sizeof(rxBuffer), bytesRead, readError))
         {
             if (!readError.empty())
             {
@@ -301,33 +289,42 @@ bool SerialManager::readProperty(uint8_t deviceAddress,
             }
         }
 
-        if (bytesRead > 0)
+        if (bytesRead == sizeof(Common::SerialFrame))
         {
-            rxCount += bytesRead;
-        }
+            Common::SerialFrame rx = {};
+            std::memcpy(&rx, rxBuffer, sizeof(rx));
 
-        // Try to find a valid frame
-        if (rxCount >= sizeof(DataFrame))
-        {
-            for (std::size_t offset = 0; offset <= rxCount - sizeof(DataFrame); ++offset)
+            const uint16_t expectedCrc
+                = crc.Calculate(0, reinterpret_cast<uint8_t*>(&rx), sizeof(rx) - sizeof(rx.checksum));
+
+            if (rx.checksum == expectedCrc && rx.canFrame.command == Common::CMD_TYPE::READ_FROM_DEVICE
+                && rx.canFrame.messageID == deviceAddress && rx.canFrame.registerAddress == static_cast<uint8_t>(property))
             {
-                DataFrame rx = {};
-                std::memcpy(&rx, rxBuffer + offset, sizeof(rx));
-
-                const uint16_t expectedCrc
-                    = crc.Calculate(0, reinterpret_cast<uint8_t*>(&rx), sizeof(rx) - sizeof(rx.checksum));
-
-                if (rx.checksum == expectedCrc && rx.cmd == kCmdReadFromDevice && rx.address == deviceAddress)
-                {
-                    valueOut = static_cast<int32_t>(rx.data0);
-                    return true;
-                }
+                std::memcpy(&valueOut, rx.canFrame.data, sizeof(valueOut));
+                return true;
             }
 
-            // If no valid frame found in buffer, keep reading but limit buffer size
-            if (rxCount >= sizeof(rxBuffer) - 1)
+            else if (rx.checksum != expectedCrc)
             {
-                errorMessage = "Property read response: no valid frame found in buffer.";
+                errorMessage = "Property read response: checksum mismatch.";
+                return false;
+            }
+
+            else if (rx.canFrame.command != Common::CMD_TYPE::READ_FROM_DEVICE)
+            {
+                errorMessage = "Property read response: unexpected command.";
+                return false;
+            }
+
+            else if (rx.canFrame.messageID != deviceAddress)
+            {
+                errorMessage = "Property read response: unexpected device address.";
+                return false;
+            }
+
+            else if (rx.canFrame.registerAddress != static_cast<uint8_t>(property))
+            {
+                errorMessage = "Property read response: unexpected register address.";
                 return false;
             }
         }
@@ -354,10 +351,10 @@ bool SerialManager::readProperty(uint8_t deviceAddress,
         return false;
     }
 
-    DataFrame tx = {};
-    tx.cmd = kCmdReadFromDevice;
-    tx.address = deviceAddress;
-    tx.data0 = static_cast<uint32_t>(property);
+    Common::SerialFrame tx = {};
+    uint8_t payload[4] = {};
+    std::memcpy(payload, &property, sizeof(property));
+    populateSerialFrame(tx, deviceAddress, Common::CMD_TYPE::READ_FROM_DEVICE, static_cast<uint8_t>(property), payload);
 
     Common::Crc16 crc;
     tx.checksum = crc.Calculate(0, reinterpret_cast<uint8_t*>(&tx), sizeof(tx) - sizeof(tx.checksum));
@@ -367,14 +364,14 @@ bool SerialManager::readProperty(uint8_t deviceAddress,
         return false;
     }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     const auto start = std::chrono::steady_clock::now();
-    uint8_t rxBuffer[sizeof(DataFrame) * 2] = {}; // Larger buffer to detect frame misalignment
+    uint8_t rxBuffer[sizeof(Common::SerialFrame) * 2] = {};
     std::size_t rxCount = 0;
 
     while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count()
-           < timeoutMs)
+           < RESPONSE_TIMEOUT_MS)
     {
         std::string readError;
         std::size_t bytesRead = 0;
@@ -392,28 +389,27 @@ bool SerialManager::readProperty(uint8_t deviceAddress,
             rxCount += bytesRead;
         }
 
-        // Try to find a valid frame
-        if (rxCount >= sizeof(DataFrame))
+        if (rxCount >= sizeof(Common::SerialFrame))
         {
-            for (std::size_t offset = 0; offset <= rxCount - sizeof(DataFrame); ++offset)
+            for (std::size_t offset = 0; offset <= rxCount - sizeof(Common::SerialFrame); ++offset)
             {
-                DataFrame rx = {};
+                Common::SerialFrame rx = {};
                 std::memcpy(&rx, rxBuffer + offset, sizeof(rx));
 
                 const uint16_t expectedCrc
                     = crc.Calculate(0, reinterpret_cast<uint8_t*>(&rx), sizeof(rx) - sizeof(rx.checksum));
 
-                if (rx.checksum == expectedCrc && rx.cmd == kCmdReadFromDevice && rx.address == deviceAddress)
+                if (rx.checksum == expectedCrc && rx.canFrame.command == Common::CMD_TYPE::READ_FROM_DEVICE
+                    && rx.canFrame.messageID == deviceAddress && rx.canFrame.registerAddress == static_cast<uint8_t>(property))
                 {
-                    value0Out = static_cast<int32_t>(rx.data0);
-                    value1Out = static_cast<int32_t>(rx.data1);
-                    value2Out = static_cast<int32_t>(rx.data2);
-                    value3Out = static_cast<int32_t>(rx.data3);
+                    std::memcpy(&value0Out, rx.canFrame.data, sizeof(value0Out));
+                    value1Out = 0;
+                    value2Out = 0;
+                    value3Out = 0;
                     return true;
                 }
             }
 
-            // If no valid frame found in buffer, keep reading but limit buffer size
             if (rxCount >= sizeof(rxBuffer) - 1)
             {
                 errorMessage = "Property read response: no valid frame found in buffer.";
@@ -439,63 +435,10 @@ bool SerialManager::writeProperty(uint8_t deviceAddress,
         return false;
     }
 
-    DataFrame tx = {};
-    tx.cmd = kCmdWriteToDevice;
-    tx.address = deviceAddress;
-    tx.data0 = static_cast<uint32_t>(property);
-    tx.data1 = static_cast<uint32_t>(value);
-
-    Common::Crc16 crc;
-    tx.checksum = crc.Calculate(0, reinterpret_cast<uint8_t*>(&tx), sizeof(tx) - sizeof(tx.checksum));
-
-    return serialPort_->write(reinterpret_cast<const uint8_t*>(&tx), sizeof(tx), errorMessage);
-}
-
-bool SerialManager::sendMotionCommand(uint8_t deviceAddress,
-                                      int32_t elecAngle,
-                                      int32_t torque,
-                                      int32_t speed,
-                                      int32_t position,
-                                      std::string& errorMessage)
-{
-    if (!isConnected())
-    {
-        errorMessage = "No serial connection.";
-        return false;
-    }
-
-    DataFrame tx = {};
-    tx.cmd = kCmdMotionCommand;
-    tx.address = deviceAddress;
-    tx.data0 = static_cast<uint32_t>(elecAngle);
-    tx.data1 = static_cast<uint32_t>(torque);
-    tx.data2 = static_cast<uint32_t>(speed);
-    tx.data3 = static_cast<uint32_t>(position);
-
-    Common::Crc16 crc;
-    tx.checksum = crc.Calculate(0, reinterpret_cast<uint8_t*>(&tx), sizeof(tx) - sizeof(tx.checksum));
-
-    return serialPort_->write(reinterpret_cast<const uint8_t*>(&tx), sizeof(tx), errorMessage);
-}
-
-bool SerialManager::sendRealtimeCommand(uint8_t deviceAddress,
-                                       RealtimeCommandType cmd,
-                                       int32_t value,
-                                       std::string& errorMessage)
-{
-    if (!isConnected())
-    {
-        errorMessage = "No serial connection.";
-        return false;
-    }
-
-    SerialFrame tx = {};
-    tx.canFrame.msgID = deviceAddress;
-    tx.canFrame.subAddress = static_cast<uint8_t>(cmd);
-    tx.canFrame.cmd = static_cast<uint8_t>(cmd);
-    tx.canFrame.flags = 0;
-    tx.canFrame.padding = 0;
-    std::memcpy(tx.canFrame.data, &value, sizeof(value));
+    Common::SerialFrame tx = {};
+    uint8_t payload[4] = {};
+    std::memcpy(payload, &value, sizeof(value));
+    populateSerialFrame(tx, deviceAddress, Common::CMD_TYPE::WRITE_TO_DEVICE, static_cast<uint8_t>(property), payload);
 
     Common::Crc16 crc;
     tx.checksum = crc.Calculate(0, reinterpret_cast<uint8_t*>(&tx), sizeof(tx) - sizeof(tx.checksum));
@@ -511,9 +454,8 @@ bool SerialManager::sendFlashWriteCommand(uint8_t deviceAddress, std::string& er
         return false;
     }
 
-    DataFrame tx = {};
-    tx.cmd = kCmdWriteToDeviceFlash;
-    tx.address = deviceAddress;
+    Common::SerialFrame tx = {};
+    populateSerialFrame(tx, deviceAddress, Common::CMD_TYPE::WRITE_TO_DEVICE_FLASH, 0, nullptr);
 
     Common::Crc16 crc;
     tx.checksum = crc.Calculate(0, reinterpret_cast<uint8_t*>(&tx), sizeof(tx) - sizeof(tx.checksum));
@@ -529,9 +471,8 @@ bool SerialManager::sendArmCommand(uint8_t deviceAddress, std::string& errorMess
         return false;
     }
 
-    DataFrame tx = {};
-    tx.cmd = kCmdDriverArm;
-    tx.address = deviceAddress;
+    Common::SerialFrame tx = {};
+    populateSerialFrame(tx, deviceAddress, Common::CMD_TYPE::DRIVER_ARM, 0, nullptr);
 
     Common::Crc16 crc;
     tx.checksum = crc.Calculate(0, reinterpret_cast<uint8_t*>(&tx), sizeof(tx) - sizeof(tx.checksum));
@@ -547,9 +488,8 @@ bool SerialManager::sendDisarmCommand(uint8_t deviceAddress, std::string& errorM
         return false;
     }
 
-    DataFrame tx = {};
-    tx.cmd = kCmdDriverDisarm;
-    tx.address = deviceAddress;
+    Common::SerialFrame tx = {};
+    populateSerialFrame(tx, deviceAddress, Common::CMD_TYPE::DRIVER_DISARM, 0, nullptr);
 
     Common::Crc16 crc;
     tx.checksum = crc.Calculate(0, reinterpret_cast<uint8_t*>(&tx), sizeof(tx) - sizeof(tx.checksum));

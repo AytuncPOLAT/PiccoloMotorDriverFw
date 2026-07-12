@@ -66,9 +66,40 @@ void Communication::OnRs485Receive(uint8_t *Buf, uint32_t Len)
 void Communication::OnCanReceive(uint8_t* Buf, uint32_t Len)
 {
 	interface = INTERFACE::CAN;
+	Common::RemoteCommand remoteCommand;
 
-	NotifySystemData((AppLayer::CMD_TYPE)Buf[0], &Buf[4]);
-	userInterface.CommActivity();
+	memcpy(&canFrame.registerAddress, Buf, Len);
+
+	remoteCommand.registerAddress = canFrame.registerAddress;
+	remoteCommand.command = (uint8_t)canFrame.command;
+	memcpy(remoteCommand.data, canFrame.data, 4);
+
+	if(canFrame.sourceID > 1) // Redirect to USBCDC
+	{
+		serialFrameTx.canFrame.command = Common::CMD_TYPE::PING_RESPONSE;
+		serialFrameTx.canFrame.messageID = canFrame.sourceID;
+		serialFrameTx.canFrame.registerAddress = 0;
+		serialFrameTx.canFrame.data[0] = 0;
+		serialFrameTx.canFrame.data[1] = 0;
+		serialFrameTx.canFrame.data[2] = 0;
+		serialFrameTx.canFrame.data[3] = 0;
+		TransmitDataFrame(serialFrameTx);
+	}
+
+	else
+	{
+		if(remoteCommand.command == (uint8_t)Common::CMD_TYPE::PING)
+		{
+			SendPingResponse();
+			userInterface.PingActivity();
+		}
+		else
+		{
+			BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+			xQueueSendToBackFromISR(Common::remoteCommandQueue, &remoteCommand, &xHigherPriorityTaskWoken);
+			userInterface.CommActivity();
+		}
+	}
 }
 
 void Communication::ProcessFrame(uint8_t *Buf, uint32_t Len)
@@ -83,138 +114,67 @@ void Communication::ProcessFrame(uint8_t *Buf, uint32_t Len)
 
 		if(serialFrameRx.checksum == localChecksum) // Valid frame 
 		{
-			if(serialFrameRx.canFrame.msgID == systemData.configurationData.deviceAddress) // Address match, consume the frame
+			if(serialFrameRx.canFrame.messageID == systemData.configurationData.deviceAddress) // Address match, consume the frame
 			{
 				Common::RemoteCommand remoteCommand;
 
-				remoteCommand.subAddress = serialFrameRx.canFrame.subAddress;
-				remoteCommand.flags = serialFrameRx.canFrame.flags;
-				memcpy(remoteCommand.data, serialFrameRx.canFrame.data, 4);
-				xQueueSendToBackFromISR(Common::remoteCommandQueue, &remoteCommand, &xHigherPriorityTaskWoken);
+				if(serialFrameRx.canFrame.command == Common::CMD_TYPE::PING)
+				{
+					SendPingResponse();
+					userInterface.PingActivity();
+				}
+				else
+				{
+					remoteCommand.registerAddress = serialFrameRx.canFrame.registerAddress;
+					remoteCommand.command = (uint8_t)serialFrameRx.canFrame.command;
+					memcpy(remoteCommand.data, serialFrameRx.canFrame.data, 4);
+					xQueueSendToBackFromISR(Common::remoteCommandQueue, &remoteCommand, &xHigherPriorityTaskWoken);
 
-				userInterface.PingActivity();
+					userInterface.CommActivity();
+				}
+			}
+			else // Redirect
+			{
+				canBus.AddMessageToTxQueue(serialFrameRx.canFrame.messageID, (uint8_t*)&serialFrameRx.canFrame.data);
 				userInterface.CommActivity();
 			}
-			else // Redirect to CAN
-			{
-				uint8_t canPayload[8];
-				memcpy(canPayload, (uint8_t*)&serialFrameRx.canFrame.data, 8);
-				canBus.AddMessageToTxQueue(serialFrameRx.canFrame.subAddress, canPayload);
-				userInterface.PingActivity();
-			}
 		}
-	}
-
-	
-/*
-	else if(Len == sizeof(dataFrame)) // Configuration packet
-	{
-		memcpy((void*)&dataFrame, (void*)Buf, sizeof(dataFrame));
-		auto localChecksum = crc.Calculate(0, reinterpret_cast<uint8_t*>(&dataFrame), sizeof (dataFrame) - 2);
-		if(dataFrame.checksum == localChecksum)
-		{
-			if(dataFrame.address == systemData.configurationData.deviceAddress)
-			{
-				memcpy((void*)&rxData, (void*)&dataFrame, sizeof(dataFrame));
-				isDataReceived = true;
-
-				Filters(Len);
-			}
-		}
-	}
-
-	else if(Len == sizeof(canOverSerialData)) // Realtime packet
-	{
-		memcpy((void*)&canOverSerialData, (void*)Buf, sizeof(canOverSerialData));
-		auto localChecksum = crc.Calculate(0, reinterpret_cast<uint8_t*>(&canOverSerialData), sizeof (canOverSerialData) - 2);
-		if(canOverSerialData.checksum == localChecksum)
-		{
-			if(canOverSerialData.address == systemData.configurationData.deviceAddress) // Address match
-			{
-				NotifySystemData(canOverSerialData.cmd, &canOverSerialData.payload.payload[4]);
-				userInterface.CommActivity();
-			}
-			else // Redirect to CAN
-			{
-				uint8_t canPayload[8];
-				memcpy(canPayload, (uint8_t*)&canOverSerialData.payload, 8);
-				canBus.AddMessageToTxQueue(canOverSerialData.address, canPayload);
-				userInterface.PingActivity();
-			}
-		}
-	}*/
-}
-
-void Communication::NotifySystemData(AppLayer::CMD_TYPE cmd, uint8_t* data)
-{
-	realtimeCommand.cmd = cmd;
-	memcpy(realtimeCommand.data, data, 4);
-	callbackHandle->OnCallback(111);
-}
-
-void Communication::Filters(uint16_t len)
-{
-	if(rxData.cmd == CMD_TYPE::PING)
-	{
-		userInterface.PingActivity();
-		SendPingResponse();
-	}
-	else
-	{
-		callbackHandle->OnCallback(222);
-		userInterface.CommActivity();
 	}
 }
 
-void Communication::TransmitDataFrame(CMD_TYPE cmd,
-                                uint32_t deviceAddress,
-                                uint32_t data0,
-                                uint32_t data1,
-                                uint32_t data2,
-                                uint32_t data3)
+void Communication::TransmitDataFrame(Common::SerialFrame txFrame)
 {
-	txData.cmd = cmd;
-	txData.address = deviceAddress;
-    txData.data0 = data0;
-    txData.data1 = data1;
-    txData.data2 = data2;
-    txData.data3 = data3;
-
     Common::Crc16 crc;
-    txData.checksum = crc.Calculate(0, reinterpret_cast<uint8_t*>(&txData), sizeof (txData) - 2);
 
-	if(interface == INTERFACE::RS485)
-	{
-		rs485.Transmit((uint8_t*)&txData, sizeof(txData));
-	}
-	else if(interface == INTERFACE::USB_CDC)
-	{
-		usbCdc.Transmit((uint8_t*)&txData, sizeof(txData));
-	}
+    txFrame.checksum = crc.Calculate(0, reinterpret_cast<uint8_t*>(&txFrame), sizeof (txFrame) - 2);
+
+	usbCdc.Transmit((uint8_t*)&txFrame, sizeof(txFrame));
 }
 
 void Communication::SendPingResponse()
 {
-	TransmitDataFrame(CMD_TYPE::PING_RESPONSE,
-			systemData.configurationData.deviceAddress, 0, 0, 0, 0);
+	if(interface == INTERFACE::CAN)
+	{
+		Common::CANBusFrame canFrame;
+		canFrame.sourceID = systemData.configurationData.deviceAddress;
+		canFrame.command = Common::CMD_TYPE::PING_RESPONSE;
+		canFrame.registerAddress = 0;
+
+		canBus.AddMessageToTxQueue(canFrame.sourceID, (uint8_t*)&canFrame);
+		return;
+	}
+
+	serialFrameTx.canFrame.command = Common::CMD_TYPE::PING_RESPONSE;
+	serialFrameTx.canFrame.messageID = systemData.configurationData.deviceAddress;
+	serialFrameTx.canFrame.registerAddress = 0;
+	serialFrameTx.canFrame.data[0] = 0;
+	serialFrameTx.canFrame.data[1] = 0;
+	serialFrameTx.canFrame.data[2] = 0;
+	serialFrameTx.canFrame.data[3] = 0;
+	TransmitDataFrame(serialFrameTx);
 }
 
-void Communication::Print(uint8_t *data, uint32_t size)
+void Communication::Respond()
 {
-	usbCdc.Transmit(data, size);
-}
-
-void Communication::TransmitTxFrame()
-{
-	Common::Crc16 crc;
-	txData.checksum = crc.Calculate(0, reinterpret_cast<uint8_t*>(&txData), sizeof (txData) - 2);
-	
-	if(interface == INTERFACE::RS485)
-	{
-		rs485.Transmit((uint8_t*)&txData, sizeof(txData));
-	}
-	else if(interface == INTERFACE::USB_CDC)
-	{
-		usbCdc.Transmit((uint8_t*)&txData, sizeof(txData));
-	}
+	TransmitDataFrame(serialFrameTx);
 }

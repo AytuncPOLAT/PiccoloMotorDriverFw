@@ -115,8 +115,8 @@ void FdCanDriver::Init()
 
     HAL_FDCAN_ActivateNotification(&hfdcan, FDCAN_IT_RX_BUFFER_NEW_MESSAGE, FDCAN_IT_TX_COMPLETE);
 
-    HAL_NVIC_SetPriority(FDCAN1_IT0_IRQn, 0, 1);
-    HAL_NVIC_SetPriority(FDCAN1_IT1_IRQn, 0, 1);
+    HAL_NVIC_SetPriority(FDCAN1_IT0_IRQn, 5, 5);
+    HAL_NVIC_SetPriority(FDCAN1_IT1_IRQn, 5, 5);
     HAL_NVIC_SetPriority(FDCAN_CAL_IRQn, 0, 0);
     HAL_NVIC_EnableIRQ(FDCAN1_IT0_IRQn);
     HAL_NVIC_EnableIRQ(FDCAN1_IT1_IRQn);

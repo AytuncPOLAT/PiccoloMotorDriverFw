@@ -28,11 +28,46 @@ namespace Common
 	constexpr float DC_BUS_SENSE_HIGH_SIDE = 47000U;
 	constexpr float DC_BUS_SENSE_RATIO = DC_BUS_SENSE_LOW_SIDE / (DC_BUS_SENSE_LOW_SIDE + DC_BUS_SENSE_HIGH_SIDE);
 
+	enum class CMD_TYPE : uint8_t
+	{
+	    PING = 0,
+	    PING_RESPONSE,
+	    READ_FROM_DEVICE,
+	    WRITE_TO_DEVICE,
+	    WRITE_TO_DEVICE_FLASH,
+		READ_REALTIME,
+		DRIVER_ARM,
+		DRIVER_DISARM,
+		POSITION_HOME,
+	    CURR_1,
+	    CURR_2,
+		MOTION_POS_COMMAND,
+		MOTION_SPEED_COMMAND,
+		MOTION_TORQUE_COMMAND
+	};
+
 	struct RemoteCommand
 	{
-		uint8_t subAddress;
+		uint8_t registerAddress;
+		uint8_t command;
 		uint8_t flags;
 		uint8_t data[4];
+	};
+
+	struct __attribute__((packed)) CANBusFrame
+	{
+		uint8_t messageID;
+		uint8_t sourceID;
+		uint8_t registerAddress;
+		CMD_TYPE command;
+		uint8_t flags;
+		uint8_t data[4];
+	};
+
+	struct __attribute__((packed)) SerialFrame
+	{
+		CANBusFrame canFrame;
+		uint16_t checksum;
 	};
 
 #ifndef PICCOLO_GUI

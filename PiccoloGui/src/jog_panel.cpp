@@ -19,27 +19,24 @@ void sendJogCommand(SerialManager& serial, uint8_t deviceAddress, int selectedMo
     else if (selectedMode == 2)
         currentPosition += delta;
     
-    // Send motion command - only the selected mode value is active, others are 0
+    // Send the jog target via the shared property write path.
     int32_t value = 0;
-    RealtimeCommandType cmd = RealtimeCommandType::MOTION_TORQUE_COMMAND;
+    Common::PROPERTY property = Common::PROPERTY::DEV_CONTROL_MODE;
 
     if (selectedMode == 0)
     {
         value = static_cast<int32_t>(currentTorque);
-        cmd = RealtimeCommandType::MOTION_TORQUE_COMMAND;
     }
     else if (selectedMode == 1)
     {
         value = static_cast<int32_t>(currentSpeed);
-        cmd = RealtimeCommandType::MOTION_SPEED_COMMAND;
     }
     else if (selectedMode == 2)
     {
         value = static_cast<int32_t>(currentPosition);
-        cmd = RealtimeCommandType::MOTION_POS_COMMAND;
     }
 
-    if (serial.sendRealtimeCommand(deviceAddress, cmd, value, error))
+    if (serial.writeProperty(deviceAddress, property, value, error))
     {
         std::string modeStr = (selectedMode == 0) ? "Torque" : (selectedMode == 1) ? "Speed" : "Position";
         float currentValue = (selectedMode == 0) ? currentTorque : (selectedMode == 1) ? currentSpeed : currentPosition;

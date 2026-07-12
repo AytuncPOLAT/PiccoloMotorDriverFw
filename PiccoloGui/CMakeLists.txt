@@ -76,6 +76,7 @@ target_include_directories(
   PiccoloGui
   PRIVATE
     src
+    ../AppLayer/Common
     ${imgui_SOURCE_DIR}
     ${imgui_SOURCE_DIR}/backends
     ${implot_SOURCE_DIR}

@@ -63,7 +63,6 @@ int main(void)
 	hardware.drv8316.Init();
 	hardware.fdcan.Init();
 
-
 	osKernelInitialize();
 
 	Common::remoteCommandQueue = xQueueCreate(5, sizeof(Common::RemoteCommand));
