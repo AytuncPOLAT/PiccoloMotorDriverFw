@@ -2,6 +2,9 @@
 #include <cstring>
 #include "SystemData.hpp"
 
+// Layer-2 (Comm bridge) communication logic.
+// Handles packets come from Layer-1 (Phy) and redirect to Layer-3 (App) when needed
+
 using namespace AppLayer;
 
 namespace
@@ -53,50 +56,42 @@ void Communication::RegisterCallback(Common::ICallback::GenericCallback* callbac
 
 void Communication::OnUsbCdcReceive(uint8_t *Buf, uint32_t Len)
 {
-	interface = INTERFACE::USB_CDC;
 	ProcessFrame(Buf, Len);
 }
 
 void Communication::OnRs485Receive(uint8_t *Buf, uint32_t Len)
 {
-	interface = INTERFACE::RS485;
 	ProcessFrame(Buf, Len);
 }
 
 void Communication::OnCanReceive(uint8_t* Buf, uint32_t Len)
 {
-	interface = INTERFACE::CAN;
-	Common::RemoteCommand remoteCommand;
+	Common::CommPacket packet;
 
-	memcpy(&canFrame.registerAddress, Buf, Len);
+	packet.interface = Common::INTERFACE::CAN;
 
-	remoteCommand.registerAddress = canFrame.registerAddress;
-	remoteCommand.command = (uint8_t)canFrame.command;
-	memcpy(remoteCommand.data, canFrame.data, 4);
+	memcpy(&packet.frame.canFrame.sourceID, Buf, Len);
 
-	if(canFrame.sourceID > 1) // Redirect to USBCDC
+	if(packet.frame.canFrame.flags == 0x02) // Redirected packet
 	{
-		serialFrameTx.canFrame.command = Common::CMD_TYPE::PING_RESPONSE;
-		serialFrameTx.canFrame.messageID = canFrame.sourceID;
-		serialFrameTx.canFrame.registerAddress = 0;
-		serialFrameTx.canFrame.data[0] = 0;
-		serialFrameTx.canFrame.data[1] = 0;
-		serialFrameTx.canFrame.data[2] = 0;
-		serialFrameTx.canFrame.data[3] = 0;
-		TransmitDataFrame(serialFrameTx);
+		packet.frame.canFrame.messageID = packet.frame.canFrame.sourceID;
+		packet.frame.canFrame.registerAddress = packet.frame.canFrame.registerAddress;
+		memcpy(&packet.frame.canFrame.data, &packet.frame.canFrame.data[0], 4);
+		packet.interface = Common::INTERFACE::USB_CDC; //Change the interface
+		TransmitDataFrame(packet);
 	}
 
-	else
+	else if(packet.frame.canFrame.flags == 0x01) // First CAN request e.g. read req
 	{
-		if(remoteCommand.command == (uint8_t)Common::CMD_TYPE::PING)
+		if(packet.frame.canFrame.command == Common::CMD_TYPE::PING)
 		{
-			SendPingResponse();
+			SendPingResponse(packet);
 			userInterface.PingActivity();
 		}
 		else
 		{
 			BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-			xQueueSendToBackFromISR(Common::remoteCommandQueue, &remoteCommand, &xHigherPriorityTaskWoken);
+			xQueueSendToBackFromISR(Common::packetQueue, &packet, &xHigherPriorityTaskWoken);
 			userInterface.CommActivity();
 		}
 	}
@@ -104,77 +99,116 @@ void Communication::OnCanReceive(uint8_t* Buf, uint32_t Len)
 
 void Communication::ProcessFrame(uint8_t *Buf, uint32_t Len)
 {
-	Common::Crc16 crc;
 	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
-	if(Len == sizeof(Common::SerialFrame)) // Serial packet
+	Common::CommPacket packet;
+	packet.interface = Common::INTERFACE::USB_CDC;
+
+
+	bool isPacketValid = LoadAndValidateSerialFrame(packet, Buf, Len);
+
+	if(isPacketValid)
 	{
-		memcpy((void*)&serialFrameRx, (void*)Buf, sizeof(Common::SerialFrame));
-		auto localChecksum = crc.Calculate(0, reinterpret_cast<uint8_t*>(&serialFrameRx), sizeof (serialFrameRx) - 2);
-
-		if(serialFrameRx.checksum == localChecksum) // Valid frame 
+		if(packet.frame.canFrame.messageID == systemData.configurationData.deviceAddress) // Address match, consume the frame
 		{
-			if(serialFrameRx.canFrame.messageID == systemData.configurationData.deviceAddress) // Address match, consume the frame
+			if(packet.frame.canFrame.command == Common::CMD_TYPE::PING)
 			{
-				Common::RemoteCommand remoteCommand;
-
-				if(serialFrameRx.canFrame.command == Common::CMD_TYPE::PING)
-				{
-					SendPingResponse();
-					userInterface.PingActivity();
-				}
-				else
-				{
-					remoteCommand.registerAddress = serialFrameRx.canFrame.registerAddress;
-					remoteCommand.command = (uint8_t)serialFrameRx.canFrame.command;
-					memcpy(remoteCommand.data, serialFrameRx.canFrame.data, 4);
-					xQueueSendToBackFromISR(Common::remoteCommandQueue, &remoteCommand, &xHigherPriorityTaskWoken);
-
-					userInterface.CommActivity();
-				}
+				SendPingResponse(packet);
+				userInterface.PingActivity();
 			}
-			else // Redirect
+			else
 			{
-				canBus.AddMessageToTxQueue(serialFrameRx.canFrame.messageID, (uint8_t*)&serialFrameRx.canFrame.data);
+				//remoteCommand.registerAddress = serialPacket.canFrame.registerAddress;
+				//remoteCommand.command = (uint8_t)serialPacket.canFrame.command;
+				//memcpy(remoteCommand.data, serialPacket.canFrame.data, 4);
+				xQueueSendToBackFromISR(Common::packetQueue, &packet, &xHigherPriorityTaskWoken);
+
 				userInterface.CommActivity();
 			}
 		}
+		else // Redirect to CANBus
+		{
+			packet.frame.canFrame.flags = 0x01; //First redirection
+
+			//Stamp own address. Target node is going to use it to find the redirecting node.
+			packet.frame.canFrame.sourceID = systemData.configurationData.deviceAddress;
+
+			canBus.AddMessageToTxQueue(packet.frame.canFrame.messageID, (uint8_t*)&packet.frame.canFrame.sourceID);
+
+			userInterface.CommActivity();
+		}
 	}
+
 }
 
-void Communication::TransmitDataFrame(Common::SerialFrame txFrame)
+bool Communication::LoadAndValidateSerialFrame(Common::CommPacket &packet, uint8_t *Buf, uint32_t Len)
+{
+	Common::Crc16 crc;
+
+	if(Len == sizeof(Common::SerialFrame)) // Serial packet
+	{
+		memcpy((void*)&packet.frame, (void*)Buf, sizeof(Common::SerialFrame));
+		auto localChecksum = crc.Calculate(0, reinterpret_cast<uint8_t*>(&packet.frame), sizeof (packet.frame) - 2);
+
+		if(packet.frame.checksum == localChecksum) // Valid frame
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void Communication::TransmitDataFrame(Common::CommPacket packet)
 {
     Common::Crc16 crc;
 
-    txFrame.checksum = crc.Calculate(0, reinterpret_cast<uint8_t*>(&txFrame), sizeof (txFrame) - 2);
+    if(packet.interface == Common::INTERFACE::USB_CDC)
+    {
+    	packet.frame.checksum = crc.Calculate(0, reinterpret_cast<uint8_t*>(&packet.frame), sizeof (packet.frame) - 2);
 
-	usbCdc.Transmit((uint8_t*)&txFrame, sizeof(txFrame));
+		usbCdc.Transmit((uint8_t*)&packet.frame, sizeof(packet.frame));
+    }
 }
 
-void Communication::SendPingResponse()
+void Communication::SendPingResponse(Common::CommPacket packet)
 {
-	if(interface == INTERFACE::CAN)
+	if(packet.interface == Common::INTERFACE::CAN)
 	{
-		Common::CANBusFrame canFrame;
-		canFrame.sourceID = systemData.configurationData.deviceAddress;
-		canFrame.command = Common::CMD_TYPE::PING_RESPONSE;
-		canFrame.registerAddress = 0;
+		packet.frame.canFrame.flags = 0x02; // Mark return path;
+		packet.frame.canFrame.command = Common::CMD_TYPE::PING_RESPONSE;
+		packet.frame.canFrame.registerAddress = 0;
+		packet.frame.canFrame.messageID = packet.frame.canFrame.sourceID; //Swap the source address with target address (msgID)
+		packet.frame.canFrame.sourceID = systemData.configurationData.deviceAddress;
 
-		canBus.AddMessageToTxQueue(canFrame.sourceID, (uint8_t*)&canFrame);
+		canBus.AddMessageToTxQueue(packet.frame.canFrame.messageID, (uint8_t*)&packet.frame.canFrame.sourceID);
 		return;
 	}
 
-	serialFrameTx.canFrame.command = Common::CMD_TYPE::PING_RESPONSE;
-	serialFrameTx.canFrame.messageID = systemData.configurationData.deviceAddress;
-	serialFrameTx.canFrame.registerAddress = 0;
-	serialFrameTx.canFrame.data[0] = 0;
-	serialFrameTx.canFrame.data[1] = 0;
-	serialFrameTx.canFrame.data[2] = 0;
-	serialFrameTx.canFrame.data[3] = 0;
-	TransmitDataFrame(serialFrameTx);
+	else if(packet.interface == Common::INTERFACE::USB_CDC)
+	{
+		packet.frame.canFrame.command = Common::CMD_TYPE::PING_RESPONSE;
+		packet.frame.canFrame.messageID = systemData.configurationData.deviceAddress;
+		packet.frame.canFrame.registerAddress = 0;
+		packet.frame.canFrame.data[0] = 0;
+		packet.frame.canFrame.data[1] = 0;
+		packet.frame.canFrame.data[2] = 0;
+		packet.frame.canFrame.data[3] = 0;
+		TransmitDataFrame(packet);
+	}
 }
 
-void Communication::Respond()
+void Communication::Respond(Common::CommPacket packet)
 {
-	TransmitDataFrame(serialFrameTx);
+	if(packet.interface == Common::INTERFACE::CAN)
+	{
+		packet.frame.canFrame.flags = 0x02; // Mark return path;
+		packet.frame.canFrame.command = Common::CMD_TYPE::READ_FROM_DEVICE;
+		packet.frame.canFrame.messageID = packet.frame.canFrame.sourceID; //Swap the source address with target address (msgID)
+		packet.frame.canFrame.sourceID = systemData.configurationData.deviceAddress;
+		canBus.AddMessageToTxQueue(packet.frame.canFrame.messageID, (uint8_t*)&packet.frame.canFrame.sourceID);
+	}
+
+	else
+		TransmitDataFrame(packet);
 }

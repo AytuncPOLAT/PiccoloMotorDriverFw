@@ -47,6 +47,8 @@ public:
                       std::string& errorMessage,
                       int timeoutMs = 100);
     bool writeProperty(uint8_t deviceAddress, Common::PROPERTY property, int32_t value, std::string& errorMessage);
+    bool writeProperty(Common::SerialFrame packet,
+                                  std::string& errorMessage);
     bool sendFlashWriteCommand(uint8_t deviceAddress, std::string& errorMessage);
     bool sendArmCommand(uint8_t deviceAddress, std::string& errorMessage);
     bool sendDisarmCommand(uint8_t deviceAddress, std::string& errorMessage);

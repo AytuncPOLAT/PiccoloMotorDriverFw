@@ -446,6 +446,21 @@ bool SerialManager::writeProperty(uint8_t deviceAddress,
     return serialPort_->write(reinterpret_cast<const uint8_t*>(&tx), sizeof(tx), errorMessage);
 }
 
+bool SerialManager::writeProperty(Common::SerialFrame packet,
+                                  std::string& errorMessage)
+{
+    if (!isConnected())
+    {
+        errorMessage = "No serial connection.";
+        return false;
+    }
+
+    Common::Crc16 crc;
+    packet.checksum = crc.Calculate(0, reinterpret_cast<uint8_t*>(&packet), sizeof(packet) - sizeof(packet.checksum));
+
+    return serialPort_->write(reinterpret_cast<const uint8_t*>(&packet), sizeof(packet), errorMessage);
+}
+
 bool SerialManager::sendFlashWriteCommand(uint8_t deviceAddress, std::string& errorMessage)
 {
     if (!isConnected())

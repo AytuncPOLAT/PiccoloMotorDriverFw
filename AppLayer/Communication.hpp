@@ -11,14 +11,6 @@
 
 namespace AppLayer
 {
-	enum class INTERFACE : uint8_t
-	{
-		NONE = 0,
-		USB_CDC,
-		RS485
-		, CAN
-	};
-
 	struct __attribute__((packed)) Payload
 	{
 		uint8_t payload[8];
@@ -51,23 +43,13 @@ namespace AppLayer
 
         static void TaskThread(void *argument);
 
-	    void TransmitDataFrame(Common::SerialFrame txFrame);
+	    void TransmitDataFrame(Common::CommPacket packet);
 
 	    void Init();
-		void Respond();
-		void SendPingResponse();
+		void Respond(Common::CommPacket packet);
+		void SendPingResponse(Common::CommPacket packet);
 
 		void RegisterCallback(GenericCallback* callBack) override;
-		
-		QueueHandle_t remoteCommand = NULL;
-
-
-		Common::SerialFrame serialFrameRx;
-		Common::SerialFrame serialFrameTx;	
-
-		Common::CANBusFrame canFrame;
-
-		RealTimeCommand realtimeCommand;
 
 	private:
 		Common::IUart &usbCdc;
@@ -85,7 +67,6 @@ namespace AppLayer
 
 
 		bool isDataReceived;
-		INTERFACE interface = INTERFACE::NONE;
 
 		Common::SystemData& systemData;
 		Common::ICallback::GenericCallback* callbackHandle;
@@ -97,6 +78,7 @@ namespace AppLayer
 		Common::UartReceiveAdapter<Communication> rs485Callback;
 
 		void ProcessFrame(uint8_t *Buf, uint32_t Len);
+		bool LoadAndValidateSerialFrame(Common::CommPacket &packet, uint8_t *Buf, uint32_t Len);
 	};
 }
 #endif // COMMUNICATION_HPP

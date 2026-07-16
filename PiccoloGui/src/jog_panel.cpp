@@ -21,22 +21,31 @@ void sendJogCommand(SerialManager& serial, uint8_t deviceAddress, int selectedMo
     
     // Send the jog target via the shared property write path.
     int32_t value = 0;
-    Common::PROPERTY property = Common::PROPERTY::DEV_CONTROL_MODE;
+    //Common::CMD_TYPE property = Common::PROPERTY::DEV_CONTROL_MODE;
+
+    Common::SerialFrame packet = {};
+    packet.canFrame.messageID = deviceAddress;
+    packet.canFrame.registerAddress = 0;
 
     if (selectedMode == 0)
     {
         value = static_cast<int32_t>(currentTorque);
+        packet.canFrame.command = Common::CMD_TYPE::MOTION_TORQUE_COMMAND;
     }
     else if (selectedMode == 1)
     {
         value = static_cast<int32_t>(currentSpeed);
+        packet.canFrame.command = Common::CMD_TYPE::MOTION_SPEED_COMMAND;
     }
     else if (selectedMode == 2)
     {
         value = static_cast<int32_t>(currentPosition);
+        packet.canFrame.command = Common::CMD_TYPE::MOTION_POS_COMMAND;
     }
 
-    if (serial.writeProperty(deviceAddress, property, value, error))
+    memcpy(packet.canFrame.data, &value, sizeof(value));    
+
+    if (serial.writeProperty(packet, error))
     {
         std::string modeStr = (selectedMode == 0) ? "Torque" : (selectedMode == 1) ? "Speed" : "Position";
         float currentValue = (selectedMode == 0) ? currentTorque : (selectedMode == 1) ? currentSpeed : currentPosition;

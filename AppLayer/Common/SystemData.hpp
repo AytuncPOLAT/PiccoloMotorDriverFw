@@ -28,6 +28,14 @@ namespace Common
 	constexpr float DC_BUS_SENSE_HIGH_SIDE = 47000U;
 	constexpr float DC_BUS_SENSE_RATIO = DC_BUS_SENSE_LOW_SIDE / (DC_BUS_SENSE_LOW_SIDE + DC_BUS_SENSE_HIGH_SIDE);
 
+	enum class INTERFACE : uint8_t
+	{
+		NONE = 0,
+		USB_CDC,
+		RS485,
+		CAN
+	};
+
 	enum class CMD_TYPE : uint8_t
 	{
 	    PING = 0,
@@ -46,14 +54,6 @@ namespace Common
 		MOTION_TORQUE_COMMAND
 	};
 
-	struct RemoteCommand
-	{
-		uint8_t registerAddress;
-		uint8_t command;
-		uint8_t flags;
-		uint8_t data[4];
-	};
-
 	struct __attribute__((packed)) CANBusFrame
 	{
 		uint8_t messageID;
@@ -70,8 +70,14 @@ namespace Common
 		uint16_t checksum;
 	};
 
+	struct __attribute__((packed)) CommPacket
+	{
+		INTERFACE interface;
+		SerialFrame frame;
+	};
+
 #ifndef PICCOLO_GUI
-	extern QueueHandle_t remoteCommandQueue;
+	extern QueueHandle_t packetQueue;
 #endif
 
 	enum class CONTROLLER_TYPE : uint8_t

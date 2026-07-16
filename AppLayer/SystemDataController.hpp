@@ -33,7 +33,7 @@ namespace AppLayer
 		bool CheckIfConfigBlank();
 		bool LoadSystemDataFromStorage();
 		void OnCallback(uint8_t arg) override;
-		void DataReadResponse(Common::PROPERTY property);
+		void DataReadResponse(Common::CommPacket packet);
 
 		void WriteToRam(Common::PROPERTY property, uint32_t newValue);
 

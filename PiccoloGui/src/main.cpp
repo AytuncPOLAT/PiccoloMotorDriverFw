@@ -252,22 +252,35 @@ int main()
                         static float prevAngle1 = 0.0f;
                         static float prevAngle2 = 0.0f;
 
+                        Common::SerialFrame packet = {};
+                       
+                        packet.canFrame.registerAddress = 0;
+                        packet.canFrame.command = Common::CMD_TYPE::MOTION_POS_COMMAND;
+
                         if (first || angle1 != prevAngle1)
                         {
+                            packet.canFrame.messageID = 2;
                             int32_t a1 = static_cast<int32_t>(-angle1 * cartesianJogIncrement * 2 * 180.0f / 3.14159265f);
                             std::string err;
                             //serial.sendRealtimeCommand(static_cast<uint8_t>(2), RealtimeCommandType::MOTION_POS_COMMAND, a1, err);
                             if (!err.empty()) addLog(logs, std::string("Cartesian link1 send failed: ") + err);
                             prevAngle1 = angle1;
+
+                            memcpy(packet.canFrame.data, &a1, sizeof(a1));
+                            serial.writeProperty(packet, err);
                         }
 
                         if (first || angle2 != prevAngle2)
                         {
+                            packet.canFrame.messageID = 3;
                             int32_t a2 = static_cast<int32_t>((angle2 + angle1) * cartesianJogIncrement * 2 * 180.0f / 3.14159265f);
                             std::string err;
                             //serial.sendRealtimeCommand(static_cast<uint8_t>(3), RealtimeCommandType::MOTION_POS_COMMAND, a2, err);
                             if (!err.empty()) addLog(logs, std::string("Cartesian link2 send failed: ") + err);
                             prevAngle2 = angle2;
+
+                            memcpy(packet.canFrame.data, &a2, sizeof(a2)); 
+                            serial.writeProperty(packet, err);
                         }
 
                         first = false;
