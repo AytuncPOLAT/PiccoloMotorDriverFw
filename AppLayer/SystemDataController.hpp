@@ -43,6 +43,10 @@ namespace AppLayer
 		bool newPacket = false;
 		bool newRealtimePacket = false;
 
+		// each entry points to the 4-byte field corresponding to that PROPERTY enum index
+		static constexpr uint8_t NUM_PROPERTIES = 28;
+		uint32_t* propertyMap[NUM_PROPERTIES];
+
 		Common::SystemData& systemData;
 		Communication& communication;
 		HardwareLayer::FlashStorage& storageController;

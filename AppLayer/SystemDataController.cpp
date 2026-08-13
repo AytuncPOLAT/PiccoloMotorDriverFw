@@ -37,21 +37,15 @@ void SystemDataController::TaskThread(void *argument)
 		{
 			objectHandle->newRealtimePacket = false;
 
-			// Realtime command handling
-			switch(objectHandle->communication.realtimeCommand.cmd)
-			{
-			case CMD_TYPE::MOTION_POS_COMMAND:
-				memcpy(&objectHandle->systemData.realtimeData.position, &objectHandle->communication.realtimeCommand.data[0], sizeof(uint32_t));
-				break;
-
-			case CMD_TYPE::MOTION_SPEED_COMMAND:
-				memcpy(&objectHandle->systemData.realtimeData.speed, &objectHandle->communication.realtimeCommand.data[0], sizeof(uint32_t));
-				break;
-
-			case CMD_TYPE::MOTION_TORQUE_COMMAND:
-				memcpy(&objectHandle->systemData.realtimeData.torque, &objectHandle->communication.realtimeCommand.data[0], sizeof(uint32_t));
-				break;
-			}
+			int* const rtTargets[] = {
+				&objectHandle->systemData.realtimeData.position,
+				&objectHandle->systemData.realtimeData.speed,
+				&objectHandle->systemData.realtimeData.torque,
+			};
+			const uint8_t rtIdx = static_cast<uint8_t>(objectHandle->communication.realtimeCommand.cmd)
+								- static_cast<uint8_t>(CMD_TYPE::MOTION_POS_COMMAND);
+			if (rtIdx < 3)
+				memcpy(rtTargets[rtIdx], &objectHandle->communication.realtimeCommand.data[0], sizeof(uint32_t));
 		}
 
 		if(objectHandle->newPacket == true)
@@ -143,6 +137,39 @@ SystemDataController::SystemDataController(Common::SystemData &systemDataRef,
 	}
 
 	LoadSystemDataFromStorage();
+
+	auto& cfg = systemData.configurationData;
+	auto& rt  = systemData.realtimeData;
+	using P   = Common::PROPERTY;
+
+	propertyMap[(uint8_t)P::FLASH_MAGIC]            = (uint32_t*)&cfg.flashMagicNumber;
+	propertyMap[(uint8_t)P::SERIAL_NO]              = (uint32_t*)&cfg.deviceSerialNo;
+	propertyMap[(uint8_t)P::FW_VERSION]             = (uint32_t*)&cfg.fwVersion;
+	propertyMap[(uint8_t)P::DEV_ADDRESS]            = (uint32_t*)&cfg.deviceAddress;
+	propertyMap[(uint8_t)P::DEV_CONTROL_MODE]       = (uint32_t*)&cfg.controlMode;
+	propertyMap[(uint8_t)P::PID_DQ_KP]              = (uint32_t*)&cfg.dqController.kp;
+	propertyMap[(uint8_t)P::PID_DQ_KI]              = (uint32_t*)&cfg.dqController.ki;
+	propertyMap[(uint8_t)P::PID_DQ_KD]              = (uint32_t*)&cfg.dqController.kd;
+	propertyMap[(uint8_t)P::PID_DQ_MAX_INTEGRAL_WU] = (uint32_t*)&cfg.dqController.maxIWindUp;
+	propertyMap[(uint8_t)P::PID_DQ_SAT]             = (uint32_t*)&cfg.dqController.saturation;
+	propertyMap[(uint8_t)P::PID_SPD_KP]             = (uint32_t*)&cfg.speedController.kp;
+	propertyMap[(uint8_t)P::PID_SPD_KI]             = (uint32_t*)&cfg.speedController.ki;
+	propertyMap[(uint8_t)P::PID_SPD_KD]             = (uint32_t*)&cfg.speedController.kd;
+	propertyMap[(uint8_t)P::PID_SPD_MAX_INTEGRAL_WU]= (uint32_t*)&cfg.speedController.maxIWindUp;
+	propertyMap[(uint8_t)P::PID_SPD_SAT]            = (uint32_t*)&cfg.speedController.saturation;
+	propertyMap[(uint8_t)P::PID_POS_KP]             = (uint32_t*)&cfg.positionController.kp;
+	propertyMap[(uint8_t)P::PID_POS_KI]             = (uint32_t*)&cfg.positionController.ki;
+	propertyMap[(uint8_t)P::PID_POS_KD]             = (uint32_t*)&cfg.positionController.kd;
+	propertyMap[(uint8_t)P::PID_POS_MAX_INTEGRAL_WU]= (uint32_t*)&cfg.positionController.maxIWindUp;
+	propertyMap[(uint8_t)P::PID_POS_SAT]            = (uint32_t*)&cfg.positionController.saturation;
+	propertyMap[(uint8_t)P::MOTOR_ENCODER_OFFSET]   = (uint32_t*)&cfg.motor.motorEncoderOffset;
+	propertyMap[(uint8_t)P::MOTOR_POLES]            = (uint32_t*)&cfg.motor.motorPoles;
+	propertyMap[(uint8_t)P::DC_BUS_VOLTAGE]         = (uint32_t*)&rt.dcBusVoltage;
+	propertyMap[(uint8_t)P::MULTI_TURN_ENCODER]     = (uint32_t*)&rt.multiTurnEncoder;
+	propertyMap[(uint8_t)P::MOTION_TELEMETRY]       = nullptr;
+	propertyMap[(uint8_t)P::CURRENT_AMPLIFIER_GAIN] = (uint32_t*)&cfg.motor.currentAmplifierGain;
+	propertyMap[(uint8_t)P::POSITION_HOME_MIN]      = (uint32_t*)&cfg.motor.positionHomeMin;
+	propertyMap[(uint8_t)P::POSITION_HOME_MAX]      = (uint32_t*)&cfg.motor.positionHomeMax;
 }
 
 void SystemDataController::Init()
@@ -174,129 +201,19 @@ bool SystemDataController::LoadSystemDataFromStorage()
 
 void SystemDataController::DataReadResponse(Common::PROPERTY property)
 {
-	communication.txData.cmd = CMD_TYPE::READ_FROM_DEVICE;
+	communication.txData.cmd     = CMD_TYPE::READ_FROM_DEVICE;
 	communication.txData.address = systemData.configurationData.deviceAddress;
 
-	switch(property)
+	if (property == Common::PROPERTY::MOTION_TELEMETRY)
 	{
-	case Common::PROPERTY::FLASH_MAGIC:
-		memcpy(&communication.txData.data0, &systemData.configurationData.flashMagicNumber, sizeof(uint32_t));
-		break;
-
-	case Common::PROPERTY::SERIAL_NO:
-		memcpy(&communication.txData.data0, &systemData.configurationData.deviceSerialNo, sizeof(uint32_t));
-		break;
-
-	case Common::PROPERTY::FW_VERSION:
-		memcpy(&communication.txData.data0, &systemData.configurationData.fwVersion, sizeof(uint32_t));
-		break;
-
-	case Common::PROPERTY::DEV_ADDRESS:
-		memcpy(&communication.txData.data0, &systemData.configurationData.deviceAddress, sizeof(uint32_t));
-		break;
-
-	case Common::PROPERTY::DEV_CONTROL_MODE:
-		memcpy(&communication.txData.data0, &systemData.configurationData.controlMode, sizeof(uint32_t));
-		break;
-
-	//DQ Controller
-	case Common::PROPERTY::PID_DQ_KP:
-		memcpy(&communication.txData.data0, &systemData.configurationData.dqController.kp, sizeof(uint32_t));
-		break;
-
-	case Common::PROPERTY::PID_DQ_KI:
-		memcpy(&communication.txData.data0, &systemData.configurationData.dqController.ki, sizeof(uint32_t));
-		break;
-
-	case Common::PROPERTY::PID_DQ_KD:
-		memcpy(&communication.txData.data0, &systemData.configurationData.dqController.kd, sizeof(uint32_t));
-		break;
-
-	case Common::PROPERTY::PID_DQ_MAX_INTEGRAL_WU:
-		memcpy(&communication.txData.data0, &systemData.configurationData.dqController.maxIWindUp, sizeof(uint32_t));
-		break;
-
-	case Common::PROPERTY::PID_DQ_SAT:
-		memcpy(&communication.txData.data0, &systemData.configurationData.dqController.saturation, sizeof(uint32_t));
-		break;
-
-	//Speed Controller
-	case Common::PROPERTY::PID_SPD_KP:
-		memcpy(&communication.txData.data0, &systemData.configurationData.speedController.kp, sizeof(uint32_t));
-		break;
-
-	case Common::PROPERTY::PID_SPD_KI:
-		memcpy(&communication.txData.data0, &systemData.configurationData.speedController.ki, sizeof(uint32_t));
-		break;
-
-	case Common::PROPERTY::PID_SPD_KD:
-		memcpy(&communication.txData.data0, &systemData.configurationData.speedController.kd, sizeof(uint32_t));
-		break;
-
-	case Common::PROPERTY::PID_SPD_MAX_INTEGRAL_WU:
-		memcpy(&communication.txData.data0, &systemData.configurationData.speedController.maxIWindUp, sizeof(uint32_t));
-		break;
-
-	case Common::PROPERTY::PID_SPD_SAT:
-		memcpy(&communication.txData.data0, &systemData.configurationData.speedController.saturation, sizeof(uint32_t));
-		break;
-
-	//Position Controller
-	case Common::PROPERTY::PID_POS_KP:
-		memcpy(&communication.txData.data0, &systemData.configurationData.positionController.kp, sizeof(uint32_t));
-		break;
-
-	case Common::PROPERTY::PID_POS_KI:
-		memcpy(&communication.txData.data0, &systemData.configurationData.positionController.ki, sizeof(uint32_t));
-		break;
-
-	case Common::PROPERTY::PID_POS_KD:
-		memcpy(&communication.txData.data0, &systemData.configurationData.positionController.kd, sizeof(uint32_t));
-		break;
-
-	case Common::PROPERTY::PID_POS_MAX_INTEGRAL_WU:
-		memcpy(&communication.txData.data0, &systemData.configurationData.positionController.maxIWindUp, sizeof(uint32_t));
-		break;
-
-	case Common::PROPERTY::PID_POS_SAT:
-		memcpy(&communication.txData.data0, &systemData.configurationData.positionController.saturation, sizeof(uint32_t));
-		break;
-
-	// Motor Parameters
-	case Common::PROPERTY::MOTOR_ENCODER_OFFSET:
-		memcpy(&communication.txData.data0, &systemData.configurationData.motor.motorEncoderOffset, sizeof(uint32_t));
-		break;
-
-	case Common::PROPERTY::MOTOR_POLES:
-		memcpy(&communication.txData.data0, &systemData.configurationData.motor.motorPoles, sizeof(uint32_t));
-		break;
-
-	case Common::PROPERTY::DC_BUS_VOLTAGE:
-		memcpy(&communication.txData.data0, &systemData.realtimeData.dcBusVoltage, sizeof(uint32_t));
-		break;
-	
-	case Common::PROPERTY::MULTI_TURN_ENCODER:	
 		memcpy(&communication.txData.data0, &systemData.realtimeData.multiTurnEncoder, sizeof(int32_t));
-		break;
-
-	case Common::PROPERTY::MOTION_TELEMETRY:
-		memcpy(&communication.txData.data0, &systemData.realtimeData.multiTurnEncoder, sizeof(int32_t));
-		memcpy(&communication.txData.data1, &systemData.realtimeData.speedGet, sizeof(int32_t));
-		memcpy(&communication.txData.data2, &systemData.realtimeData.torqueGet, sizeof(int32_t));
-		memcpy(&communication.txData.data3, &systemData.realtimeData.motorCurrent, sizeof(int32_t));
-		break;
-
-	case Common::PROPERTY::CURRENT_AMPLIFIER_GAIN:
-		memcpy(&communication.txData.data0, &systemData.configurationData.motor.currentAmplifierGain, sizeof(uint32_t));
-		break;
-
-	case Common::PROPERTY::POSITION_HOME_MIN:
-		memcpy(&communication.txData.data0, &systemData.configurationData.motor.positionHomeMin, sizeof(uint32_t));
-		break;
-
-	case Common::PROPERTY::POSITION_HOME_MAX:
-		memcpy(&communication.txData.data0, &systemData.configurationData.motor.positionHomeMax, sizeof(uint32_t));
-		break;
+		memcpy(&communication.txData.data1, &systemData.realtimeData.speedGet,         sizeof(int32_t));
+		memcpy(&communication.txData.data2, &systemData.realtimeData.torqueGet,        sizeof(int32_t));
+		memcpy(&communication.txData.data3, &systemData.realtimeData.motorCurrent,     sizeof(int32_t));
+	}
+	else
+	{
+		memcpy(&communication.txData.data0, propertyMap[static_cast<uint8_t>(property)], sizeof(uint32_t));
 	}
 
 	communication.TransmitTxFrame();
@@ -304,118 +221,12 @@ void SystemDataController::DataReadResponse(Common::PROPERTY property)
 
 void SystemDataController::WriteToRam(Common::PROPERTY property, uint32_t newValue)
 {
-	switch(property)
-	{
-	case Common::PROPERTY::FLASH_MAGIC:
-		//systemData.configurationData.flashMagicNumber;
-		break;
+	// FLASH_MAGIC and DC_BUS_VOLTAGE are read-only over the bus; MOTION_TELEMETRY has no single write target
+	if (property == Common::PROPERTY::FLASH_MAGIC    ||
+	    property == Common::PROPERTY::DC_BUS_VOLTAGE ||
+	    property == Common::PROPERTY::MOTION_TELEMETRY)
+		return;
 
-	case Common::PROPERTY::SERIAL_NO:
-		memcpy(&systemData.configurationData.deviceSerialNo, &newValue, sizeof(uint32_t));
-		break;
-
-	case Common::PROPERTY::FW_VERSION:
-		memcpy(&systemData.configurationData.fwVersion, &newValue, sizeof(uint32_t));
-		break;
-
-	case Common::PROPERTY::DEV_ADDRESS:
-		memcpy(&systemData.configurationData.deviceAddress, &newValue, sizeof(uint32_t));
-		break;
-
-	case Common::PROPERTY::DEV_CONTROL_MODE:
-		memcpy(&systemData.configurationData.controlMode, &newValue, sizeof(uint32_t));
-		break;
-
-	case Common::PROPERTY::DC_BUS_VOLTAGE:
-		// dcBusVoltage is updated by Telemetry and is read-only over the bus
-		break;
-
-	//DQ Controller
-	case Common::PROPERTY::PID_DQ_KP:
-		memcpy(&systemData.configurationData.dqController.kp, &newValue, sizeof(uint32_t));
-		break;
-
-	case Common::PROPERTY::PID_DQ_KI:
-		memcpy(&systemData.configurationData.dqController.ki, &newValue, sizeof(uint32_t));
-		break;
-
-	case Common::PROPERTY::PID_DQ_KD:
-		memcpy(&systemData.configurationData.dqController.kd, &newValue, sizeof(uint32_t));
-		break;
-
-	case Common::PROPERTY::PID_DQ_MAX_INTEGRAL_WU:
-		memcpy(&systemData.configurationData.dqController.maxIWindUp, &newValue, sizeof(uint32_t));
-		break;
-
-	case Common::PROPERTY::PID_DQ_SAT:
-		memcpy(&systemData.configurationData.dqController.saturation, &newValue, sizeof(uint32_t));
-		break;
-
-	//Speed Controller
-	case Common::PROPERTY::PID_SPD_KP:
-		memcpy(&systemData.configurationData.speedController.kp, &newValue, sizeof(uint32_t));
-		break;
-
-	case Common::PROPERTY::PID_SPD_KI:
-		memcpy(&systemData.configurationData.speedController.ki, &newValue, sizeof(uint32_t));
-		break;
-
-	case Common::PROPERTY::PID_SPD_KD:
-		memcpy(&systemData.configurationData.speedController.kd, &newValue, sizeof(uint32_t));
-		break;
-
-	case Common::PROPERTY::PID_SPD_MAX_INTEGRAL_WU:
-		memcpy(&systemData.configurationData.speedController.maxIWindUp, &newValue, sizeof(uint32_t));
-		break;
-
-	case Common::PROPERTY::PID_SPD_SAT:
-		memcpy(&systemData.configurationData.speedController.saturation, &newValue, sizeof(uint32_t));
-		break;
-
-	//Position Controller
-	case Common::PROPERTY::PID_POS_KP:
-		memcpy(&systemData.configurationData.positionController.kp, &newValue, sizeof(uint32_t));
-		break;
-
-	case Common::PROPERTY::PID_POS_KI:
-		memcpy(&systemData.configurationData.positionController.ki, &newValue, sizeof(uint32_t));
-		break;
-
-	case Common::PROPERTY::PID_POS_KD:
-		memcpy(&systemData.configurationData.positionController.kd, &newValue, sizeof(uint32_t));
-		break;
-
-	case Common::PROPERTY::PID_POS_MAX_INTEGRAL_WU:
-		memcpy(&systemData.configurationData.positionController.maxIWindUp, &newValue, sizeof(uint32_t));
-		break;
-
-	case Common::PROPERTY::PID_POS_SAT:
-		memcpy(&systemData.configurationData.positionController.saturation, &newValue, sizeof(uint32_t));
-		break;
-
-	case Common::PROPERTY::MOTOR_ENCODER_OFFSET:
-		memcpy(&systemData.configurationData.motor.motorEncoderOffset, &newValue, sizeof(uint32_t));
-		break;
-
-	case Common::PROPERTY::MOTOR_POLES:
-		memcpy(&systemData.configurationData.motor.motorPoles, &newValue, sizeof(uint32_t));
-		break;
-
-	case Common::PROPERTY::MULTI_TURN_ENCODER:
-		memcpy(&systemData.realtimeData.multiTurnEncoder, &newValue, sizeof(uint32_t));
-		break;
-
-	case Common::PROPERTY::CURRENT_AMPLIFIER_GAIN:
-		memcpy(&systemData.configurationData.motor.currentAmplifierGain, &newValue, sizeof(uint32_t));
-		break;
-
-	case Common::PROPERTY::POSITION_HOME_MIN:
-		memcpy(&systemData.configurationData.motor.positionHomeMin, &newValue, sizeof(uint32_t));
-		break;
-
-	case Common::PROPERTY::POSITION_HOME_MAX:
-		memcpy(&systemData.configurationData.motor.positionHomeMax, &newValue, sizeof(uint32_t));
-		break;
-	}
+	memcpy(propertyMap[static_cast<uint8_t>(property)], &newValue, sizeof(uint32_t));
 }
 
