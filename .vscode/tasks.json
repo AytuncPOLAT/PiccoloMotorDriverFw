@@ -29,6 +29,14 @@
 			"group": "build",
 			"problemMatcher": [],
 			"detail": "Build the firmware (flashing handled by GDB debug session)"
+		},
+		{
+			"type": "cmake",
+			"label": "CMake: clean",
+			"command": "clean",
+			"preset": "Release",
+			"problemMatcher": [],
+			"detail": "CMake template clean task"
 		}
 	]
 }

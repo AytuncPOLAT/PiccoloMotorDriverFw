@@ -58,7 +58,6 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     AppLayer/Telemetry.cpp
     AppLayer/UserInterface.cpp
     AppLayer/Common/Crc16.cpp
-    AppLayer/Common/LinkLayer.cpp
     AppLayer/Common/SystemData.cpp
     HardwareLayer/AdcDriver.cpp
     HardwareLayer/AS5047_Driver.cpp
