@@ -76,6 +76,7 @@ namespace AppLayer
 		void Init();
 		void SetMotorCurrent(int32_t current);
 		void OnIndexPulseCallBack();
+		void SetSystemError(class SystemError* errorPtr);
 
 	private:
 		void CheckConfigUpdates();
@@ -104,6 +105,7 @@ namespace AppLayer
 		Common::SystemData& systemData;
 		Common::MotorMode mode;
 		bool armed = true;
+		class SystemError* systemError = nullptr;
 		
 		ElectricalAngle electricalAngle;
 

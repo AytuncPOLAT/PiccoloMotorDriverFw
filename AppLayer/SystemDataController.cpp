@@ -44,6 +44,9 @@ void SystemDataController::TaskThread(void *argument)
 				memcpy(&data, packet.frame.canFrame.data, sizeof(uint32_t));
 
 				objectHandle->WriteToRam((Common::PROPERTY)packet.frame.canFrame.registerAddress, data);
+
+				objectHandle->systemData.realtimeData.isConfigChanged = true;
+
 				break;
 
 			case Common::CMD_TYPE::WRITE_TO_DEVICE_FLASH:

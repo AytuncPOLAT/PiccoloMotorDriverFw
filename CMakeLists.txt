@@ -51,10 +51,12 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     AppLayer/DebugPrint.cpp
     AppLayer/MotorControl.cpp
     AppLayer/PidControl.cpp
+    AppLayer/PowerSupply.cpp
     AppLayer/SignalProcessing.cpp
     AppLayer/SimpleLogger.cpp
     AppLayer/SinusPwm.cpp
     AppLayer/SystemDataController.cpp
+    AppLayer/SystemError.cpp
     AppLayer/Telemetry.cpp
     AppLayer/UserInterface.cpp
     AppLayer/Common/Crc16.cpp

@@ -91,33 +91,14 @@ void StartDefaultTask(void *argument)
 
 	app->userInterface.SetUiState(UiState::HeartBeat);
 
-	static uint16_t cnt = 0;
-
-
 	app->hwPtr.adc.Start();
+
+	app->powerSupply.Init();
 
 	for (;;)
 	{
-		osDelay(1000);
-		uint8_t canBuffer[8] = {0,1,2,3,4,5,6,7};
-		//app->hwPtr.fdcan.AddMessageToTxQueue(app->systemData.configurationData.deviceAddress, canBuffer);
-		/*
-		cnt++;
-		if(cnt > 4096) cnt = 0;
-
-		uint8_t txBuffer[100];
-		memset(txBuffer, 0, 100);
-
-		int size = sprintf((char*)txBuffer, "test = %d|a0 = %d|a1 = %d|a2 = %d|a3 = %d|a4 = %d|a5 = %d|a6 = %d|\r\n", cnt,
-				app->hwPtr.adc.ReadChannel(0),
-				app->hwPtr.adc.ReadChannel(1),
-				app->hwPtr.adc.ReadChannel(2),
-				app->hwPtr.adc.ReadChannel(3),
-				app->hwPtr.adc.ReadChannel(4),
-				app->hwPtr.adc.ReadChannel(5),
-				app->hwPtr.adc.ReadChannel(6));
-
-		app->hwPtr.rs485.Transmit(txBuffer, 100);*/
+		app->powerSupply.Update();
+		osDelay(10);
 	}
 }
 

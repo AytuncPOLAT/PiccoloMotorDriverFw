@@ -1,4 +1,5 @@
 #include "MotorControl.hpp"
+#include "SystemError.hpp"
 #include "MotorPwm.hpp"
 #include "SystemData.hpp"
 #include "PidControl.hpp"
@@ -90,8 +91,18 @@ void MotorControl::CalculateMotorParameters()
 
 Common::ErrorType MotorControl::SetArmed(bool isArmed)
 {
+	if (isArmed && systemError != nullptr && systemError->HasError())
+	{
+		armed = false;
+		return Common::ErrorType::UNDER_VOLTAGE;
+	}
 	armed = isArmed;
 	return Common::ErrorType::OK;
+}
+
+void MotorControl::SetSystemError(SystemError* errorPtr)
+{
+	systemError = errorPtr;
 }
 
 void MotorControl::SetDcMotor(int16_t duty)
@@ -132,9 +143,12 @@ void MotorControl::MotorControlTask(void *argument)
 			objectHandle->phaseCurrents.a = objectHandle->analog.GetPhaseCurrent(0);
 			objectHandle->phaseCurrents.b = objectHandle->analog.GetPhaseCurrent(1);
 			objectHandle->phaseCurrents.c = objectHandle->analog.GetPhaseCurrent(2);
+			objectHandle->busVoltage = objectHandle->analog.GetBusVoltage();
 
-			//G_ADC_ext0 = objectHandle->analog.GetExtAnalog(0);
-			//G_ADC_ext1 = objectHandle->analog.GetExtAnalog(1);
+			if (objectHandle->systemError != nullptr && objectHandle->systemError->HasError())
+			{
+				objectHandle->armed = false;
+			}
 
 
 

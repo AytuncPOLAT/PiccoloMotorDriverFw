@@ -14,9 +14,9 @@ void HeartBeatState::Play(uint8_t time)
 
 void ErrorState::Play(uint8_t time)
 {
-	if(time == 49)
+	if ((time % 50) < 25)
 		HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_SET);
-	if(time == 99)
+	else
 		HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_RESET);
 }
 
