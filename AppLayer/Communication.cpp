@@ -190,10 +190,7 @@ void Communication::SendPingResponse(Common::CommPacket packet)
 		packet.frame.canFrame.command = Common::CMD_TYPE::PING_RESPONSE;
 		packet.frame.canFrame.messageID = systemData.configurationData.deviceAddress;
 		packet.frame.canFrame.registerAddress = 0;
-		packet.frame.canFrame.data[0] = 0;
-		packet.frame.canFrame.data[1] = 0;
-		packet.frame.canFrame.data[2] = 0;
-		packet.frame.canFrame.data[3] = 0;
+		memset(packet.frame.canFrame.data, 0, sizeof(packet.frame.canFrame.data));
 		TransmitDataFrame(packet);
 	}
 }

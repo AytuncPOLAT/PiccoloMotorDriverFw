@@ -14,14 +14,42 @@
             "name": "Debug",
             "inherits": "default",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug"
+                "CMAKE_BUILD_TYPE": "Debug",
+                "PICCOLO_HARDWARE": "PICCOLO"
             }
         },
         {
             "name": "Release",
             "inherits": "default",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release"
+                "CMAKE_BUILD_TYPE": "Release",
+                "PICCOLO_HARDWARE": "PICCOLO"
+            }
+        },
+        {
+            "name": "Debug-Piccolo",
+            "inherits": "Debug",
+            "binaryDir": "${sourceDir}/build/${presetName}"
+        },
+        {
+            "name": "Release-Piccolo",
+            "inherits": "Release",
+            "binaryDir": "${sourceDir}/build/${presetName}"
+        },
+        {
+            "name": "Debug-Piccolo2",
+            "inherits": "Debug",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "cacheVariables": {
+                "PICCOLO_HARDWARE": "PICCOLO2"
+            }
+        },
+        {
+            "name": "Release-Piccolo2",
+            "inherits": "Release",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "cacheVariables": {
+                "PICCOLO_HARDWARE": "PICCOLO2"
             }
         }
     ],
@@ -33,6 +61,22 @@
         {
             "name": "Release",
             "configurePreset": "Release"
+        },
+        {
+            "name": "Debug-Piccolo",
+            "configurePreset": "Debug-Piccolo"
+        },
+        {
+            "name": "Release-Piccolo",
+            "configurePreset": "Release-Piccolo"
+        },
+        {
+            "name": "Debug-Piccolo2",
+            "configurePreset": "Debug-Piccolo2"
+        },
+        {
+            "name": "Release-Piccolo2",
+            "configurePreset": "Release-Piccolo2"
         }
     ]
 }

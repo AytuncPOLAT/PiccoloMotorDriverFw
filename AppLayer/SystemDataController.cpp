@@ -24,9 +24,11 @@ void SystemDataController::TaskThread(void *argument)
 	Common::CommPacket packet;
 
 	// TODO move into drv init
+#if !defined(PICCOLO_HARDWARE_PICCOLO2)
 	objectHandle->drv.SendCommand(0, 0);
 	objectHandle->drv.SetCurr2();
 	objectHandle->drv.SetOCP();
+#endif
 
 	while(1)
 	{
@@ -114,7 +116,7 @@ SystemDataController::SystemDataController(Common::SystemData &systemDataRef,
 										   Communication &communicationRef,
 		                                   HardwareLayer::FlashStorage &storageControllerRef,
 										   UserInterface& userInterfaceRef,
-										   Drv8316rSpiDriver& drvRef,
+										   GateDriver& drvRef,
 										   MotorControl& motorControlRef)
 : systemData(systemDataRef)
 , communication(communicationRef)
@@ -133,6 +135,7 @@ SystemDataController::SystemDataController(Common::SystemData &systemDataRef,
 	}
 
 	LoadSystemDataFromStorage();
+	motorControl.SetControllerParameters();
 }
 
 void SystemDataController::Init()
@@ -266,12 +269,41 @@ void SystemDataController::DataReadResponse(Common::CommPacket packet)
 		memcpy(&packet.frame.canFrame.data[0], &systemData.realtimeData.multiTurnEncoder, sizeof(int32_t));
 		break;
 
-	case Common::PROPERTY::MOTION_TELEMETRY:
-		//memcpy(&communication.serialFrameTx.canFrame.data[0], &systemData.realtimeData.multiTurnEncoder, sizeof(int32_t));
-		//memcpy(&communication.serialFrameTx.canFrame.data[1], &systemData.realtimeData.speedGet, sizeof(int32_t));
-		//memcpy(&communication.serialFrameTx.canFrame.data[2], &systemData.realtimeData.torqueGet, sizeof(int32_t));
-		//memcpy(&communication.serialFrameTx.canFrame.data[3], &systemData.realtimeData.motorCurrent, sizeof(int32_t));
+	case Common::PROPERTY::SPEED_GET:
+		memcpy(&packet.frame.canFrame.data[0], &systemData.realtimeData.speedGet, sizeof(int32_t));
 		break;
+
+	case Common::PROPERTY::TORQUE_GET:
+		memcpy(&packet.frame.canFrame.data[0], &systemData.realtimeData.torqueGet, sizeof(int32_t));
+		break;
+
+	case Common::PROPERTY::MOTOR_CURRENT:
+		memcpy(&packet.frame.canFrame.data[0], &systemData.realtimeData.motorCurrent, sizeof(int32_t));
+		break;
+
+	case Common::PROPERTY::MOTION_TELEMETRY:
+	{
+		Common::CommPacket p1 = packet;
+		p1.frame.canFrame.registerAddress = static_cast<uint8_t>(Common::PROPERTY::MULTI_TURN_ENCODER);
+		memcpy(&p1.frame.canFrame.data[0], &systemData.realtimeData.multiTurnEncoder, sizeof(int32_t));
+		communication.Respond(p1);
+
+		Common::CommPacket p2 = packet;
+		p2.frame.canFrame.registerAddress = static_cast<uint8_t>(Common::PROPERTY::SPEED_GET);
+		memcpy(&p2.frame.canFrame.data[0], &systemData.realtimeData.speedGet, sizeof(int32_t));
+		communication.Respond(p2);
+
+		Common::CommPacket p3 = packet;
+		p3.frame.canFrame.registerAddress = static_cast<uint8_t>(Common::PROPERTY::TORQUE_GET);
+		memcpy(&p3.frame.canFrame.data[0], &systemData.realtimeData.torqueGet, sizeof(int32_t));
+		communication.Respond(p3);
+
+		Common::CommPacket p4 = packet;
+		p4.frame.canFrame.registerAddress = static_cast<uint8_t>(Common::PROPERTY::MOTOR_CURRENT);
+		memcpy(&p4.frame.canFrame.data[0], &systemData.realtimeData.motorCurrent, sizeof(int32_t));
+		communication.Respond(p4);
+		return;
+	}
 
 	case Common::PROPERTY::CURRENT_AMPLIFIER_GAIN:
 		memcpy(&packet.frame.canFrame.data[0], &systemData.configurationData.motor.currentAmplifierGain, sizeof(uint32_t));

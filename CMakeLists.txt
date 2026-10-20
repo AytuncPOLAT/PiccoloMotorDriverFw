@@ -21,6 +21,12 @@ endif()
 # Set the project name
 set(CMAKE_PROJECT_NAME PiccoloMotorDriver)
 
+set(PICCOLO_HARDWARE "PICCOLO" CACHE STRING "Firmware hardware variant")
+set_property(CACHE PICCOLO_HARDWARE PROPERTY STRINGS PICCOLO PICCOLO2)
+if(NOT PICCOLO_HARDWARE STREQUAL "PICCOLO" AND NOT PICCOLO_HARDWARE STREQUAL "PICCOLO2")
+    message(FATAL_ERROR "PICCOLO_HARDWARE must be PICCOLO or PICCOLO2")
+endif()
+
 # Enable compile command to ease indexing with e.g. clangd
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 
@@ -63,7 +69,6 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     AppLayer/Common/SystemData.cpp
     HardwareLayer/AdcDriver.cpp
     HardwareLayer/AS5047_Driver.cpp
-    HardwareLayer/DRV8316R_SpiDriver.cpp
     HardwareLayer/FlashMemoryController.cpp
     HardwareLayer/Hardware.cpp
     HardwareLayer/MotorPwm.cpp
@@ -74,6 +79,13 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Core/Src/freertos.c
     Core/Src/stm32h7xx_hal_timebase_tim.c
 )
+
+if(PICCOLO_HARDWARE STREQUAL "PICCOLO2")
+    target_sources(${CMAKE_PROJECT_NAME} PRIVATE HardwareLayer/DRV8353S_SpiDriver.cpp)
+    target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE PICCOLO_HARDWARE_PICCOLO2)
+else()
+    target_sources(${CMAKE_PROJECT_NAME} PRIVATE HardwareLayer/DRV8316R_SpiDriver.cpp)
+endif()
 
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
@@ -87,6 +99,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
 # Add project symbols (macros)
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined symbols
+    HSE_VALUE=16000000UL
 )
 
 # Remove wrong libob.a library dependency when using cpp files

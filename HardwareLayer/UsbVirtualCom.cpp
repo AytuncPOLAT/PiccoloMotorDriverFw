@@ -20,9 +20,30 @@ void UsbVirtualCom::Init()
 	MX_USB_DEVICE_Init();
 }
 
+extern USBD_HandleTypeDef hUsbDeviceHS;
+
 uint8_t UsbVirtualCom::Transmit(uint8_t *data, uint32_t size)
 {
-	CDC_Transmit_HS(data, size);
+	USBD_CDC_HandleTypeDef *hcdc = (USBD_CDC_HandleTypeDef*)hUsbDeviceHS.pClassData;
+	static uint8_t s_txBuf[64];
+	if (size > sizeof(s_txBuf))
+	{
+		size = sizeof(s_txBuf);
+	}
+
+	uint32_t timeout = 100000;
+	while (hcdc != nullptr && hcdc->TxState != 0 && --timeout > 0)
+	{
+	}
+
+	memcpy(s_txBuf, data, size);
+	CDC_Transmit_HS(s_txBuf, size);
+
+	timeout = 100000;
+	while (hcdc != nullptr && hcdc->TxState != 0 && --timeout > 0)
+	{
+	}
+
 	return 0;
 }
 

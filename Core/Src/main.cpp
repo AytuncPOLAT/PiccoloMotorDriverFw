@@ -8,7 +8,6 @@
 #include "Hardware.hpp"
 #include "App.hpp"
 #include "DebugPrint.hpp"
-#include "DRV8316R_SpiDriver.hpp"
 #include "UserInterface.hpp"
 #include "SinusPwm.hpp"
 #include "PidControl.hpp"
@@ -50,9 +49,8 @@ int main(void)
 	HAL_Init();
 
 	MX_GPIO_Init();
-	MX_UART5_Init();
-
 	static Hardware hardware;
+	MX_UART5_Init();
 	static App app(hardware);
 
 	hardware.usbCom.Init();
@@ -60,7 +58,7 @@ int main(void)
 	hardware.externalQuadEncoder.Init();
 	hardware.as5047.Init();
 	hardware.rs485.Init();
-	hardware.drv8316.Init();
+	hardware.gateDriver.Init();
 	hardware.fdcan.Init();
 
 	osKernelInitialize();
@@ -166,7 +164,7 @@ static void MX_GPIO_Init(void)
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
 	HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_SET);
 
 	GPIO_InitStruct.Pin = GPIO_PIN_2;
 	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;

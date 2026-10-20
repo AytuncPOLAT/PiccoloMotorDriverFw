@@ -16,22 +16,18 @@
 
 namespace
 {
-static_assert(sizeof(Common::CANBusFrame) == 9, "CANBusFrame size must match firmware protocol");
-static_assert(sizeof(Common::SerialFrame) == 11, "SerialFrame size must match firmware protocol");
+static_assert(sizeof(Common::CANBusFrame) == 9, "CANBusFrame size must match firmware protocol (9 bytes)");
+static_assert(sizeof(Common::SerialFrame) == 11, "SerialFrame size must match firmware protocol (11 bytes)");
 
 std::string formatPingFrame(const Common::SerialFrame& frame, uint16_t expectedCrc)
 {
     char frameText[256] = {};
     std::snprintf(frameText,
                   sizeof(frameText),
-                  "Ping response frame: cmd=%u address=%u subAddress=%u data=%u,%u,%u,%u checksum=0x%04X expected=0x%04X",
+                  "Ping response frame: cmd=%u address=%u subAddress=%u checksum=0x%04X expected=0x%04X",
                   static_cast<unsigned int>(static_cast<uint8_t>(frame.canFrame.command)),
                   static_cast<unsigned int>(frame.canFrame.messageID),
                   static_cast<unsigned int>(frame.canFrame.registerAddress),
-                  static_cast<unsigned int>(frame.canFrame.data[0]),
-                  static_cast<unsigned int>(frame.canFrame.data[1]),
-                  static_cast<unsigned int>(frame.canFrame.data[2]),
-                  static_cast<unsigned int>(frame.canFrame.data[3]),
                   static_cast<unsigned int>(frame.checksum),
                   static_cast<unsigned int>(expectedCrc));
     return frameText;
@@ -42,7 +38,8 @@ void populateSerialFrame(Common::SerialFrame& frame,
                          Common::CMD_TYPE cmd,
                          uint8_t subAddress,
                          const uint8_t* payload,
-                         uint8_t flags = 0)
+                         uint8_t flags = 0,
+                         std::size_t payloadLen = 4)
 {
     frame.canFrame.messageID = deviceAddress;
     frame.canFrame.registerAddress = subAddress;
@@ -50,9 +47,9 @@ void populateSerialFrame(Common::SerialFrame& frame,
     frame.canFrame.flags = flags;
     frame.canFrame.sourceID = 1;
     std::memset(frame.canFrame.data, 0, sizeof(frame.canFrame.data));
-    if (payload != nullptr)
+    if (payload != nullptr && payloadLen > 0)
     {
-        std::memcpy(frame.canFrame.data, payload, std::min<std::size_t>(sizeof(frame.canFrame.data), 4u));
+        std::memcpy(frame.canFrame.data, payload, std::min<std::size_t>(sizeof(frame.canFrame.data), payloadLen));
     }
 }
 } // namespace
@@ -272,7 +269,8 @@ bool SerialManager::readProperty(uint8_t deviceAddress,
 
     std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
-    uint8_t rxBuffer[sizeof(Common::SerialFrame) * 2] = {};
+    uint8_t rxBuffer[128] = {};
+    std::size_t rxCount = 0;
 
     const auto start = std::chrono::steady_clock::now();
     while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count()
@@ -280,7 +278,7 @@ bool SerialManager::readProperty(uint8_t deviceAddress,
     {
         std::string readError;
         std::size_t bytesRead = 0;
-        if (!serialPort_->read(rxBuffer, sizeof(rxBuffer), bytesRead, readError))
+        if (!serialPort_->read(rxBuffer + rxCount, sizeof(rxBuffer) - rxCount, bytesRead, readError))
         {
             if (!readError.empty())
             {
@@ -289,42 +287,32 @@ bool SerialManager::readProperty(uint8_t deviceAddress,
             }
         }
 
-        if (bytesRead == sizeof(Common::SerialFrame))
+        if (bytesRead > 0)
         {
-            Common::SerialFrame rx = {};
-            std::memcpy(&rx, rxBuffer, sizeof(rx));
+            rxCount += bytesRead;
+        }
 
-            const uint16_t expectedCrc
-                = crc.Calculate(0, reinterpret_cast<uint8_t*>(&rx), sizeof(rx) - sizeof(rx.checksum));
-
-            if (rx.checksum == expectedCrc && rx.canFrame.command == Common::CMD_TYPE::READ_FROM_DEVICE
-                && rx.canFrame.messageID == deviceAddress && rx.canFrame.registerAddress == static_cast<uint8_t>(property))
+        if (rxCount >= sizeof(Common::SerialFrame))
+        {
+            for (std::size_t offset = 0; offset <= rxCount - sizeof(Common::SerialFrame); ++offset)
             {
-                std::memcpy(&valueOut, rx.canFrame.data, sizeof(valueOut));
-                return true;
+                Common::SerialFrame rx = {};
+                std::memcpy(&rx, rxBuffer + offset, sizeof(rx));
+
+                const uint16_t expectedCrc
+                    = crc.Calculate(0, reinterpret_cast<uint8_t*>(&rx), sizeof(rx) - sizeof(rx.checksum));
+
+                if (rx.checksum == expectedCrc && rx.canFrame.command == Common::CMD_TYPE::READ_FROM_DEVICE
+                    && rx.canFrame.messageID == deviceAddress && rx.canFrame.registerAddress == static_cast<uint8_t>(property))
+                {
+                    std::memcpy(&valueOut, rx.canFrame.data, sizeof(valueOut));
+                    return true;
+                }
             }
 
-            else if (rx.checksum != expectedCrc)
+            if (rxCount >= sizeof(rxBuffer) - 1)
             {
-                errorMessage = "Property read response: checksum mismatch.";
-                return false;
-            }
-
-            else if (rx.canFrame.command != Common::CMD_TYPE::READ_FROM_DEVICE)
-            {
-                errorMessage = "Property read response: unexpected command.";
-                return false;
-            }
-
-            else if (rx.canFrame.messageID != deviceAddress)
-            {
-                errorMessage = "Property read response: unexpected device address.";
-                return false;
-            }
-
-            else if (rx.canFrame.registerAddress != static_cast<uint8_t>(property))
-            {
-                errorMessage = "Property read response: unexpected register address.";
+                errorMessage = "Property read response: no valid frame found in buffer.";
                 return false;
             }
         }
@@ -364,11 +352,15 @@ bool SerialManager::readProperty(uint8_t deviceAddress,
         return false;
     }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
     const auto start = std::chrono::steady_clock::now();
-    uint8_t rxBuffer[sizeof(Common::SerialFrame) * 2] = {};
+    uint8_t rxBuffer[256] = {};
     std::size_t rxCount = 0;
+    bool gotPos = false;
+    bool gotSpeed = false;
+    bool gotTorque = false;
+    bool gotCurrent = false;
 
     while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count()
            < RESPONSE_TIMEOUT_MS)
@@ -400,24 +392,54 @@ bool SerialManager::readProperty(uint8_t deviceAddress,
                     = crc.Calculate(0, reinterpret_cast<uint8_t*>(&rx), sizeof(rx) - sizeof(rx.checksum));
 
                 if (rx.checksum == expectedCrc && rx.canFrame.command == Common::CMD_TYPE::READ_FROM_DEVICE
-                    && rx.canFrame.messageID == deviceAddress && rx.canFrame.registerAddress == static_cast<uint8_t>(property))
+                    && rx.canFrame.messageID == deviceAddress)
                 {
-                    std::memcpy(&value0Out, rx.canFrame.data, sizeof(value0Out));
-                    value1Out = 0;
-                    value2Out = 0;
-                    value3Out = 0;
-                    return true;
+                    if (rx.canFrame.registerAddress == static_cast<uint8_t>(Common::PROPERTY::MULTI_TURN_ENCODER))
+                    {
+                        std::memcpy(&value0Out, rx.canFrame.data, sizeof(value0Out));
+                        gotPos = true;
+                    }
+                    else if (rx.canFrame.registerAddress == static_cast<uint8_t>(Common::PROPERTY::SPEED_GET))
+                    {
+                        std::memcpy(&value1Out, rx.canFrame.data, sizeof(value1Out));
+                        gotSpeed = true;
+                    }
+                    else if (rx.canFrame.registerAddress == static_cast<uint8_t>(Common::PROPERTY::TORQUE_GET))
+                    {
+                        std::memcpy(&value2Out, rx.canFrame.data, sizeof(value2Out));
+                        gotTorque = true;
+                    }
+                    else if (rx.canFrame.registerAddress == static_cast<uint8_t>(Common::PROPERTY::MOTOR_CURRENT))
+                    {
+                        std::memcpy(&value3Out, rx.canFrame.data, sizeof(value3Out));
+                        gotCurrent = true;
+                    }
+                    else if (rx.canFrame.registerAddress == static_cast<uint8_t>(property))
+                    {
+                        std::memcpy(&value0Out, rx.canFrame.data, sizeof(value0Out));
+                        gotPos = true;
+                    }
                 }
+            }
+
+            if (gotPos && gotSpeed && gotTorque)
+            {
+                return true;
             }
 
             if (rxCount >= sizeof(rxBuffer) - 1)
             {
-                errorMessage = "Property read response: no valid frame found in buffer.";
+                errorMessage = "Property read response: buffer full without all telemetry frames.";
                 return false;
             }
         }
 
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+
+    if (gotPos)
+    {
+        return true;
     }
 
     errorMessage = "Property read timeout.";

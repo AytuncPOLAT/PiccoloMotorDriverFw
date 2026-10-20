@@ -132,6 +132,11 @@ void FdCanDriver::Init()
 
 void FdCanDriver::AddMessageToTxQueue(uint8_t msgId, uint8_t* payload)
 {
+    uint32_t timeout = 100000;
+    while (HAL_FDCAN_IsTxBufferMessagePending(&hfdcan, FDCAN_TX_BUFFER0) != 0 && --timeout > 0)
+    {
+    }
+
     TxHeader.Identifier = msgId;
     TxHeader.IdType = FDCAN_STANDARD_ID;
     TxHeader.TxFrameType = FDCAN_DATA_FRAME;

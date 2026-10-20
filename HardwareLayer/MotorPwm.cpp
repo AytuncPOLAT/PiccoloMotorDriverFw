@@ -11,7 +11,11 @@ MotorPwm::MotorPwm(TIM_HandleTypeDef& timerRef)
 	TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig = {0};
 
 	timerHandle.Instance = TIM1;
-	timerHandle.Init.Prescaler = 2;
+	/* TIM1 clock is 2 * PCLK2 = 275 MHz at 550 MHz SYSCLK.
+	 * Prescaler = 12 (divide by 13) with center-aligned Period 1000 (2000 counts)
+	 * gives 275 MHz / 13 / 2000 = 10.58 kHz PWM frequency (preserving original 10.67 kHz).
+	 */
+	timerHandle.Init.Prescaler = 12;
 	timerHandle.Init.CounterMode = TIM_COUNTERMODE_CENTERALIGNED2;
 	timerHandle.Init.Period = Common::MOTOR_PWM_MAX_CNT;
 	timerHandle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;

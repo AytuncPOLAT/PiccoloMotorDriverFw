@@ -80,6 +80,7 @@ void MotorControl::Init()
 */
 	rotorEncoder.SetRotorEncoderOffset(systemData.configurationData.motor.motorEncoderOffset);
 	CalculateMotorParameters();
+	SetControllerParameters();
 }
 
 void MotorControl::CalculateMotorParameters()
@@ -224,7 +225,7 @@ void MotorControl::MotorControlTask(void *argument)
 				{
 
 
-					objectHandle->parkValues = objectHandle->TorqueLoop(objectHandle->torqueCommand,
+					objectHandle->parkValues = objectHandle->TorqueLoop(-objectHandle->torqueCommand,
 							objectHandle->angleInRadians,
 							objectHandle->phaseCurrents);
 				}

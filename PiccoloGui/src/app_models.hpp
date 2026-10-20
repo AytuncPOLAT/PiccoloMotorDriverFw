@@ -103,6 +103,14 @@ inline const char* toPropertyLabel(Common::PROPERTY property)
             return "Position Home Min";
         case Property::POSITION_HOME_MAX:
             return "Position Home Max";
+        case Property::MOTION_TELEMETRY:
+            return "Motion Telemetry";
+        case Property::TORQUE_GET:
+            return "Torque";
+        case Property::SPEED_GET:
+            return "Speed";
+        case Property::MOTOR_CURRENT:
+            return "Motor Current";
         default:
             return "Unknown";
     }

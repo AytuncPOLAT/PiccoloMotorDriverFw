@@ -65,8 +65,15 @@ HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)
 	/* Get clock configuration */
 	HAL_RCC_GetClockConfig(&clkconfig, &pFLatency);
 
-	/* Compute TIM23 clock */
-	uwTimclock = HAL_RCC_GetPCLK2Freq();
+	/* Compute TIM23 clock (TIM23 is located on APB1) */
+	if (clkconfig.APB1CLKDivider == RCC_HCLK_DIV1)
+	{
+		uwTimclock = HAL_RCC_GetPCLK1Freq();
+	}
+	else
+	{
+		uwTimclock = 2 * HAL_RCC_GetPCLK1Freq();
+	}
 
 	/* Compute the prescaler value to have TIM23 counter clock equal to 1MHz */
 	uwPrescalerValue = (uint32_t) ((uwTimclock / 1000000U) - 1U);

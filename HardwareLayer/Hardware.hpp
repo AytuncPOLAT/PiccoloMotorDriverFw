@@ -5,7 +5,7 @@
 #include "MotorPwm.hpp"
 #include "AdcDriver.hpp"
 #include "FlashMemoryController.hpp"
-#include "DRV8316R_SpiDriver.hpp"
+#include "GateDriver.hpp"
 #include "QuadraticEncoderDriver.hpp"
 #include "AS5047_Driver.hpp"
 #include "RS485.hpp"
@@ -27,7 +27,7 @@ public:
 	HardwareLayer::AdcDriver adc;
 	HardwareLayer::FlashStorage flashStorage;
 	TIM_HandleTypeDef timer1Handle;
-	Drv8316rSpiDriver drv8316;
+	GateDriver gateDriver;
 	HardwareLayer::QuadraticEncoderDriver externalQuadEncoder;
 	HardwareLayer::AS5047 as5047;
 	HardwareLayer::Rs485 rs485;

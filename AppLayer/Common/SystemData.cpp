@@ -3,7 +3,9 @@
 
 
 Common::SystemData::SystemData()
-{}
+{
+	DefaultInitialization();
+}
 
 void Common::SystemData::DefaultInitialization()
 {

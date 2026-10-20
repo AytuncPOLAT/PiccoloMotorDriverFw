@@ -113,10 +113,30 @@ void drawTelemetryPanel(const TelemetryBuffer& telemetry, bool& armed, int statu
     {
         // Encoder returns 0-16383 for 0-360 degrees
         int encoderCounts = telemetry.multiTurnEncoder.back();
-        ImGui::Text("Encoder (multi-turn): %d", encoderCounts);
+        ImGui::Text("Encoder: %d", encoderCounts);
     }
     else
     {
-        ImGui::Text("Encoder (multi-turn): -- ");
+        ImGui::Text("Encoder: --");
+    }
+
+    ImGui::SameLine();
+    if (!telemetry.speed.empty())
+    {
+        ImGui::Text("Speed: %.1f", telemetry.speed.back());
+    }
+    else
+    {
+        ImGui::Text("Speed: --");
+    }
+
+    ImGui::SameLine();
+    if (!telemetry.torque.empty())
+    {
+        ImGui::Text("Torque: %.1f", telemetry.torque.back());
+    }
+    else
+    {
+        ImGui::Text("Torque: --");
     }
 }

@@ -6,6 +6,7 @@ set(MX_Defines_Syms
 	USE_PWR_LDO_SUPPLY 
 	USE_HAL_DRIVER 
 	STM32H723xx
+	HSE_VALUE=16000000UL
     $<$<CONFIG:Debug>:DEBUG>
 )
 

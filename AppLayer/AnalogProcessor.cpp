@@ -4,7 +4,7 @@ using namespace AppLayer;
 
 AnalogProcessor::AnalogProcessor(HardwareLayer::AdcDriver& adcRef,
 		Common::SystemData& systemDataRef,
-		Drv8316rSpiDriver& drvRef)
+		GateDriver& drvRef)
 : adc(adcRef)
 , systemData(systemDataRef)
 , drv(drvRef)

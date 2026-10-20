@@ -9,7 +9,7 @@ extern "C"
 
 #include "AdcDriver.hpp"
 #include "SystemData.hpp"
-#include "DRV8316R_SpiDriver.hpp"
+#include "GateDriver.hpp"
 #include "SignalProcessing.hpp"
 
 namespace AppLayer
@@ -19,7 +19,7 @@ namespace AppLayer
 	public:
 		AnalogProcessor(HardwareLayer::AdcDriver& adcRef,
 				Common::SystemData& systemDataRef,
-				Drv8316rSpiDriver& drvRef);
+				GateDriver& drvRef);
 
 		float GetPhaseCurrent(uint8_t channel);
 		float GetBusVoltage();
@@ -38,7 +38,7 @@ namespace AppLayer
 
 		HardwareLayer::AdcDriver& adc;
 		Common::SystemData& systemData;
-		Drv8316rSpiDriver& drv;
+		GateDriver& drv;
 
 		float currentGain;
 		float phaseOffsets[3] = {0.0, 0.0, 0.0};

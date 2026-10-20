@@ -70,6 +70,9 @@ namespace Common
 		uint16_t checksum;
 	};
 
+	static_assert(sizeof(CANBusFrame) == 9, "CANBusFrame must be exactly 9 bytes (1 byte ID + 8 bytes CAN payload)");
+	static_assert(sizeof(SerialFrame) == 11, "SerialFrame must be exactly 11 bytes (9 bytes CANBusFrame + 2 bytes CRC16)");
+
 	struct __attribute__((packed)) CommPacket
 	{
 		INTERFACE interface;
@@ -139,6 +142,9 @@ namespace Common
         CURRENT_AMPLIFIER_GAIN,
         POSITION_HOME_MIN,
         POSITION_HOME_MAX,
+        TORQUE_GET,
+        SPEED_GET,
+        MOTOR_CURRENT,
 	};
 
 	struct __attribute__((packed)) ConfigurationData

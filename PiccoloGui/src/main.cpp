@@ -84,7 +84,6 @@ int main()
         const double now = glfwGetTime();
 
         std::string serialError;
-        const auto incoming = serial.pollLines(serialError);
         for (const auto& debugLine : serial.takeDebugMessages())
         {
             addLog(logs, debugLine);
@@ -92,22 +91,6 @@ int main()
         if (!serialError.empty())
         {
             addLog(logs, "SERIAL ERROR: " + serialError);
-        }
-
-        for (const std::string& line : incoming)
-        {
-            addLog(logs, "RX < " + line);
-            double encoder = 0.0;
-            double speed = 0.0;
-            double torque = 0.0;
-            double busVoltage = 0.0;
-            double pwmPercent = 0.0;
-            double driverTemp = 0.0;
-            double motorTemp = 0.0;
-            if (parseTelemetryCsv(line, encoder, speed, torque, busVoltage, pwmPercent, driverTemp, motorTemp))
-            {
-                telemetry.push(now, speed, 0.0, 0.0, busVoltage, pwmPercent, driverTemp, motorTemp, encoder, torque);
-            }
         }
 
         // Slow path: 1Hz for DC bus voltage
@@ -124,7 +107,7 @@ int main()
                                        Common::PROPERTY::DC_BUS_VOLTAGE,
                                        busVoltageRaw, readError))
                 {
-                    lastBusVoltage = busVoltageRaw / 100.0;
+                    lastBusVoltage = busVoltageRaw / 1000.0;
 
                     // Push with updated busVoltage, last encoder
                     double lastSpeed = telemetry.speed.empty() ? 0.0 : telemetry.speed.back();
@@ -144,7 +127,7 @@ int main()
             }
         }
 
-        // Fast path: selected frequency for encoder
+        // Fast path: selected frequency for encoder, speed, torque
         if (autoRefresh && serial.isConnected())
         {
             static const int refreshRates[] = {1, 10, 50};
@@ -157,19 +140,18 @@ int main()
                 int32_t encoderRaw = 0;
                 int32_t speedRaw = 0;
                 int32_t torqueRaw = 0;
-                int32_t unusedData3 = 0;
+                int32_t motorCurrentRaw = 0;
                 std::string encoderError;
                 if (serial.readProperty(static_cast<uint8_t>(connectionState.deviceAddress),
                                        Common::PROPERTY::MOTION_TELEMETRY,
-                                       encoderRaw, speedRaw, torqueRaw, unusedData3, encoderError))
+                                       encoderRaw, speedRaw, torqueRaw, motorCurrentRaw, encoderError))
                 {
                     lastEncoder = static_cast<double>(encoderRaw);
                     lastSpeed = static_cast<double>(speedRaw);
                     lastTorque = static_cast<double>(torqueRaw);
 
-                    // Push with updated encoder, speed, torque, and last busVoltage
-                    double lastCurrent = telemetry.current.empty() ? 0.0 : telemetry.current.back();
-                    double lastPosition = telemetry.position.empty() ? 0.0 : telemetry.position.back();
+                    double lastCurrent = static_cast<double>(motorCurrentRaw) / 1000.0;
+                    double lastPosition = lastEncoder;
                     double lastPwm = telemetry.pwmPercent.empty() ? 0.0 : telemetry.pwmPercent.back();
                     double lastDrvTemp = telemetry.driverTemp.empty() ? 0.0 : telemetry.driverTemp.back();
                     double lastMotTemp = telemetry.motorTemp.empty() ? 0.0 : telemetry.motorTemp.back();

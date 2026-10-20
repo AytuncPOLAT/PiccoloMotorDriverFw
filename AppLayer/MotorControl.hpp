@@ -77,6 +77,7 @@ namespace AppLayer
 		void SetMotorCurrent(int32_t current);
 		void OnIndexPulseCallBack();
 		void SetSystemError(class SystemError* errorPtr);
+		void SetControllerParameters();
 
 	private:
 		void CheckConfigUpdates();
@@ -90,7 +91,6 @@ namespace AppLayer
 		DQZero TorqueLoop(float setTorque, float angleInRadians, ABC phaseCurrents);
 		float SpeedLoop(float setSpeed, float speedFb);
 		void DebugMonitor();
-		void SetControllerParameters();
 		
 		float RotorAngleInCountsToElectricalAngleInRadians(int rotorAngleInCounts, uint8_t motorPoles);
 		void CalculateMotorParameters();
