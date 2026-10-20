@@ -76,21 +76,26 @@ float AnalogProcessor::GetBusVoltage()
 float AnalogProcessor::GetPhaseCurrent(uint8_t channel)
 {
 	float currentInAmps = 0.0;
+	float milliampsPerCount = Common::MILLIAMPS_PER_COUNT;
+#if defined(GATE_DRIVER_DRV8353S)
+	// Preserve the existing 20 V/V calibration when the hardware gain changes.
+	milliampsPerCount *= 20.0f / drv.GetCsaGainVoltsPerVolt();
+#endif
 
 	switch (channel)
 	{
 	case 0:
-		currentInAmps = (adc.ReadChannel(Common::ADC_CHANNELS::PHASE_A_CURRENT) - phaseOffsets[channel]) * Common::MILLIAMPS_PER_COUNT;
+		currentInAmps = (adc.ReadChannel(Common::ADC_CHANNELS::PHASE_A_CURRENT) - phaseOffsets[channel]) * milliampsPerCount;
 		currentInAmps = phaseCurrentFilter[0].Update(currentInAmps);
 		break;
 
 	case 1:
-		currentInAmps = (adc.ReadChannel(Common::ADC_CHANNELS::PHASE_B_CURRENT) - phaseOffsets[channel]) * Common::MILLIAMPS_PER_COUNT;
+		currentInAmps = (adc.ReadChannel(Common::ADC_CHANNELS::PHASE_B_CURRENT) - phaseOffsets[channel]) * milliampsPerCount;
 		currentInAmps = phaseCurrentFilter[1].Update(currentInAmps);
 		break;
 
 	case 2:
-		currentInAmps = (adc.ReadChannel(Common::ADC_CHANNELS::PHASE_C_CURRENT) - phaseOffsets[channel]) * Common::MILLIAMPS_PER_COUNT;
+		currentInAmps = (adc.ReadChannel(Common::ADC_CHANNELS::PHASE_C_CURRENT) - phaseOffsets[channel]) * milliampsPerCount;
 		currentInAmps = phaseCurrentFilter[2].Update(currentInAmps);
 		break;
 
@@ -131,4 +136,3 @@ void AnalogProcessor::SetCurrentSenseGain()
 {
 
 }
-

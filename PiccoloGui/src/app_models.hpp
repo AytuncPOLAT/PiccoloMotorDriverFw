@@ -18,7 +18,8 @@ enum class ConfigCategory : uint8_t
 {
     DEVICE = 0,
     PID,
-    MOTOR_PARAMETERS
+    MOTOR_PARAMETERS,
+    GATE_DRIVER
 };
 
 inline const char* toCategoryLabel(ConfigCategory category)
@@ -31,6 +32,8 @@ inline const char* toCategoryLabel(ConfigCategory category)
             return "PID Controllers";
         case ConfigCategory::MOTOR_PARAMETERS:
             return "Motor Parameters";
+        case ConfigCategory::GATE_DRIVER:
+            return "Gate Driver (DRV8353S)";
         default:
             return "Unknown";
     }
@@ -98,11 +101,20 @@ inline const char* toPropertyLabel(Common::PROPERTY property)
         case Property::MULTI_TURN_ENCODER:
             return "Multi Turn Encoder";
         case Property::CURRENT_AMPLIFIER_GAIN:
-            return "Current Amplifier Gain";
+            return "CSA Gain (V/V)";
+        case Property::GATE_HS_SOURCE: return "High-side Source";
+        case Property::GATE_HS_SINK: return "High-side Sink";
+        case Property::GATE_LS_SOURCE: return "Low-side Source";
+        case Property::GATE_LS_SINK: return "Low-side Sink";
+        case Property::GATE_DRIVE_TIME: return "Gate Drive Time";
+        case Property::GATE_DRIVER_TYPE: return "Gate Driver IC";
+        case Property::GATE_CONFIG_STATUS: return "Gate Configuration Status";
         case Property::POSITION_HOME_MIN:
             return "Position Home Min";
         case Property::POSITION_HOME_MAX:
             return "Position Home Max";
+        case Property::INVERSE_TORQUE:
+            return "Inverse Torque";
         default:
             return "Unknown";
     }
@@ -123,6 +135,12 @@ inline int32_t toDefaultPropertyValue(Common::PROPERTY property)
             return -1000000;
         case Property::POSITION_HOME_MAX:
             return 1000000;
+        case Property::CURRENT_AMPLIFIER_GAIN: return 20;
+        case Property::GATE_HS_SOURCE:
+        case Property::GATE_HS_SINK:
+        case Property::GATE_LS_SOURCE:
+        case Property::GATE_LS_SINK: return 1;
+        case Property::GATE_DRIVE_TIME: return 3;
         default:
             return 0;
     }
@@ -132,6 +150,11 @@ inline ConfigCategory toPropertyCategory(Common::PROPERTY property)
 {
     using Property = Common::PROPERTY;
     const int propValue = static_cast<int>(property);
+    if (Common::IsGateDriverSetting(property) || property == Property::GATE_DRIVER_TYPE ||
+        property == Property::GATE_CONFIG_STATUS)
+    {
+        return ConfigCategory::GATE_DRIVER;
+    }
 
     // First 5 items (0-4): Device
     if (propValue <= 4)
@@ -163,6 +186,19 @@ inline std::vector<ConfigItem> buildConfigItemsFromPropertyEnum()
         const auto property = static_cast<Property>(value);
         items.push_back(
             {property, toPropertyCategory(property), toPropertyLabel(property), toDefaultPropertyValue(property)});
+    }
+
+    items.push_back({Property::INVERSE_TORQUE,
+                     toPropertyCategory(Property::INVERSE_TORQUE),
+                     toPropertyLabel(Property::INVERSE_TORQUE),
+                     toDefaultPropertyValue(Property::INVERSE_TORQUE)});
+
+    for (int value = static_cast<int>(Property::GATE_HS_SOURCE);
+         value <= static_cast<int>(Property::GATE_CONFIG_STATUS); ++value)
+    {
+        const auto property = static_cast<Property>(value);
+        items.push_back({property, toPropertyCategory(property), toPropertyLabel(property),
+                         toDefaultPropertyValue(property)});
     }
 
     return items;

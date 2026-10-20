@@ -42,6 +42,12 @@ void Common::SystemData::DefaultInitialization()
 	configurationData.motor.currentAmplifierGain = 0;
 	configurationData.motor.positionHomeMin = -1000000;
 	configurationData.motor.positionHomeMax = 1000000;
+	configurationData.inverseTorque = 0U;
+	configurationData.gateConfigMagic = Common::GATE_CONFIG_MAGIC;
+	configurationData.gateDriver = Common::DEFAULT_GATE_CONFIG;
+#if defined(GATE_DRIVER_DRV8353S)
+	configurationData.motor.currentAmplifierGain = 20;
+#endif
 	
 	configurationData.crc16 = 16U;
 }

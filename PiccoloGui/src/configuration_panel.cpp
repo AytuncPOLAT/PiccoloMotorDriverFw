@@ -15,6 +15,8 @@ namespace
         {
             case Common::PROPERTY::FLASH_MAGIC:
             case Common::PROPERTY::DC_BUS_VOLTAGE:
+            case Common::PROPERTY::GATE_DRIVER_TYPE:
+            case Common::PROPERTY::GATE_CONFIG_STATUS:
                 return false;
             default:
                 return true;
@@ -59,8 +61,40 @@ namespace
         }
 
         std::string error;
+        if (Common::IsGateDriverSetting(item.property))
+        {
+            int32_t driverType = 0;
+            if (!serial.readProperty(deviceAddress, Common::PROPERTY::GATE_DRIVER_TYPE, driverType, error))
+            {
+                addLog(logs, std::string("Gate driver detection failed: ") + error);
+                return;
+            }
+            if (driverType != 8353)
+            {
+                addLog(logs, "Gate configuration requires DRV8353S firmware with gate configuration support.");
+                return;
+            }
+        }
         if (serial.writeProperty(deviceAddress, item.property, item.value, error))
         {
+            if (Common::IsGateDriverSetting(item.property))
+            {
+                int32_t status = 0;
+                int32_t readValue = 0;
+                if (!serial.readProperty(deviceAddress, Common::PROPERTY::GATE_CONFIG_STATUS, status, error) ||
+                    !serial.readProperty(deviceAddress, item.property, readValue, error))
+                {
+                    addLog(logs, std::string("Gate configuration verification failed: ") + error);
+                    return;
+                }
+                if (status != static_cast<int32_t>(Common::GateConfigStatus::OK) || readValue != item.value)
+                {
+                    const char* reason = status == 1 ? "unsupported driver" :
+                        status == 2 ? "invalid value" : status == 3 ? "SPI/readback failure" : "value mismatch";
+                    addLog(logs, std::string("Write failed for ") + item.label + ": " + reason);
+                    return;
+                }
+            }
             addLog(logs, std::string("Wrote ") + item.label + " = " + std::to_string(item.value));
             return;
         }
@@ -186,6 +220,41 @@ namespace
 
         addLog(logs, std::string("Configuration loaded from ") + filename + ": " + std::to_string(loadedCount) + " values loaded.");
     }
+    void drawGateSetting(ConfigItem& item, const std::string& label)
+    {
+        const bool source = item.property == Common::PROPERTY::GATE_HS_SOURCE ||
+                            item.property == Common::PROPERTY::GATE_LS_SOURCE;
+        const bool sink = item.property == Common::PROPERTY::GATE_HS_SINK ||
+                          item.property == Common::PROPERTY::GATE_LS_SINK;
+        const int sourceMa[] = {50, 100, 150, 300, 350, 400, 450, 550, 600, 650, 700, 850, 900, 950, 1000};
+        const int sinkMa[] = {100, 200, 300, 600, 700, 800, 900, 1100, 1200, 1300, 1400, 1700, 1800, 1900, 2000};
+        const int gains[] = {5, 10, 20, 40};
+        const int timesNs[] = {500, 1000, 2000, 4000};
+        const int count = source || sink ? 15 : 4;
+        auto optionValue = [&](int index) {
+            return source || sink ? index + 1 :
+                item.property == Common::PROPERTY::CURRENT_AMPLIFIER_GAIN ? gains[index] : index;
+        };
+        auto optionLabel = [&](int index) {
+            const int value = source ? sourceMa[index] : sink ? sinkMa[index] :
+                item.property == Common::PROPERTY::CURRENT_AMPLIFIER_GAIN ? gains[index] : timesNs[index];
+            return std::to_string(value) + (source || sink ? " mA" :
+                item.property == Common::PROPERTY::CURRENT_AMPLIFIER_GAIN ? " V/V" : " ns");
+        };
+        std::string preview = "Unknown (" + std::to_string(item.value) + ")";
+        for (int index = 0; index < count; ++index)
+            if (item.value == optionValue(index))
+                preview = optionLabel(index);
+        if (ImGui::BeginCombo(label.c_str(), preview.c_str()))
+        {
+            for (int index = 0; index < count; ++index)
+            {
+                if (ImGui::Selectable(optionLabel(index).c_str(), item.value == optionValue(index)))
+                    item.value = optionValue(index);
+            }
+            ImGui::EndCombo();
+        }
+    }
 } // namespace
 
 void drawConfigurationPanel(std::vector<ConfigItem>& configItems,
@@ -204,7 +273,7 @@ void drawConfigurationPanel(std::vector<ConfigItem>& configItems,
     }
 
     // Render each category as a collapsing header
-    for (int catIdx = 0; catIdx < 3; ++catIdx)
+    for (int catIdx = 0; catIdx < 4; ++catIdx)
     {
         ConfigCategory cat = static_cast<ConfigCategory>(catIdx);
         auto it = itemsByCategory.find(cat);
@@ -213,6 +282,12 @@ void drawConfigurationPanel(std::vector<ConfigItem>& configItems,
 
         if (ImGui::CollapsingHeader(toCategoryLabel(cat), ImGuiTreeNodeFlags_DefaultOpen))
         {
+            if (cat == ConfigCategory::GATE_DRIVER)
+            {
+                ImGui::TextWrapped("DRV8353S only. W applies immediately; Store saves to flash. "
+                                   "Changing drive strength or gain while driving can disturb motor control.");
+                ImGui::TextWrapped("Status: 0=OK, 1=unsupported, 2=invalid value, 3=SPI/readback failure.");
+            }
             for (auto itemPtr : it->second)
             {
                 const int propertyId = static_cast<int>(itemPtr->property);
@@ -220,9 +295,29 @@ void drawConfigurationPanel(std::vector<ConfigItem>& configItems,
 
                 ImGui::PushID(propertyId);
                 ImGui::SetNextItemWidth(150.0f);
-                ImGui::InputScalar((std::string(itemPtr->label) + idSuffix).c_str(),
-                                   ImGuiDataType_S32,
-                                   &itemPtr->value);
+                if (Common::IsGateDriverSetting(itemPtr->property))
+                {
+                    drawGateSetting(*itemPtr, std::string(itemPtr->label) + idSuffix);
+                }
+                else if (itemPtr->property == Common::PROPERTY::GATE_DRIVER_TYPE ||
+                         itemPtr->property == Common::PROPERTY::GATE_CONFIG_STATUS)
+                {
+                    ImGui::Text("%s: %d", itemPtr->label, itemPtr->value);
+                }
+                else if (itemPtr->property == Common::PROPERTY::INVERSE_TORQUE)
+                {
+                    bool inverseTorque = itemPtr->value != 0;
+                    if (ImGui::Checkbox((std::string(itemPtr->label) + idSuffix).c_str(), &inverseTorque))
+                    {
+                        itemPtr->value = inverseTorque ? 1 : 0;
+                    }
+                }
+                else
+                {
+                    ImGui::InputScalar((std::string(itemPtr->label) + idSuffix).c_str(),
+                                       ImGuiDataType_S32,
+                                       &itemPtr->value);
+                }
 
                 ImGui::SameLine();
                 if (ImGui::Button("R##read", ImVec2(30, 0)))

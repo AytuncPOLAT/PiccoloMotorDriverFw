@@ -165,7 +165,56 @@ namespace Common
 		COGGING_CALIBRATION_ERROR,
 		COGGING_CALIBRATION_FAILED_SAMPLE,
 		COGGING_CALIBRATION_POSITION_ERROR,
+		INVERSE_TORQUE,
+		GATE_HS_SOURCE,
+		GATE_HS_SINK,
+		GATE_LS_SOURCE,
+		GATE_LS_SINK,
+		GATE_DRIVE_TIME,
+		GATE_DRIVER_TYPE,
+		GATE_CONFIG_STATUS,
 	};
+
+	constexpr uint32_t GATE_CONFIG_MAGIC = 0x47415431U;
+
+	enum class GateConfigStatus : int32_t
+	{
+		OK = 0,
+		UNSUPPORTED = 1,
+		INVALID_VALUE = 2,
+		SPI_ERROR = 3,
+	};
+
+	inline bool IsGateDriverSetting(PROPERTY property)
+	{
+		return property == PROPERTY::CURRENT_AMPLIFIER_GAIN ||
+			(property >= PROPERTY::GATE_HS_SOURCE && property <= PROPERTY::GATE_DRIVE_TIME);
+	}
+
+	inline bool IsValidCsaGain(uint32_t gain)
+	{
+		return gain == 5U || gain == 10U || gain == 20U || gain == 40U;
+	}
+
+	struct __attribute__((packed)) GateDriverConfiguration
+	{
+		uint32_t highSideSource;
+		uint32_t highSideSink;
+		uint32_t lowSideSource;
+		uint32_t lowSideSink;
+		uint32_t driveTime;
+	};
+
+	constexpr GateDriverConfiguration DEFAULT_GATE_CONFIG = {1U, 1U, 1U, 1U, 3U};
+
+	inline bool IsValidGateConfiguration(const GateDriverConfiguration& config)
+	{
+		return config.highSideSource >= 1U && config.highSideSource <= 15U &&
+			config.highSideSink >= 1U && config.highSideSink <= 15U &&
+			config.lowSideSource >= 1U && config.lowSideSource <= 15U &&
+			config.lowSideSink >= 1U && config.lowSideSink <= 15U &&
+			config.driveTime <= 3U;
+	}
 
 	struct __attribute__((packed)) ConfigurationData
 	{
@@ -218,7 +267,10 @@ namespace Common
 			int positionHomeMax;
 		} motor;
 
-		uint32_t padding32[16];
+		uint32_t inverseTorque;
+		uint32_t gateConfigMagic;
+		GateDriverConfiguration gateDriver;
+		uint32_t padding32[9];
 		uint16_t padding16[1];
 		uint16_t crc16;
 	};
@@ -237,6 +289,7 @@ namespace Common
 		int position = 0;
 		int dcBusVoltage = 0;
 		bool isConfigChanged = false;
+		GateConfigStatus gateConfigStatus = GateConfigStatus::OK;
 		int multiTurnEncoder = 0;
 		COGGING_CALIBRATION_STATUS coggingCalibrationStatus = COGGING_CALIBRATION_STATUS::IDLE;
 		int32_t coggingCalibrationProgress = 0;

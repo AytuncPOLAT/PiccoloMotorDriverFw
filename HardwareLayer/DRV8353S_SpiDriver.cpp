@@ -62,9 +62,12 @@ bool Drv8353sSpiDriver::Configure()
 
 bool Drv8353sSpiDriver::SetCsaGain(CsaGain gain)
 {
+	if (static_cast<std::uint16_t>(gain) > 3U ||
+		!ModifyRegister(Register::CSA_CONTROL, CSA_GAIN_MASK,
+						  static_cast<std::uint16_t>(gain) << CSA_GAIN_SHIFT))
+		return false;
 	config.csaGain = gain;
-	return ModifyRegister(Register::CSA_CONTROL, CSA_GAIN_MASK,
-						  static_cast<std::uint16_t>(gain) << CSA_GAIN_SHIFT);
+	return true;
 }
 
 float Drv8353sSpiDriver::GetCsaGainVoltsPerVolt() const
@@ -88,25 +91,27 @@ bool Drv8353sSpiDriver::SetGateDriveStrength(const GateDriveStrength& strength)
 
 bool Drv8353sSpiDriver::SetHighSideGateDrive(IdriveSource source, IdriveSink sink)
 {
-	config.gateDrive.highSideSource = source;
-	config.gateDrive.highSideSink = sink;
-
 	// LOCK bits (10..8) are preserved by the read-modify-write.
 	const std::uint16_t value = (static_cast<std::uint16_t>(source) << IDRIVEP_SHIFT) |
 								(static_cast<std::uint16_t>(sink) << IDRIVEN_SHIFT);
-	return ModifyRegister(Register::GATE_DRIVE_HS, IDRIVEP_MASK | IDRIVEN_MASK, value);
+	if (!ModifyRegister(Register::GATE_DRIVE_HS, IDRIVEP_MASK | IDRIVEN_MASK, value))
+		return false;
+	config.gateDrive.highSideSource = source;
+	config.gateDrive.highSideSink = sink;
+	return true;
 }
 
 bool Drv8353sSpiDriver::SetLowSideGateDrive(IdriveSource source, IdriveSink sink, Tdrive tdrive)
 {
-	config.gateDrive.lowSideSource = source;
-	config.gateDrive.lowSideSink = sink;
-	config.gateDrive.tdrive = tdrive;
-
 	const std::uint16_t value = (static_cast<std::uint16_t>(tdrive) << TDRIVE_SHIFT) |
 								(static_cast<std::uint16_t>(source) << IDRIVEP_SHIFT) |
 								(static_cast<std::uint16_t>(sink) << IDRIVEN_SHIFT);
-	return ModifyRegister(Register::GATE_DRIVE_LS, TDRIVE_MASK | IDRIVEP_MASK | IDRIVEN_MASK, value);
+	if (!ModifyRegister(Register::GATE_DRIVE_LS, TDRIVE_MASK | IDRIVEP_MASK | IDRIVEN_MASK, value))
+		return false;
+	config.gateDrive.lowSideSource = source;
+	config.gateDrive.lowSideSink = sink;
+	config.gateDrive.tdrive = tdrive;
+	return true;
 }
 
 bool Drv8353sSpiDriver::ClearFaults()

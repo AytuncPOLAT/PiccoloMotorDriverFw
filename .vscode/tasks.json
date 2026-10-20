@@ -50,6 +50,46 @@
 				"$gcc"
 			],
 			"group": "build"
+		},
+		{
+			"label": "PiccoloGui: configure Windows",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"-S",
+				"${workspaceFolder}\\PiccoloGui",
+				"-B",
+				"${workspaceFolder}\\PiccoloGui\\build_windows",
+				"-G",
+				"Visual Studio 16 2019",
+				"-A",
+				"x64",
+				"-DFETCHCONTENT_SOURCE_DIR_GLFW=${workspaceFolder}\\PiccoloGui\\build\\_deps\\glfw-src",
+				"-DFETCHCONTENT_SOURCE_DIR_IMGUI=${workspaceFolder}\\PiccoloGui\\build\\_deps\\imgui-src",
+				"-DFETCHCONTENT_SOURCE_DIR_IMPLOT=${workspaceFolder}\\PiccoloGui\\build\\_deps\\implot-src"
+			],
+			"problemMatcher": [
+				"$msCompile"
+			],
+			"group": "build"
+		},
+		{
+			"label": "PiccoloGui: build Windows Release",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"--build",
+				"${workspaceFolder}\\PiccoloGui\\build_windows",
+				"--config",
+				"Release",
+				"--target",
+				"PiccoloGui",
+				"--parallel"
+			],
+			"problemMatcher": [
+				"$msCompile"
+			],
+			"group": "build"
 		}
 	]
 }

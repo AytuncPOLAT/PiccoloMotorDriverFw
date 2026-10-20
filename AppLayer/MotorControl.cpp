@@ -64,10 +64,13 @@ MotorControl::MotorControl(HardwareLayer::MotorPwm& motorPwmRef,
 , positionCommandFilter(0.01f)
 , parkDFilter(0.01f)
 , parkQFilter(0.01f){
-	SetControllerParameters();
 }
 void MotorControl::Init()
 {
+	// App construction loads flash configuration after MotorControl construction.
+	SetControllerParameters();
+	CalculateMotorParameters();
+
 	BaseType_t result = xTaskCreate(this->MotorControlTask, "MotorControlTask", 128 * 4, (void*) this,
 			24, &taskHandle);
 	if (result == pdPASS)
@@ -78,8 +81,6 @@ void MotorControl::Init()
 	BaseType_t encoderTaskHandle = xTaskCreate(this->EncoderUpdater, "EncoderUpdater", 128 * 4, (void*) this,
 			24, NULL);
 */
-	rotorEncoder.SetRotorEncoderOffset(systemData.configurationData.motor.motorEncoderOffset);
-	CalculateMotorParameters();
 }
 
 void MotorControl::CalculateMotorParameters()
@@ -222,9 +223,13 @@ void MotorControl::MotorControlTask(void *argument)
 				if(objectHandle->systemData.configurationData.controlMode
 									>= (uint8_t) Common::CONTROLLER_TYPE::TORQUE)
 				{
+					auto torqueCommand = objectHandle->torqueCommand;
 
-
-					objectHandle->parkValues = objectHandle->TorqueLoop(objectHandle->torqueCommand,
+					if(objectHandle->systemData.configurationData.inverseTorque)
+					{
+						torqueCommand = -torqueCommand;
+					}
+					objectHandle->parkValues = objectHandle->TorqueLoop(torqueCommand,
 							objectHandle->angleInRadians,
 							objectHandle->phaseCurrents);
 				}

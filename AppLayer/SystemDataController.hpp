@@ -36,6 +36,8 @@ namespace AppLayer
 		void DataReadResponse(Common::CommPacket packet);
 
 		void WriteToRam(Common::PROPERTY property, uint32_t newValue);
+		void WriteGateDriverSetting(Common::PROPERTY property, uint32_t newValue);
+		bool ConfigureGateDriver();
 
 		BaseType_t taskHandle;
 		static void TaskThread(void *argument);
