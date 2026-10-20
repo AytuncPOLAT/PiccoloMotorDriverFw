@@ -3,7 +3,8 @@
 Hardware::Hardware()
 : usbCom()
 , motorPwm(timer1Handle)
-, drv8316()
+, spi2()
+, gateDriver(spi2)
 {
 	SystemClockConfig();
 	PeriphCommonClockConfig();

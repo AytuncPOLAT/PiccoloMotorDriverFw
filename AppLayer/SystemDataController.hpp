@@ -6,7 +6,7 @@
 #include "Communication.hpp"
 #include "FlashMemoryController.hpp"
 #include "UserInterface.hpp"
-#include "DRV8316R_SpiDriver.hpp"
+#include "GateDriver.hpp"
 #include "MotorControl.hpp"
 
 namespace AppLayer
@@ -25,7 +25,7 @@ namespace AppLayer
 							 Communication& communicationRef,
 							 HardwareLayer::FlashStorage& storageControllerRef,
 							 UserInterface& userInterfaceRef,
-							 Drv8316rSpiDriver& drvRef,
+							 HardwareLayer::GateDriver& drvRef,
 							 MotorControl& motorControlRef
 							 );
 		void Init();
@@ -47,7 +47,7 @@ namespace AppLayer
 		Communication& communication;
 		HardwareLayer::FlashStorage& storageController;
 		UserInterface& userInterface;
-		Drv8316rSpiDriver& drv;
+		HardwareLayer::GateDriver& drv;
 		MotorControl& motorControl;
 
 		State state = State::IDLE;

@@ -23,10 +23,7 @@ void SystemDataController::TaskThread(void *argument)
 
 	Common::CommPacket packet;
 
-	// TODO move into drv init
-	objectHandle->drv.SendCommand(0, 0);
-	objectHandle->drv.SetCurr2();
-	objectHandle->drv.SetOCP();
+	objectHandle->drv.Configure();
 
 	while(1)
 	{
@@ -114,7 +111,7 @@ SystemDataController::SystemDataController(Common::SystemData &systemDataRef,
 										   Communication &communicationRef,
 		                                   HardwareLayer::FlashStorage &storageControllerRef,
 										   UserInterface& userInterfaceRef,
-										   Drv8316rSpiDriver& drvRef,
+										   HardwareLayer::GateDriver& drvRef,
 										   MotorControl& motorControlRef)
 : systemData(systemDataRef)
 , communication(communicationRef)

@@ -2,6 +2,7 @@
 #define DRV8316R_SPI_DRIVER
 
 #include "cstdint"
+#include "SpiBus.hpp"
 
 extern "C"
 {
@@ -27,8 +28,11 @@ struct OutputDataFrame
 class Drv8316rSpiDriver
 {
 public:
-	Drv8316rSpiDriver();
+	explicit Drv8316rSpiDriver(HardwareLayer::SpiBus& spiBusRef);
 	void Init();
+
+	// Startup register configuration (unlock, CSA gain, OCP).
+	bool Configure();
 
 	std::uint8_t
 	SendCommand(std::uint8_t address, std::uint8_t data);
@@ -38,10 +42,10 @@ public:
 	void SetCurr1();
 	void SetCurr2();
 	void SetOCP();
-	void ClearFaults();
+	bool ClearFaults();
 
 private:
-	SPI_HandleTypeDef hspi2;
+	HardwareLayer::SpiBus& spiBus;
 
 	InputDataFrame inputDataFrame;
 	OutputDataFrame outputDataFrame;

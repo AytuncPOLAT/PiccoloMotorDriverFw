@@ -16,6 +16,8 @@ namespace Common
 	const uint16_t MOTOR_POLES = 7;
 	const uint16_t COUNT_PER_REV = 4095;
 	const uint16_t MOTOR_PWM_MAX_CNT = 1000;
+	constexpr uint16_t COGGING_MAP_SIZE = 2048U;
+	constexpr int32_t ENCODER_COUNTS_PER_REV = 16384;
 
 	constexpr uint8_t ADC_RESOLUTION_IN_BITS = 12U;
     constexpr int16_t ADC_MAX = 4096;
@@ -64,11 +66,13 @@ namespace Common
 		uint8_t data[4];
 	};
 
+	#pragma pack(push, 1)
 	struct __attribute__((packed)) SerialFrame
 	{
 		CANBusFrame canFrame;
 		uint16_t checksum;
 	};
+	#pragma pack(pop)
 
 	struct __attribute__((packed)) CommPacket
 	{
@@ -85,7 +89,23 @@ namespace Common
 		ELEC_ANGLE = 0,
 		TORQUE,
 		SPEED,
-		POSITION
+		POSITION,
+		COGGING_CALIBRATION = 6
+	};
+
+	enum class COGGING_CALIBRATION_STATUS : int32_t
+	{
+		IDLE = 0,
+		RUNNING = 1,
+		COMPLETE = 2,
+		FAILED = 3
+	};
+
+	enum class COGGING_CALIBRATION_ERROR : int32_t
+	{
+		NONE = 0,
+		TRAVEL_LIMIT = 1,
+		POSITION_TIMEOUT = 2
 	};
 
 	enum class ADC_CHANNELS : uint8_t
@@ -139,6 +159,12 @@ namespace Common
         CURRENT_AMPLIFIER_GAIN,
         POSITION_HOME_MIN,
         POSITION_HOME_MAX,
+		COGGING_CALIBRATION_STATUS,
+		COGGING_CALIBRATION_PROGRESS,
+		COGGING_MAP_SAMPLE,
+		COGGING_CALIBRATION_ERROR,
+		COGGING_CALIBRATION_FAILED_SAMPLE,
+		COGGING_CALIBRATION_POSITION_ERROR,
 	};
 
 	struct __attribute__((packed)) ConfigurationData
@@ -202,16 +228,22 @@ namespace Common
 
 	struct RealtimeData
 	{
-		int elecAngle;
-		int motorCurrent;
-		int torque;
-		int torqueGet;
-		int speed;
-		int speedGet;
-		int position;
-		int dcBusVoltage;
-		bool isConfigChanged;
-		int multiTurnEncoder;
+		int elecAngle = 0;
+		int motorCurrent = 0;
+		int torque = 0;
+		int torqueGet = 0;
+		int speed = 0;
+		int speedGet = 0;
+		int position = 0;
+		int dcBusVoltage = 0;
+		bool isConfigChanged = false;
+		int multiTurnEncoder = 0;
+		COGGING_CALIBRATION_STATUS coggingCalibrationStatus = COGGING_CALIBRATION_STATUS::IDLE;
+		int32_t coggingCalibrationProgress = 0;
+		COGGING_CALIBRATION_ERROR coggingCalibrationError = COGGING_CALIBRATION_ERROR::NONE;
+		int32_t coggingCalibrationFailedSample = 0;
+		int32_t coggingCalibrationPositionError = 0;
+		int32_t coggingMap[COGGING_MAP_SIZE] = {};
 	};
 
 	class SystemData

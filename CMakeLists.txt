@@ -64,6 +64,8 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     HardwareLayer/AdcDriver.cpp
     HardwareLayer/AS5047_Driver.cpp
     HardwareLayer/DRV8316R_SpiDriver.cpp
+    HardwareLayer/DRV8353S_SpiDriver.cpp
+    HardwareLayer/SpiBus.cpp
     HardwareLayer/FlashMemoryController.cpp
     HardwareLayer/Hardware.cpp
     HardwareLayer/MotorPwm.cpp
@@ -84,9 +86,18 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     Core/Src
 )
 
+# Gate driver IC fitted on the board (shares SPI2): DRV8316R or DRV8353S
+set(GATE_DRIVER "DRV8316R" CACHE STRING "Gate driver IC: DRV8316R or DRV8353S")
+set_property(CACHE GATE_DRIVER PROPERTY STRINGS DRV8316R DRV8353S)
+if(NOT GATE_DRIVER MATCHES "^(DRV8316R|DRV8353S)$")
+    message(FATAL_ERROR "Unsupported GATE_DRIVER '${GATE_DRIVER}'")
+endif()
+message("Gate driver: " ${GATE_DRIVER})
+
 # Add project symbols (macros)
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined symbols
+    GATE_DRIVER_${GATE_DRIVER}
 )
 
 # Remove wrong libob.a library dependency when using cpp files
