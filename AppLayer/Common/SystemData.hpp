@@ -173,6 +173,7 @@ namespace Common
 		GATE_DRIVE_TIME,
 		GATE_DRIVER_TYPE,
 		GATE_CONFIG_STATUS,
+		INVERSE_ENCODER,
 	};
 
 	constexpr uint32_t GATE_CONFIG_MAGIC = 0x47415431U;
@@ -188,7 +189,7 @@ namespace Common
 	inline bool IsGateDriverSetting(PROPERTY property)
 	{
 		return property == PROPERTY::CURRENT_AMPLIFIER_GAIN ||
-			(property >= PROPERTY::GATE_HS_SOURCE && property <= PROPERTY::GATE_DRIVE_TIME);
+				(property >= PROPERTY::GATE_HS_SOURCE && property <= PROPERTY::GATE_DRIVE_TIME);
 	}
 
 	inline bool IsValidCsaGain(uint32_t gain)
@@ -210,10 +211,10 @@ namespace Common
 	inline bool IsValidGateConfiguration(const GateDriverConfiguration& config)
 	{
 		return config.highSideSource >= 1U && config.highSideSource <= 15U &&
-			config.highSideSink >= 1U && config.highSideSink <= 15U &&
-			config.lowSideSource >= 1U && config.lowSideSource <= 15U &&
-			config.lowSideSink >= 1U && config.lowSideSink <= 15U &&
-			config.driveTime <= 3U;
+				config.highSideSink >= 1U && config.highSideSink <= 15U &&
+				config.lowSideSource >= 1U && config.lowSideSource <= 15U &&
+				config.lowSideSink >= 1U && config.lowSideSink <= 15U &&
+				config.driveTime <= 3U;
 	}
 
 	struct __attribute__((packed)) ConfigurationData
@@ -270,7 +271,8 @@ namespace Common
 		uint32_t inverseTorque;
 		uint32_t gateConfigMagic;
 		GateDriverConfiguration gateDriver;
-		uint32_t padding32[9];
+		uint32_t inverseEncoder;
+		uint32_t padding32[8];
 		uint16_t padding16[1];
 		uint16_t crc16;
 	};
@@ -289,8 +291,8 @@ namespace Common
 		int position = 0;
 		int dcBusVoltage = 0;
 		bool isConfigChanged = false;
-		GateConfigStatus gateConfigStatus = GateConfigStatus::OK;
 		int multiTurnEncoder = 0;
+		GateConfigStatus gateConfigStatus = GateConfigStatus::OK;
 		COGGING_CALIBRATION_STATUS coggingCalibrationStatus = COGGING_CALIBRATION_STATUS::IDLE;
 		int32_t coggingCalibrationProgress = 0;
 		COGGING_CALIBRATION_ERROR coggingCalibrationError = COGGING_CALIBRATION_ERROR::NONE;

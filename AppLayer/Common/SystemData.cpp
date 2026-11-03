@@ -43,6 +43,7 @@ void Common::SystemData::DefaultInitialization()
 	configurationData.motor.positionHomeMin = -1000000;
 	configurationData.motor.positionHomeMax = 1000000;
 	configurationData.inverseTorque = 0U;
+	configurationData.inverseEncoder = 0U;
 	configurationData.gateConfigMagic = Common::GATE_CONFIG_MAGIC;
 	configurationData.gateDriver = Common::DEFAULT_GATE_CONFIG;
 #if defined(GATE_DRIVER_DRV8353S)

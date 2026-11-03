@@ -199,7 +199,7 @@ void AS5047::OnTransferComplete()
 
 int AS5047::GetPosition_Async()
 {
-    return position;   // always returns last DMA-settled value
+	return directionInverted ? ((16384 - position) & 0x3FFF) : position;
 }
 
 uint16_t AS5047::SPI_Read(uint16_t address)
@@ -231,7 +231,7 @@ uint16_t AS5047::SPI_Read(uint16_t address)
 
 int AS5047::GetPosition()
 {
-	return position % 585;
+	return GetPosition_Async() % 585;
 }
 
 int AS5047::GetMultiTurnPosition()
@@ -246,12 +246,13 @@ int AS5047::GetMultiTurnPosition()
 	}
 
 	oldPosMultiTurn = position;
-	return multiTurnRev * 16384 + position;
+	const int multiTurnPosition = multiTurnRev * 16384 + position;
+	return directionInverted ? -multiTurnPosition : multiTurnPosition;
 }
 
 float AS5047::GetRotorAngleInRadians()
 {
-	int angle = (position >> 2) + offset;
+	int angle = (GetPosition_Async() >> 2) + offset;
 	angle = angle % 585;
 
 	float angleInRadians = ((float)angle / 585.0) * 2.0 * M_PI;
@@ -261,6 +262,11 @@ float AS5047::GetRotorAngleInRadians()
 void AS5047::SetRotorEncoderOffset(int16_t newOffset)
 {
 	offset = newOffset;
+}
+
+void AS5047::SetDirectionInverted(bool inverted)
+{
+	directionInverted = inverted;
 }
 
 void AS5047::Reset()
@@ -281,7 +287,7 @@ int AS5047::GetSpeed()
 	oldPosition = reducedPos;
 
 	//return (int)speedFilter.Update((float)speed);
-	return speed;
+	return directionInverted ? -static_cast<int>(speed) : speed;
 
 }
 

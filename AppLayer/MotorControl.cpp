@@ -383,6 +383,7 @@ float MotorControl::RotorAngleInCountsToElectricalAngleInRadians(int rotorAngleI
 
 void MotorControl::SetControllerParameters()
 {
+	rotorEncoder.SetDirectionInverted(systemData.configurationData.inverseEncoder != 0U);
 	rotorEncoder.SetRotorEncoderOffset(systemData.configurationData.motor.motorEncoderOffset);
 
 	dController.SetParameters(systemData.configurationData.dqController.kp / 1000.0,

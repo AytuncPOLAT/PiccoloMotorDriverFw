@@ -92,7 +92,8 @@ void drawCartesianPanel(std::function<void(float, float, float, float, float)> u
     drawList->AddCircle(origin, reach * scale, reachColor, 64, 1.0f);
 
     float cosAngle2 = (dist * dist - linkLength1 * linkLength1 - linkLength2 * linkLength2) / (2.0f * linkLength1 * linkLength2);
-    cosAngle2 = std::clamp(cosAngle2, -1.0f, 1.0f);
+    if (cosAngle2 < -1.0f) cosAngle2 = -1.0f;
+    if (cosAngle2 > 1.0f) cosAngle2 = 1.0f;
     float angle2 = std::acos(cosAngle2);
     if (!elbowPositive)
     {

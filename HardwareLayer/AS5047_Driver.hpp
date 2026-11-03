@@ -18,6 +18,7 @@ namespace HardwareLayer
 		int GetPosition() override;
 		float GetRotorAngleInRadians() override;
 		void SetRotorEncoderOffset(int16_t newOffset) override;
+		void SetDirectionInverted(bool inverted) override;
 		int GetSpeed() override;
 		int GetMultiTurnPosition() override;
 		void RegisterOnIndexPulseCallback(Callback* callback) override;
@@ -34,6 +35,7 @@ namespace HardwareLayer
 
 	private:
 		int16_t offset;
+		bool directionInverted = false;
 		int position;
 		int oldPosMultiTurn;
 		int multiTurnRev = 0;

@@ -304,12 +304,13 @@ void drawConfigurationPanel(std::vector<ConfigItem>& configItems,
                 {
                     ImGui::Text("%s: %d", itemPtr->label, itemPtr->value);
                 }
-                else if (itemPtr->property == Common::PROPERTY::INVERSE_TORQUE)
+                else if (itemPtr->property == Common::PROPERTY::INVERSE_TORQUE ||
+                         itemPtr->property == Common::PROPERTY::INVERSE_ENCODER)
                 {
-                    bool inverseTorque = itemPtr->value != 0;
-                    if (ImGui::Checkbox((std::string(itemPtr->label) + idSuffix).c_str(), &inverseTorque))
+                    bool inverted = itemPtr->value != 0;
+                    if (ImGui::Checkbox((std::string(itemPtr->label) + idSuffix).c_str(), &inverted))
                     {
-                        itemPtr->value = inverseTorque ? 1 : 0;
+                        itemPtr->value = inverted ? 1 : 0;
                     }
                 }
                 else

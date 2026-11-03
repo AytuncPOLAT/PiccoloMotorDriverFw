@@ -1,4 +1,5 @@
 #include "log_utils.hpp"
+#include "mingw_time_compat.hpp"
 #include <array>
 #include <chrono>
 #include <cstdio>

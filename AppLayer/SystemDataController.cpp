@@ -163,6 +163,7 @@ bool SystemDataController::LoadSystemDataFromStorage()
 	{
 		// This word was reserved in older configurations; only an explicit 1 enables inversion.
 		systemData.configurationData.inverseTorque = systemData.configurationData.inverseTorque == 1U ? 1U : 0U;
+		systemData.configurationData.inverseEncoder = systemData.configurationData.inverseEncoder == 1U ? 1U : 0U;
 #if defined(GATE_DRIVER_DRV8353S)
 		auto& config = systemData.configurationData;
 		if (config.gateConfigMagic != Common::GATE_CONFIG_MAGIC)
@@ -395,6 +396,9 @@ void SystemDataController::DataReadResponse(Common::CommPacket packet)
 	case Common::PROPERTY::INVERSE_TORQUE:
 		memcpy(&packet.frame.canFrame.data[0], &systemData.configurationData.inverseTorque, sizeof(uint32_t));
 		break;
+	case Common::PROPERTY::INVERSE_ENCODER:
+		memcpy(&packet.frame.canFrame.data[0], &systemData.configurationData.inverseEncoder, sizeof(uint32_t));
+		break;
 
 	case Common::PROPERTY::GATE_HS_SOURCE:
 		memcpy(packet.frame.canFrame.data, &systemData.configurationData.gateDriver.highSideSource, sizeof(uint32_t));
@@ -547,6 +551,13 @@ void SystemDataController::WriteToRam(Common::PROPERTY property, uint32_t newVal
 
 	case Common::PROPERTY::INVERSE_TORQUE:
 		systemData.configurationData.inverseTorque = newValue != 0U ? 1U : 0U;
+		break;
+	case Common::PROPERTY::INVERSE_ENCODER:
+		if (systemData.configurationData.inverseEncoder != (newValue != 0U ? 1U : 0U))
+		{
+			motorControl.SetArmed(false);
+			systemData.configurationData.inverseEncoder = newValue != 0U ? 1U : 0U;
+		}
 		break;
 	case Common::PROPERTY::CURRENT_AMPLIFIER_GAIN:
 	case Common::PROPERTY::GATE_HS_SOURCE:

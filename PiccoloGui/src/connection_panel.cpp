@@ -18,7 +18,9 @@ void drawConnectionPanel(ConnectionPanelState& state, SerialManager& serial, std
         }
         else
         {
-            state.selectedPort = std::clamp(state.selectedPort, 0, static_cast<int>(state.ports.size()) - 1);
+            const int maxPort = static_cast<int>(state.ports.size()) - 1;
+            if (state.selectedPort < 0) state.selectedPort = 0;
+            if (state.selectedPort > maxPort) state.selectedPort = maxPort;
             addLog(logs, "Found " + std::to_string(state.ports.size()) + " COM ports.");
         }
     }

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.21)
 project(PiccoloGui VERSION 0.1.0 LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -96,4 +96,10 @@ if(MSVC)
   target_compile_options(PiccoloGui PRIVATE /W4 /permissive-)
 else()
   target_compile_options(PiccoloGui PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+
+if(MINGW)
+  target_compile_options(PiccoloGui PRIVATE
+    "-include${CMAKE_CURRENT_SOURCE_DIR}/src/mingw_time_compat.hpp"
+  )
 endif()

@@ -115,6 +115,8 @@ inline const char* toPropertyLabel(Common::PROPERTY property)
             return "Position Home Max";
         case Property::INVERSE_TORQUE:
             return "Inverse Torque";
+        case Property::INVERSE_ENCODER:
+            return "Inverse Encoder Direction";
         default:
             return "Unknown";
     }
@@ -192,6 +194,10 @@ inline std::vector<ConfigItem> buildConfigItemsFromPropertyEnum()
                      toPropertyCategory(Property::INVERSE_TORQUE),
                      toPropertyLabel(Property::INVERSE_TORQUE),
                      toDefaultPropertyValue(Property::INVERSE_TORQUE)});
+    items.push_back({Property::INVERSE_ENCODER,
+                     toPropertyCategory(Property::INVERSE_ENCODER),
+                     toPropertyLabel(Property::INVERSE_ENCODER),
+                     toDefaultPropertyValue(Property::INVERSE_ENCODER)});
 
     for (int value = static_cast<int>(Property::GATE_HS_SOURCE);
          value <= static_cast<int>(Property::GATE_CONFIG_STATUS); ++value)

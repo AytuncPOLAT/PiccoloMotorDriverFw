@@ -13,6 +13,7 @@ namespace HardwareLayer
 		virtual int GetSpeed() = 0;
 		virtual float GetRotorAngleInRadians(){};
 		virtual void SetRotorEncoderOffset(int16_t newOffset){};
+		virtual void SetDirectionInverted(bool inverted){};
 		virtual int GetMultiTurnPosition(){};
 		virtual int GetPosition_Async(){};
 		virtual void StartAsyncRead(){};
