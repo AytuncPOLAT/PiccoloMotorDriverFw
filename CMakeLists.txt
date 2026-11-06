@@ -63,8 +63,6 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     AppLayer/Common/SystemData.cpp
     HardwareLayer/AdcDriver.cpp
     HardwareLayer/AS5047_Driver.cpp
-    HardwareLayer/DRV8316R_SpiDriver.cpp
-    HardwareLayer/DRV8353S_SpiDriver.cpp
     HardwareLayer/SpiBus.cpp
     HardwareLayer/FlashMemoryController.cpp
     HardwareLayer/Hardware.cpp
@@ -93,6 +91,9 @@ if(NOT GATE_DRIVER MATCHES "^(DRV8316R|DRV8353S)$")
     message(FATAL_ERROR "Unsupported GATE_DRIVER '${GATE_DRIVER}'")
 endif()
 message("Gate driver: " ${GATE_DRIVER})
+target_sources(${CMAKE_PROJECT_NAME} PRIVATE
+    HardwareLayer/${GATE_DRIVER}_SpiDriver.cpp
+)
 
 # Add project symbols (macros)
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE

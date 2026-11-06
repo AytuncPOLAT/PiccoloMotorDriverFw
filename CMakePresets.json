@@ -23,6 +23,13 @@
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release"
             }
+        },
+        {
+            "name": "Release-DRV8316R",
+            "inherits": "Release",
+            "cacheVariables": {
+                "GATE_DRIVER": "DRV8316R"
+            }
         }
     ],
     "buildPresets": [
@@ -33,6 +40,10 @@
         {
             "name": "Release",
             "configurePreset": "Release"
+        },
+        {
+            "name": "Release-DRV8316R",
+            "configurePreset": "Release-DRV8316R"
         }
     ]
 }

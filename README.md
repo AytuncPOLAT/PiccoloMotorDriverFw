@@ -24,6 +24,13 @@ cmake --build --preset Release
 ./flash.sh
 ```
 
+For a Release build explicitly targeting the DRV8316R gate driver:
+
+```
+cmake --preset Release-DRV8316R
+cmake --build --preset Release-DRV8316R
+```
+
 3. Run the GUI (optional):
 
 ```
