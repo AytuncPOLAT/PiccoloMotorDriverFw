@@ -7,6 +7,12 @@
 #include "SignalProcessing.hpp"
 #include "math.h"
 
+namespace
+{
+	constexpr uint32_t COGGING_CALIBRATION_PASS_DURATION_MS = 15000U;
+	constexpr uint32_t COGGING_CALIBRATION_MAX_PASS_DURATION_MS = 30000U;
+}
+
 uint16_t G_ADC_ext0;
 uint16_t G_ADC_ext1;
 
@@ -68,6 +74,7 @@ MotorControl::MotorControl(HardwareLayer::MotorPwm& motorPwmRef,
 void MotorControl::Init()
 {
 	// App construction loads flash configuration after MotorControl construction.
+	armed = false;
 	SetControllerParameters();
 	CalculateMotorParameters();
 
@@ -77,10 +84,6 @@ void MotorControl::Init()
 	{
 		gMotorControlTaskHandle = taskHandle;
 	}
-/*
-	BaseType_t encoderTaskHandle = xTaskCreate(this->EncoderUpdater, "EncoderUpdater", 128 * 4, (void*) this,
-			24, NULL);
-*/
 }
 
 void MotorControl::CalculateMotorParameters()
@@ -98,6 +101,21 @@ Common::ErrorType MotorControl::SetArmed(bool isArmed)
 		return Common::ErrorType::UNDER_VOLTAGE;
 	}
 	armed = isArmed;
+	if (isArmed && systemData.configurationData.controlMode ==
+		static_cast<uint32_t>(Common::CONTROLLER_TYPE::POSITION))
+	{
+		positionCmd = multiturn;
+	}
+	return Common::ErrorType::OK;
+}
+
+Common::ErrorType MotorControl::DisarmAndClearErrors()
+{
+	armed = false;
+	if (systemError != nullptr)
+	{
+		systemError->ClearError();
+	}
 	return Common::ErrorType::OK;
 }
 
@@ -114,6 +132,148 @@ void MotorControl::SetDcMotor(int16_t duty)
 
 void MotorControl::SetMotorCurrent(int32_t current)
 {}
+
+int32_t MotorControl::GetCoggingTorqueMean() const
+{
+	return coggingTorqueMean;
+}
+
+void MotorControl::SetCoggingTorqueMean(int32_t mean)
+{
+	coggingTorqueMean = mean;
+}
+
+float MotorControl::ApplyCoggingTorqueCancellation(float torqueCommand, uint16_t coggingMapIndex) const
+{
+	if (systemData.realtimeData.coggingCalibrationStatus != Common::COGGING_CALIBRATION_STATUS::COMPLETE)
+	{
+		return torqueCommand;
+	}
+
+	const float correctionScale = static_cast<float>(
+		systemData.configurationData.antiCoggingTorquePercentage) / 100.0f;
+	const float coggingTorque = static_cast<float>(
+		systemData.realtimeData.coggingMap[coggingMapIndex] - coggingTorqueMean);
+	return torqueCommand + coggingTorque * correctionScale;
+}
+
+void MotorControl::StartCoggingCalibration()
+{
+	coggingTorqueSum = 0;
+	coggingTorqueMean = 0;
+	coggingCalibrationStartTick = HAL_GetTick();
+	coggingCalibrationStartPosition = multiturn;
+	coggingForwardSampleCount = 0;
+	coggingReverseSampleCount = 0;
+	coggingReversePass = false;
+	coggingReversePassStartElapsedMs = 0;
+	coggingReversePassStartPosition = 0;
+	for (uint16_t index = 0; index < Common::COGGING_MAP_SIZE; ++index)
+	{
+		systemData.realtimeData.coggingMap[index] = INT32_MIN;
+	}
+	for (uint16_t index = 0; index < sizeof(coggingReverseSampled); ++index)
+	{
+		coggingReverseSampled[index] = 0;
+	}
+	positionCommandFilter.Reset(static_cast<float>(multiturn));
+	systemData.realtimeData.position = multiturn;
+	systemData.realtimeData.coggingCalibrationProgress = 0;
+	systemData.realtimeData.coggingCalibrationError = Common::COGGING_CALIBRATION_ERROR::NONE;
+	systemData.realtimeData.coggingCalibrationStatus = Common::COGGING_CALIBRATION_STATUS::RUNNING;
+	coggingCalibrationActive = true;
+}
+
+uint32_t MotorControl::UpdateCoggingCalibration(bool calibrationMode)
+{
+	if (coggingCalibrationActive && !calibrationMode)
+	{
+		systemData.realtimeData.coggingCalibrationStatus = Common::COGGING_CALIBRATION_STATUS::FAILED;
+		systemData.realtimeData.coggingCalibrationError = Common::COGGING_CALIBRATION_ERROR::INTERRUPTED;
+		coggingCalibrationActive = false;
+	}
+
+	if (calibrationMode && !coggingCalibrationActive)
+	{
+		StartCoggingCalibration();
+	}
+
+	if (!calibrationMode || !coggingCalibrationActive)
+	{
+		return 0;
+	}
+
+	const uint32_t elapsedMs = HAL_GetTick() - coggingCalibrationStartTick;
+	if (!coggingReversePass && elapsedMs >= COGGING_CALIBRATION_PASS_DURATION_MS &&
+		coggingForwardSampleCount == Common::COGGING_MAP_SIZE)
+	{
+		coggingReversePass = true;
+		coggingReversePassStartElapsedMs = elapsedMs;
+		coggingReversePassStartPosition = multiturn;
+	}
+	return elapsedMs;
+}
+
+void MotorControl::SetCoggingCalibrationMotion(uint32_t elapsedMs)
+{
+	const uint32_t passStartElapsedMs = coggingReversePass ? coggingReversePassStartElapsedMs : 0U;
+	const uint32_t elapsedInPassMs = elapsedMs - passStartElapsedMs;
+	const uint32_t passElapsedMs = elapsedInPassMs > COGGING_CALIBRATION_MAX_PASS_DURATION_MS ?
+		COGGING_CALIBRATION_MAX_PASS_DURATION_MS : elapsedInPassMs;
+	const int32_t travelCounts = static_cast<int32_t>(
+		(static_cast<int64_t>(Common::ENCODER_COUNTS_PER_REV) * passElapsedMs) /
+		COGGING_CALIBRATION_PASS_DURATION_MS);
+	const int32_t passStartPosition = coggingReversePass ?
+		coggingReversePassStartPosition : coggingCalibrationStartPosition;
+	const int32_t targetPosition = passStartPosition + (coggingReversePass ? -travelCounts : travelCounts);
+	systemData.realtimeData.position = targetPosition;
+	positionCmd = static_cast<float>(targetPosition);
+	speedCommand = positionController.Calculate(multiturn, positionCmd);
+}
+
+void MotorControl::RecordCoggingCalibrationSample(uint16_t coggingMapIndex)
+{
+	auto& coggingMap = systemData.realtimeData.coggingMap;
+	if (!coggingReversePass && coggingMap[coggingMapIndex] == INT32_MIN)
+	{
+		coggingMap[coggingMapIndex] = static_cast<int32_t>(torqueCommand);
+		++coggingForwardSampleCount;
+		++systemData.realtimeData.coggingCalibrationProgress;
+	}
+	else if (coggingReversePass)
+	{
+		const uint8_t mask = static_cast<uint8_t>(1U << (coggingMapIndex & 7U));
+		uint8_t& sampled = coggingReverseSampled[coggingMapIndex >> 3U];
+		if ((sampled & mask) == 0U && coggingMap[coggingMapIndex] != INT32_MIN)
+		{
+			const int64_t torqueAverage = (static_cast<int64_t>(coggingMap[coggingMapIndex]) +
+				static_cast<int32_t>(torqueCommand)) / 2;
+			coggingMap[coggingMapIndex] = static_cast<int32_t>(torqueAverage);
+			coggingTorqueSum += torqueAverage;
+			sampled |= mask;
+			++coggingReverseSampleCount;
+			++systemData.realtimeData.coggingCalibrationProgress;
+		}
+	}
+}
+
+void MotorControl::FinishCoggingCalibration()
+{
+	coggingCalibrationActive = false;
+	systemData.configurationData.controlMode = static_cast<uint32_t>(Common::CONTROLLER_TYPE::POSITION);
+	systemData.realtimeData.position = coggingCalibrationStartPosition;
+	positionCommandFilter.Reset(static_cast<float>(coggingCalibrationStartPosition));
+	if (coggingReverseSampleCount == Common::COGGING_MAP_SIZE)
+	{
+		coggingTorqueMean = static_cast<int32_t>(coggingTorqueSum / Common::COGGING_MAP_SIZE);
+		systemData.realtimeData.coggingCalibrationStatus = Common::COGGING_CALIBRATION_STATUS::COMPLETE;
+	}
+	else
+	{
+		systemData.realtimeData.coggingCalibrationStatus = Common::COGGING_CALIBRATION_STATUS::FAILED;
+		systemData.realtimeData.coggingCalibrationError = Common::COGGING_CALIBRATION_ERROR::TRAVEL_LIMIT;
+	}
+}
 
 void MotorControl::EncoderUpdater(void *argument)
 {
@@ -140,6 +300,12 @@ void MotorControl::MotorControlTask(void *argument)
 				objectHandle->analog.IsCalibrated())
 		{
 			//GLOBAL_Q_ENCODER = objectHandle->rotorEncoder.GetPosition_Async();
+			uint32_t controlMode = objectHandle->systemData.configurationData.controlMode;
+			const bool coggingCalibrationMode = controlMode ==
+				static_cast<uint32_t>(Common::CONTROLLER_TYPE::COGGING_CALIBRATION);
+			const int rotorPositionCounts = objectHandle->rotorEncoder.GetPosition_Async();
+			const uint16_t coggingMapIndex = static_cast<uint16_t>(
+				(rotorPositionCounts >> 2) & (Common::COGGING_MAP_SIZE - 1U));
 
 			objectHandle->phaseCurrents.a = objectHandle->analog.GetPhaseCurrent(0);
 			objectHandle->phaseCurrents.b = objectHandle->analog.GetPhaseCurrent(1);
@@ -151,16 +317,14 @@ void MotorControl::MotorControlTask(void *argument)
 				objectHandle->armed = false;
 			}
 
-
-
-			objectHandle->angleInRadians = objectHandle->RotorAngleInCountsToElectricalAngleInRadians(objectHandle->rotorEncoder.GetPosition_Async(),
+			objectHandle->angleInRadians = objectHandle->RotorAngleInCountsToElectricalAngleInRadians(rotorPositionCounts,
 								objectHandle->systemData.configurationData.motor.motorPoles);
 
 			objectHandle->multiturn = objectHandle->rotorEncoder.GetMultiTurnPosition();
 			objectHandle->rotorSpeed = objectHandle->rotorEncoder.GetSpeed();
 
-
 			objectHandle->positionCmd = 0.0f;
+			const uint32_t calibrationElapsedMs = objectHandle->UpdateCoggingCalibration(coggingCalibrationMode);
 
 			//TODO: Refactor this control flow. It is very messy right now.
 			if (objectHandle->systemData.configurationData.controlMode
@@ -177,7 +341,11 @@ void MotorControl::MotorControlTask(void *argument)
 			else
 			{
 
-				if(objectHandle->systemData.configurationData.controlMode
+				if (coggingCalibrationMode && objectHandle->coggingCalibrationActive)
+				{
+					objectHandle->SetCoggingCalibrationMotion(calibrationElapsedMs);
+				}
+				else if(!coggingCalibrationMode && controlMode
 						>= (uint8_t) Common::CONTROLLER_TYPE::POSITION)
 				{
 					//Position Control
@@ -202,7 +370,7 @@ void MotorControl::MotorControlTask(void *argument)
 							objectHandle->positionController.Calculate(objectHandle->multiturn, objectHandle->positionCmd);
 					}
 				}
-				else
+				else if (!coggingCalibrationMode)
 				{
 					//Speed Control or lower
 					objectHandle->speedCommand = objectHandle->systemData.realtimeData.speed;
@@ -220,8 +388,33 @@ void MotorControl::MotorControlTask(void *argument)
 					objectHandle->torqueCommand = objectHandle->systemData.realtimeData.torque;
 				}
 
-				if(objectHandle->systemData.configurationData.controlMode
-									>= (uint8_t) Common::CONTROLLER_TYPE::TORQUE)
+				if (coggingCalibrationMode && objectHandle->coggingCalibrationActive)
+				{
+					objectHandle->RecordCoggingCalibrationSample(coggingMapIndex);
+				}
+				else if (controlMode >= static_cast<uint32_t>(Common::CONTROLLER_TYPE::TORQUE))
+				{
+					objectHandle->torqueCommand = objectHandle->ApplyCoggingTorqueCancellation(
+						objectHandle->torqueCommand, coggingMapIndex);
+				}
+
+				const uint32_t reversePassElapsedMs = calibrationElapsedMs -
+					objectHandle->coggingReversePassStartElapsedMs;
+				const bool forwardPassTimedOut = !objectHandle->coggingReversePass &&
+					calibrationElapsedMs >= COGGING_CALIBRATION_MAX_PASS_DURATION_MS &&
+					objectHandle->coggingForwardSampleCount != Common::COGGING_MAP_SIZE;
+				const bool reversePassFinished = objectHandle->coggingReversePass &&
+					(objectHandle->coggingReverseSampleCount == Common::COGGING_MAP_SIZE ||
+					 reversePassElapsedMs >= COGGING_CALIBRATION_MAX_PASS_DURATION_MS);
+				const bool finishCoggingCalibration = coggingCalibrationMode &&
+					objectHandle->coggingCalibrationActive &&
+					(forwardPassTimedOut || reversePassFinished);
+				if (finishCoggingCalibration && objectHandle->coggingCalibrationActive)
+				{
+					objectHandle->FinishCoggingCalibration();
+				}
+
+				if(controlMode >= (uint8_t) Common::CONTROLLER_TYPE::TORQUE)
 				{
 					auto torqueCommand = objectHandle->torqueCommand;
 
@@ -233,7 +426,7 @@ void MotorControl::MotorControlTask(void *argument)
 							objectHandle->angleInRadians,
 							objectHandle->phaseCurrents);
 				}
-				else if (objectHandle->systemData.configurationData.controlMode
+				else if (controlMode
 						>= (uint8_t) Common::CONTROLLER_TYPE::ELEC_ANGLE)
 				{
 					objectHandle->elecAngleCommand = objectHandle->systemData.realtimeData.elecAngle;
@@ -242,7 +435,7 @@ void MotorControl::MotorControlTask(void *argument)
 											objectHandle->phaseCurrents);
 				}
 
-				if(objectHandle->systemData.configurationData.controlMode
+				if(controlMode
 						> (uint8_t) Common::CONTROLLER_TYPE::ELEC_ANGLE)
 				{
 					objectHandle->rotorEncoder.StartAsyncRead();

@@ -16,7 +16,8 @@ namespace Common
 	const uint16_t MOTOR_POLES = 7;
 	const uint16_t COUNT_PER_REV = 4095;
 	const uint16_t MOTOR_PWM_MAX_CNT = 1000;
-	constexpr uint16_t COGGING_MAP_SIZE = 2048U;
+	constexpr uint16_t COGGING_MAP_SIZE = 4096U;
+	constexpr uint16_t COGGING_MAP_CHUNK_SAMPLES = 64U;
 	constexpr int32_t ENCODER_COUNTS_PER_REV = 16384;
 
 	constexpr uint8_t ADC_RESOLUTION_IN_BITS = 12U;
@@ -105,7 +106,9 @@ namespace Common
 	{
 		NONE = 0,
 		TRAVEL_LIMIT = 1,
-		POSITION_TIMEOUT = 2
+		POSITION_TIMEOUT = 2,
+		ZERO_SPEED_COMMAND = 3,
+		INTERRUPTED = 4
 	};
 
 	enum class ADC_CHANNELS : uint8_t
@@ -155,7 +158,6 @@ namespace Common
         MOTOR_POLES,
         DC_BUS_VOLTAGE,
         MULTI_TURN_ENCODER,
-		MOTION_TELEMETRY,
         CURRENT_AMPLIFIER_GAIN,
         POSITION_HOME_MIN,
         POSITION_HOME_MAX,
@@ -174,7 +176,30 @@ namespace Common
 		GATE_DRIVER_TYPE,
 		GATE_CONFIG_STATUS,
 		INVERSE_ENCODER,
+		MOTION_SPEED,
+		MOTION_TORQUE,
+		MOTION_SPEED_SETPOINT,
+		COGGING_MAP_MEAN,
+		COGGING_MAP_CHUNK,
+		ANTI_COGGING_TORQUE_PERCENTAGE,
 	};
+
+	constexpr uint8_t COGGING_MAP_CHUNK_MARKER = 0xC7U;
+	#pragma pack(push, 1)
+	struct CoggingMapChunkFrame
+	{
+		uint8_t marker;
+		uint8_t messageID;
+		uint8_t registerAddress;
+		uint8_t command;
+		uint16_t firstIndex;
+		uint16_t sampleCount;
+		int32_t samples[COGGING_MAP_CHUNK_SAMPLES];
+		uint16_t checksum;
+	};
+	#pragma pack(pop)
+
+	static_assert(sizeof(CoggingMapChunkFrame) == 266, "Unexpected cogging-map chunk frame size");
 
 	constexpr uint32_t GATE_CONFIG_MAGIC = 0x47415431U;
 
@@ -272,7 +297,8 @@ namespace Common
 		uint32_t gateConfigMagic;
 		GateDriverConfiguration gateDriver;
 		uint32_t inverseEncoder;
-		uint32_t padding32[8];
+		uint32_t padding32[7];
+		uint32_t antiCoggingTorquePercentage;
 		uint16_t padding16[1];
 		uint16_t crc16;
 	};

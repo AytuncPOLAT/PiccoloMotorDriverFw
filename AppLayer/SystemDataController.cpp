@@ -62,11 +62,14 @@ void SystemDataController::TaskThread(void *argument)
 				break;
 
 			case Common::CMD_TYPE::DRIVER_ARM:
-				objectHandle->motorControl.SetArmed(true);
+				if (objectHandle->motorControl.SetArmed(true) == Common::ErrorType::OK)
+				{
+					objectHandle->userInterface.SetUiState(UiState::Idle);
+				}
 				break;
 
 			case Common::CMD_TYPE::DRIVER_DISARM:
-				objectHandle->motorControl.SetArmed(false);
+				objectHandle->motorControl.DisarmAndClearErrors();
 				break;
 			default:
 				break;
@@ -78,6 +81,13 @@ void SystemDataController::TaskThread(void *argument)
 
 				objectHandle->storageController.ProgramNWords(0, &objectHandle->systemData.configurationData.flashMagicNumber,
 								sizeof(objectHandle->systemData.configurationData), 32);
+				if (objectHandle->systemData.realtimeData.coggingCalibrationStatus ==
+					Common::COGGING_CALIBRATION_STATUS::COMPLETE)
+				{
+					objectHandle->storageController.SaveCoggingMap(
+						objectHandle->systemData.realtimeData.coggingMap,
+						objectHandle->motorControl.GetCoggingTorqueMean());
+				}
 
 				objectHandle->state = State::IDLE;
 			}
@@ -128,6 +138,13 @@ SystemDataController::SystemDataController(Common::SystemData &systemDataRef,
 	}
 
 	LoadSystemDataFromStorage();
+	int32_t coggingTorqueMean = 0;
+	if (storageController.LoadCoggingMap(systemData.realtimeData.coggingMap, coggingTorqueMean))
+	{
+		motorControl.SetCoggingTorqueMean(coggingTorqueMean);
+		systemData.realtimeData.coggingCalibrationStatus = Common::COGGING_CALIBRATION_STATUS::COMPLETE;
+		systemData.realtimeData.coggingCalibrationProgress = Common::COGGING_MAP_SIZE * 2U;
+	}
 }
 
 void SystemDataController::Init()
@@ -164,6 +181,10 @@ bool SystemDataController::LoadSystemDataFromStorage()
 		// This word was reserved in older configurations; only an explicit 1 enables inversion.
 		systemData.configurationData.inverseTorque = systemData.configurationData.inverseTorque == 1U ? 1U : 0U;
 		systemData.configurationData.inverseEncoder = systemData.configurationData.inverseEncoder == 1U ? 1U : 0U;
+		if (systemData.configurationData.antiCoggingTorquePercentage > 100U)
+		{
+			systemData.configurationData.antiCoggingTorquePercentage = 0U;
+		}
 #if defined(GATE_DRIVER_DRV8353S)
 		auto& config = systemData.configurationData;
 		if (config.gateConfigMagic != Common::GATE_CONFIG_MAGIC)
@@ -374,12 +395,88 @@ void SystemDataController::DataReadResponse(Common::CommPacket packet)
 		memcpy(&packet.frame.canFrame.data[0], &systemData.realtimeData.multiTurnEncoder, sizeof(int32_t));
 		break;
 
-	case Common::PROPERTY::MOTION_TELEMETRY:
-		//memcpy(&communication.serialFrameTx.canFrame.data[0], &systemData.realtimeData.multiTurnEncoder, sizeof(int32_t));
-		//memcpy(&communication.serialFrameTx.canFrame.data[1], &systemData.realtimeData.speedGet, sizeof(int32_t));
-		//memcpy(&communication.serialFrameTx.canFrame.data[2], &systemData.realtimeData.torqueGet, sizeof(int32_t));
-		//memcpy(&communication.serialFrameTx.canFrame.data[3], &systemData.realtimeData.motorCurrent, sizeof(int32_t));
+	case Common::PROPERTY::MOTION_SPEED:
+		memcpy(&packet.frame.canFrame.data[0], &systemData.realtimeData.speedGet, sizeof(int32_t));
 		break;
+
+	case Common::PROPERTY::MOTION_TORQUE:
+		memcpy(&packet.frame.canFrame.data[0], &systemData.realtimeData.torqueGet, sizeof(int32_t));
+		break;
+
+	case Common::PROPERTY::MOTION_SPEED_SETPOINT:
+		memcpy(&packet.frame.canFrame.data[0], &systemData.realtimeData.speed, sizeof(int32_t));
+		break;
+
+	case Common::PROPERTY::COGGING_MAP_MEAN:
+	{
+		const int32_t torqueMean = motorControl.GetCoggingTorqueMean();
+		memcpy(&packet.frame.canFrame.data[0], &torqueMean, sizeof(torqueMean));
+		break;
+	}
+
+	case Common::PROPERTY::COGGING_CALIBRATION_STATUS:
+		memcpy(&packet.frame.canFrame.data[0], &systemData.realtimeData.coggingCalibrationStatus, sizeof(int32_t));
+		break;
+
+	case Common::PROPERTY::COGGING_CALIBRATION_PROGRESS:
+		memcpy(&packet.frame.canFrame.data[0], &systemData.realtimeData.coggingCalibrationProgress, sizeof(int32_t));
+		break;
+
+	case Common::PROPERTY::COGGING_CALIBRATION_ERROR:
+		memcpy(&packet.frame.canFrame.data[0], &systemData.realtimeData.coggingCalibrationError, sizeof(int32_t));
+		break;
+
+	case Common::PROPERTY::COGGING_CALIBRATION_FAILED_SAMPLE:
+		memcpy(&packet.frame.canFrame.data[0], &systemData.realtimeData.coggingCalibrationFailedSample, sizeof(int32_t));
+		break;
+
+	case Common::PROPERTY::COGGING_CALIBRATION_POSITION_ERROR:
+		memcpy(&packet.frame.canFrame.data[0], &systemData.realtimeData.coggingCalibrationPositionError, sizeof(int32_t));
+		break;
+
+	case Common::PROPERTY::COGGING_MAP_SAMPLE:
+	{
+		int32_t sampleIndex = -1;
+		memcpy(&sampleIndex, &packet.frame.canFrame.data[0], sizeof(sampleIndex));
+		int32_t sampleValue = 0;
+		if (sampleIndex >= 0 && sampleIndex < Common::COGGING_MAP_SIZE &&
+			systemData.realtimeData.coggingCalibrationStatus == Common::COGGING_CALIBRATION_STATUS::COMPLETE)
+		{
+			sampleValue = systemData.realtimeData.coggingMap[sampleIndex];
+		}
+		memcpy(&packet.frame.canFrame.data[0], &sampleValue, sizeof(sampleValue));
+		break;
+	}
+
+	case Common::PROPERTY::COGGING_MAP_CHUNK:
+	{
+		uint32_t firstIndex = 0;
+		memcpy(&firstIndex, &packet.frame.canFrame.data[0], sizeof(firstIndex));
+		const bool mapReady = systemData.realtimeData.coggingCalibrationStatus == Common::COGGING_CALIBRATION_STATUS::COMPLETE;
+		const uint16_t sampleCount = mapReady && firstIndex < Common::COGGING_MAP_SIZE ?
+			static_cast<uint16_t>(Common::COGGING_MAP_SIZE - firstIndex < Common::COGGING_MAP_CHUNK_SAMPLES ?
+				Common::COGGING_MAP_SIZE - firstIndex : Common::COGGING_MAP_CHUNK_SAMPLES) : 0U;
+
+		if (packet.interface == Common::INTERFACE::USB_CDC)
+		{
+			int32_t corrections[Common::COGGING_MAP_CHUNK_SAMPLES] = {};
+			const int32_t mean = motorControl.GetCoggingTorqueMean();
+			for (uint16_t offset = 0; offset < sampleCount; ++offset)
+			{
+				corrections[offset] = systemData.realtimeData.coggingMap[firstIndex + offset] - mean;
+			}
+			communication.RespondCoggingMapChunk(packet, firstIndex, corrections, sampleCount);
+			return;
+		}
+
+		int32_t correction = 0;
+		if (sampleCount > 0)
+		{
+			correction = systemData.realtimeData.coggingMap[firstIndex] - motorControl.GetCoggingTorqueMean();
+		}
+		memcpy(&packet.frame.canFrame.data[0], &correction, sizeof(correction));
+		break;
+	}
 
 	case Common::PROPERTY::CURRENT_AMPLIFIER_GAIN:
 		memcpy(&packet.frame.canFrame.data[0], &systemData.configurationData.motor.currentAmplifierGain, sizeof(uint32_t));
@@ -391,6 +488,10 @@ void SystemDataController::DataReadResponse(Common::CommPacket packet)
 
 	case Common::PROPERTY::POSITION_HOME_MAX:
 		memcpy(&packet.frame.canFrame.data[0], &systemData.configurationData.motor.positionHomeMax, sizeof(uint32_t));
+		break;
+
+	case Common::PROPERTY::ANTI_COGGING_TORQUE_PERCENTAGE:
+		memcpy(&packet.frame.canFrame.data[0], &systemData.configurationData.antiCoggingTorquePercentage, sizeof(uint32_t));
 		break;
 
 	case Common::PROPERTY::INVERSE_TORQUE:
@@ -464,6 +565,10 @@ void SystemDataController::WriteToRam(Common::PROPERTY property, uint32_t newVal
 
 	case Common::PROPERTY::DC_BUS_VOLTAGE:
 		// dcBusVoltage is updated by Telemetry and is read-only over the bus
+		break;
+
+	case Common::PROPERTY::MOTION_SPEED_SETPOINT:
+		// Speed setpoint is updated by motion command packets.
 		break;
 
 	//DQ Controller
@@ -547,6 +652,13 @@ void SystemDataController::WriteToRam(Common::PROPERTY property, uint32_t newVal
 
 	case Common::PROPERTY::POSITION_HOME_MAX:
 		memcpy(&systemData.configurationData.motor.positionHomeMax, &newValue, sizeof(uint32_t));
+		break;
+
+	case Common::PROPERTY::ANTI_COGGING_TORQUE_PERCENTAGE:
+		if (newValue <= 100U)
+		{
+			systemData.configurationData.antiCoggingTorquePercentage = newValue;
+		}
 		break;
 
 	case Common::PROPERTY::INVERSE_TORQUE:

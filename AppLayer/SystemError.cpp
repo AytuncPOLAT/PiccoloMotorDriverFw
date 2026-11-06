@@ -26,6 +26,7 @@ void SystemError::ClearError()
 {
 	currentError = Common::ErrorType::OK;
 	hasError = false;
+	userInterface.SetUiState(UiState::Warning);
 }
 
 bool SystemError::HasError() const

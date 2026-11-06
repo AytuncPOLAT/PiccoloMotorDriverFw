@@ -14,6 +14,8 @@ namespace HardwareLayer
 	public:
 		FlashStorage();
 		Common::ErrorType EraseUserSector();
+		Common::ErrorType SaveCoggingMap(const int32_t* map, int32_t torqueMean);
+		bool LoadCoggingMap(int32_t* map, int32_t& torqueMean) const;
 		Common::ErrorType ProgramWord(uint32_t addressOffset, uint32_t* data);
 		Common::ErrorType ReadFourBytes(uint32_t addressOffset, uint32_t* data);
 		Common::ErrorType ReadNBytes(uint32_t addressOffset, uint32_t* data, uint32_t size, uint8_t wordSize);

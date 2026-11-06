@@ -89,7 +89,7 @@ void StartDefaultTask(void *argument)
 {
 	App* app = (App*)argument;
 
-	app->userInterface.SetUiState(UiState::HeartBeat);
+	app->userInterface.SetUiState(UiState::Warning);
 
 	app->hwPtr.adc.Start();
 

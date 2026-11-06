@@ -9,6 +9,7 @@
 #include "log_utils.hpp"
 #include "plot_panel.hpp"
 #include "cartesian_panel.hpp"
+#include "cogging_panel.hpp"
 #include "serial_manager.hpp"
 #include "telemetry_panel.hpp"
 #include <GLFW/glfw3.h>
@@ -50,6 +51,7 @@ int main()
     SerialManager serial;
     std::vector<ConfigItem> configItems = buildConfigItemsFromPropertyEnum();
     TelemetryBuffer telemetry;
+    CoggingPanelState coggingPanel;
 
     std::vector<std::string> logs;
     bool armed = false;
@@ -154,32 +156,52 @@ int main()
             {
                 lastFastRefreshTime = now;
 
-                int32_t encoderRaw = 0;
+                int32_t positionRaw = 0;
                 int32_t speedRaw = 0;
                 int32_t torqueRaw = 0;
-                int32_t unusedData3 = 0;
-                std::string encoderError;
-                if (serial.readProperty(static_cast<uint8_t>(connectionState.deviceAddress),
-                                       Common::PROPERTY::MOTION_TELEMETRY,
-                                       encoderRaw, speedRaw, torqueRaw, unusedData3, encoderError))
-                {
-                    lastEncoder = static_cast<double>(encoderRaw);
-                    lastSpeed = static_cast<double>(speedRaw);
-                    lastTorque = static_cast<double>(torqueRaw);
+                std::string positionError;
+                std::string speedError;
+                std::string torqueError;
+                const uint8_t deviceAddress = static_cast<uint8_t>(connectionState.deviceAddress);
+                const bool positionRead = serial.readProperty(deviceAddress,
+                                       Common::PROPERTY::MULTI_TURN_ENCODER, positionRaw, positionError);
+                const bool speedRead = serial.readProperty(deviceAddress,
+                                       Common::PROPERTY::MOTION_SPEED, speedRaw, speedError);
+                const bool torqueRead = serial.readProperty(deviceAddress,
+                                       Common::PROPERTY::MOTION_TORQUE, torqueRaw, torqueError);
 
+                if (positionRead)
+                {
+                    lastEncoder = static_cast<double>(positionRaw);
+                }
+                if (speedRead)
+                {
+                    lastSpeed = static_cast<double>(speedRaw);
+                }
+                if (torqueRead)
+                {
+                    lastTorque = static_cast<double>(torqueRaw);
+                }
+
+                if (positionRead || speedRead || torqueRead)
+                {
                     // Push with updated encoder, speed, torque, and last busVoltage
                     double lastCurrent = telemetry.current.empty() ? 0.0 : telemetry.current.back();
-                    double lastPosition = telemetry.position.empty() ? 0.0 : telemetry.position.back();
                     double lastPwm = telemetry.pwmPercent.empty() ? 0.0 : telemetry.pwmPercent.back();
                     double lastDrvTemp = telemetry.driverTemp.empty() ? 0.0 : telemetry.driverTemp.back();
                     double lastMotTemp = telemetry.motorTemp.empty() ? 0.0 : telemetry.motorTemp.back();
 
-                    telemetry.push(now, lastSpeed, lastCurrent, lastPosition, lastBusVoltage, lastPwm, lastDrvTemp, lastMotTemp, lastEncoder, lastTorque);
+                    telemetry.push(now, lastSpeed, lastCurrent, lastEncoder, lastBusVoltage, lastPwm, lastDrvTemp, lastMotTemp, lastEncoder, lastTorque);
                     addLog(logs, "TX > Fast telemetry refresh: Encoder = " + std::to_string(static_cast<int32_t>(lastEncoder)) + ", Speed = " + std::to_string(static_cast<int32_t>(lastSpeed)) + ", Torque = " + std::to_string(static_cast<int32_t>(lastTorque)));
                 }
-                else if (!encoderError.empty())
+                else
                 {
-                    addLog(logs, "Fast telemetry refresh error: " + encoderError);
+                    const std::string& readError = !positionError.empty() ? positionError :
+                                                   !speedError.empty() ? speedError : torqueError;
+                    if (!readError.empty())
+                    {
+                        addLog(logs, "Fast telemetry refresh error: " + readError);
+                    }
                 }
             }
         }
@@ -287,6 +309,13 @@ int main()
 
                         std::printf("Cartesian: x=%.2f y=%.2f z=%.2f θ1=%.1f° θ2=%.1f°\n", x, y, z, angle1 * 180.0f / 3.14159265f, angle2 * 180.0f / 3.14159265f);
                     });
+                    ImGui::EndTabItem();
+                }
+
+                if (ImGui::BeginTabItem("Cogging"))
+                {
+                    drawCoggingPanel(serial, static_cast<uint8_t>(connectionState.deviceAddress),
+                                     coggingPanel, now, logs);
                     ImGui::EndTabItem();
                 }
 

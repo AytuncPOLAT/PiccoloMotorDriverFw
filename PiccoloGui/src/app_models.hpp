@@ -113,6 +113,8 @@ inline const char* toPropertyLabel(Common::PROPERTY property)
             return "Position Home Min";
         case Property::POSITION_HOME_MAX:
             return "Position Home Max";
+        case Property::ANTI_COGGING_TORQUE_PERCENTAGE:
+            return "AntiCoggingTorquePercentage";
         case Property::INVERSE_TORQUE:
             return "Inverse Torque";
         case Property::INVERSE_ENCODER:
@@ -138,6 +140,7 @@ inline int32_t toDefaultPropertyValue(Common::PROPERTY property)
         case Property::POSITION_HOME_MAX:
             return 1000000;
         case Property::CURRENT_AMPLIFIER_GAIN: return 20;
+        case Property::ANTI_COGGING_TORQUE_PERCENTAGE: return 0;
         case Property::GATE_HS_SOURCE:
         case Property::GATE_HS_SINK:
         case Property::GATE_LS_SOURCE:
@@ -198,6 +201,10 @@ inline std::vector<ConfigItem> buildConfigItemsFromPropertyEnum()
                      toPropertyCategory(Property::INVERSE_ENCODER),
                      toPropertyLabel(Property::INVERSE_ENCODER),
                      toDefaultPropertyValue(Property::INVERSE_ENCODER)});
+    items.push_back({Property::ANTI_COGGING_TORQUE_PERCENTAGE,
+                     toPropertyCategory(Property::ANTI_COGGING_TORQUE_PERCENTAGE),
+                     toPropertyLabel(Property::ANTI_COGGING_TORQUE_PERCENTAGE),
+                     toDefaultPropertyValue(Property::ANTI_COGGING_TORQUE_PERCENTAGE)});
 
     for (int value = static_cast<int>(Property::GATE_HS_SOURCE);
          value <= static_cast<int>(Property::GATE_CONFIG_STATUS); ++value)

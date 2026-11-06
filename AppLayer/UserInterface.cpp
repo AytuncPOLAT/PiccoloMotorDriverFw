@@ -98,6 +98,7 @@ void UserInterface::UiTask(void *argument)
 void UserInterface::SetUiState(UiState newState)
 {
 	state = newState;
+	oldState = newState;
 	tenMsCounter = 0;
 }
 

@@ -38,6 +38,17 @@ public:
                       int32_t& valueOut,
                       std::string& errorMessage,
                       int timeoutMs = 100);
+    bool readPropertyWithIndex(uint8_t deviceAddress,
+                               Common::PROPERTY property,
+                               uint32_t index,
+                               int32_t& valueOut,
+                               std::string& errorMessage,
+                               int timeoutMs = 100);
+    bool readCoggingMapChunk(uint8_t deviceAddress,
+                             uint32_t firstIndex,
+                             std::vector<int32_t>& samplesOut,
+                             std::string& errorMessage,
+                             int timeoutMs = 500);
     bool readProperty(uint8_t deviceAddress,
                       Common::PROPERTY property,
                       int32_t& value0Out,

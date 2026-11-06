@@ -73,13 +73,22 @@ namespace AppLayer
 
 		void SetDcMotor(int16_t duty);
 		Common::ErrorType SetArmed(bool isArmed);
+		Common::ErrorType DisarmAndClearErrors();
 		void Init();
 		void SetMotorCurrent(int32_t current);
+		int32_t GetCoggingTorqueMean() const;
+		void SetCoggingTorqueMean(int32_t mean);
 		void OnIndexPulseCallBack();
 		void SetSystemError(class SystemError* errorPtr);
 
 	private:
 		void CheckConfigUpdates();
+		float ApplyCoggingTorqueCancellation(float torqueCommand, uint16_t coggingMapIndex) const;
+		void StartCoggingCalibration();
+		uint32_t UpdateCoggingCalibration(bool calibrationMode);
+		void SetCoggingCalibrationMotion(uint32_t elapsedMs);
+		void RecordCoggingCalibrationSample(uint16_t coggingMapIndex);
+		void FinishCoggingCalibration();
 		static void MotorControlTask(void *argument);
 		static void EncoderUpdater(void *argument);
 
@@ -130,6 +139,17 @@ namespace AppLayer
 		float torqueCommand;
 		float speedCommand;
 		int positionCommand;
+		bool coggingCalibrationActive = false;
+		bool coggingReversePass = false;
+		uint32_t coggingCalibrationStartTick = 0;
+		int32_t coggingCalibrationStartPosition = 0;
+		uint32_t coggingReversePassStartElapsedMs = 0;
+		int32_t coggingReversePassStartPosition = 0;
+		uint16_t coggingForwardSampleCount = 0;
+		uint16_t coggingReverseSampleCount = 0;
+		uint8_t coggingReverseSampled[(Common::COGGING_MAP_SIZE + 7U) / 8U] = {};
+		int64_t coggingTorqueSum = 0;
+		int32_t coggingTorqueMean = 0;
 
 	};
 }

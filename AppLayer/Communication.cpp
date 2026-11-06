@@ -212,3 +212,33 @@ void Communication::Respond(Common::CommPacket packet)
 	else
 		TransmitDataFrame(packet);
 }
+
+void Communication::RespondCoggingMapChunk(const Common::CommPacket& request,
+											uint32_t firstIndex,
+											const int32_t* correctionSamples,
+											uint16_t sampleCount)
+{
+	if (request.interface != Common::INTERFACE::USB_CDC ||
+		firstIndex >= Common::COGGING_MAP_SIZE ||
+		sampleCount > Common::COGGING_MAP_CHUNK_SAMPLES)
+	{
+		return;
+	}
+
+	coggingMapChunkTx = {};
+	coggingMapChunkTx.marker = Common::COGGING_MAP_CHUNK_MARKER;
+	coggingMapChunkTx.messageID = request.frame.canFrame.messageID;
+	coggingMapChunkTx.registerAddress = static_cast<uint8_t>(Common::PROPERTY::COGGING_MAP_CHUNK);
+	coggingMapChunkTx.command = static_cast<uint8_t>(Common::CMD_TYPE::READ_FROM_DEVICE);
+	coggingMapChunkTx.firstIndex = static_cast<uint16_t>(firstIndex);
+	coggingMapChunkTx.sampleCount = sampleCount;
+	if (correctionSamples != nullptr && sampleCount > 0)
+	{
+		std::memcpy(coggingMapChunkTx.samples, correctionSamples, sampleCount * sizeof(int32_t));
+	}
+
+	Common::Crc16 crc;
+	coggingMapChunkTx.checksum = crc.Calculate(0, reinterpret_cast<uint8_t*>(&coggingMapChunkTx),
+																		sizeof(coggingMapChunkTx) - sizeof(coggingMapChunkTx.checksum));
+	usbCdc.Transmit(reinterpret_cast<uint8_t*>(&coggingMapChunkTx), sizeof(coggingMapChunkTx));
+}

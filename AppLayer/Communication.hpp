@@ -44,6 +44,10 @@ namespace AppLayer
         static void TaskThread(void *argument);
 
 	    void TransmitDataFrame(Common::CommPacket packet);
+		void RespondCoggingMapChunk(const Common::CommPacket& request,
+								uint32_t firstIndex,
+								const int32_t* correctionSamples,
+								uint16_t sampleCount);
 
 	    void Init();
 		void Respond(Common::CommPacket packet);
@@ -71,6 +75,7 @@ namespace AppLayer
 		Common::SystemData& systemData;
 		Common::ICallback::GenericCallback* callbackHandle;
 		UserInterface& userInterface;
+		Common::CoggingMapChunkFrame coggingMapChunkTx = {};
 
 		void OnCanReceive(uint8_t* Buf, uint32_t Len);
 

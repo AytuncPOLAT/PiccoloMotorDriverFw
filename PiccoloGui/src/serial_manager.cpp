@@ -336,6 +336,144 @@ bool SerialManager::readProperty(uint8_t deviceAddress,
     return false;
 }
 
+bool SerialManager::readPropertyWithIndex(uint8_t deviceAddress,
+                                          Common::PROPERTY property,
+                                          uint32_t index,
+                                          int32_t& valueOut,
+                                          std::string& errorMessage,
+                                          int timeoutMs)
+{
+    if (!isConnected())
+    {
+        errorMessage = "No serial connection.";
+        return false;
+    }
+
+    Common::SerialFrame tx = {};
+    populateSerialFrame(tx, deviceAddress, Common::CMD_TYPE::READ_FROM_DEVICE,
+                        static_cast<uint8_t>(property), reinterpret_cast<const uint8_t*>(&index));
+
+    Common::Crc16 crc;
+    tx.checksum = crc.Calculate(0, reinterpret_cast<uint8_t*>(&tx), sizeof(tx) - sizeof(tx.checksum));
+    if (!serialPort_->write(reinterpret_cast<const uint8_t*>(&tx), sizeof(tx), errorMessage))
+    {
+        return false;
+    }
+
+    const auto start = std::chrono::steady_clock::now();
+    uint8_t rxBuffer[sizeof(Common::SerialFrame)] = {};
+    while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count()
+           < timeoutMs)
+    {
+        std::string readError;
+        std::size_t bytesRead = 0;
+        if (!serialPort_->read(rxBuffer, sizeof(rxBuffer), bytesRead, readError))
+        {
+            if (!readError.empty())
+            {
+                errorMessage = "Indexed property response read failed: " + readError;
+                return false;
+            }
+        }
+
+        if (bytesRead == sizeof(Common::SerialFrame))
+        {
+            Common::SerialFrame rx = {};
+            std::memcpy(&rx, rxBuffer, sizeof(rx));
+            const uint16_t expectedCrc
+                = crc.Calculate(0, reinterpret_cast<uint8_t*>(&rx), sizeof(rx) - sizeof(rx.checksum));
+            if (rx.checksum == expectedCrc && rx.canFrame.command == Common::CMD_TYPE::READ_FROM_DEVICE &&
+                rx.canFrame.messageID == deviceAddress &&
+                rx.canFrame.registerAddress == static_cast<uint8_t>(property))
+            {
+                std::memcpy(&valueOut, rx.canFrame.data, sizeof(valueOut));
+                return true;
+            }
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+
+    errorMessage = "Indexed property read timeout.";
+    return false;
+}
+
+bool SerialManager::readCoggingMapChunk(uint8_t deviceAddress,
+                                        uint32_t firstIndex,
+                                        std::vector<int32_t>& samplesOut,
+                                        std::string& errorMessage,
+                                        int timeoutMs)
+{
+    if (!isConnected())
+    {
+        errorMessage = "No serial connection.";
+        return false;
+    }
+    if (firstIndex >= Common::COGGING_MAP_SIZE)
+    {
+        errorMessage = "Cogging map chunk index is out of range.";
+        return false;
+    }
+
+    Common::SerialFrame tx = {};
+    populateSerialFrame(tx, deviceAddress, Common::CMD_TYPE::READ_FROM_DEVICE,
+                        static_cast<uint8_t>(Common::PROPERTY::COGGING_MAP_CHUNK),
+                        reinterpret_cast<const uint8_t*>(&firstIndex));
+    Common::Crc16 crc;
+    tx.checksum = crc.Calculate(0, reinterpret_cast<uint8_t*>(&tx), sizeof(tx) - sizeof(tx.checksum));
+    if (!serialPort_->write(reinterpret_cast<const uint8_t*>(&tx), sizeof(tx), errorMessage))
+    {
+        return false;
+    }
+
+    const uint16_t expectedCount = static_cast<uint16_t>(std::min<uint32_t>(
+        Common::COGGING_MAP_CHUNK_SAMPLES, Common::COGGING_MAP_SIZE - firstIndex));
+    uint8_t rxBuffer[sizeof(Common::CoggingMapChunkFrame)] = {};
+    std::size_t rxCount = 0;
+    const auto start = std::chrono::steady_clock::now();
+    while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count()
+           < timeoutMs)
+    {
+        std::string readError;
+        std::size_t bytesRead = 0;
+        if (!serialPort_->read(rxBuffer + rxCount, sizeof(rxBuffer) - rxCount, bytesRead, readError))
+        {
+            if (!readError.empty())
+            {
+                errorMessage = "Cogging map chunk read failed: " + readError;
+                return false;
+            }
+        }
+        rxCount += bytesRead;
+
+        if (rxCount == sizeof(Common::CoggingMapChunkFrame))
+        {
+            Common::CoggingMapChunkFrame response = {};
+            std::memcpy(&response, rxBuffer, sizeof(response));
+            const uint16_t expectedCrc = crc.Calculate(0, reinterpret_cast<uint8_t*>(&response),
+                                                       sizeof(response) - sizeof(response.checksum));
+            if (response.marker != Common::COGGING_MAP_CHUNK_MARKER ||
+                response.messageID != deviceAddress ||
+                response.registerAddress != static_cast<uint8_t>(Common::PROPERTY::COGGING_MAP_CHUNK) ||
+                response.command != static_cast<uint8_t>(Common::CMD_TYPE::READ_FROM_DEVICE) ||
+                response.firstIndex != firstIndex || response.sampleCount != expectedCount ||
+                response.checksum != expectedCrc)
+            {
+                errorMessage = "Invalid cogging map chunk response.";
+                return false;
+            }
+
+            samplesOut.assign(response.samples, response.samples + response.sampleCount);
+            return true;
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+
+    errorMessage = "Cogging map chunk timeout.";
+    return false;
+}
+
 bool SerialManager::readProperty(uint8_t deviceAddress,
                                  Common::PROPERTY property,
                                  int32_t& value0Out,
