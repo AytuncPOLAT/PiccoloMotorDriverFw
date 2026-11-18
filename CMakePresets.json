@@ -25,10 +25,10 @@
             }
         },
         {
-            "name": "Release-DRV8316R",
+            "name": "Release-Piccolo2",
             "inherits": "Release",
             "cacheVariables": {
-                "GATE_DRIVER": "DRV8316R"
+                "BOARD": "Piccolo2"
             }
         }
     ],
@@ -42,8 +42,8 @@
             "configurePreset": "Release"
         },
         {
-            "name": "Release-DRV8316R",
-            "configurePreset": "Release-DRV8316R"
+            "name": "Release-Piccolo2",
+            "configurePreset": "Release-Piccolo2"
         }
     ]
 }

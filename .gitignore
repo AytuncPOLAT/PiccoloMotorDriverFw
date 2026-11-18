@@ -1,5 +1,7 @@
 Release/
 Debug/
+build/
+__pycache__/
 PiccoloGui/build/
 PiccoloGui/build_windows/
 CMakeFiles/

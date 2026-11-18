@@ -1,6 +1,16 @@
 #include "AnalogProcessor.hpp"
+#include "BoardConfig/BoardConfig.h"
 
 using namespace AppLayer;
+
+namespace
+{
+	static_assert(BOARD_SHUNT_RESISTOR_OHMS > 0.0f,
+		"Board shunt resistance must be positive");
+	static_assert(BOARD_SUPPLY_DIVIDER_LOW_SIDE_OHMS > 0U &&
+		BOARD_SUPPLY_DIVIDER_HIGH_SIDE_OHMS > 0U,
+		"Board supply divider resistances must be positive");
+}
 
 AnalogProcessor::AnalogProcessor(HardwareLayer::AdcDriver& adcRef,
 		Common::SystemData& systemDataRef,
@@ -68,34 +78,38 @@ bool AnalogProcessor::IsCalibrated()
 
 float AnalogProcessor::GetBusVoltage()
 {
+	constexpr float busSenseRatio =
+		static_cast<float>(BOARD_SUPPLY_DIVIDER_LOW_SIDE_OHMS) /
+		(BOARD_SUPPLY_DIVIDER_LOW_SIDE_OHMS + BOARD_SUPPLY_DIVIDER_HIGH_SIDE_OHMS);
 	float busVoltage = (adc.ReadChannel(Common::ADC_CHANNELS::DC_BUS_VOLTAGE) * Common::MILLIVOLTS_PER_COUNT)
-			/ Common::DC_BUS_SENSE_RATIO;
+			/ busSenseRatio;
 	return busVoltage;
 }
 
 float AnalogProcessor::GetPhaseCurrent(uint8_t channel)
 {
 	float currentInAmps = 0.0;
-	float milliampsPerCount = Common::MILLIAMPS_PER_COUNT;
+	float ampsPerCount = (Common::MILLIVOLTS_PER_COUNT /
+		(BOARD_SHUNT_RESISTOR_OHMS * 20.0f)) / 1000.0;
 #if defined(GATE_DRIVER_DRV8353S)
 	// Preserve the existing 20 V/V calibration when the hardware gain changes.
-	milliampsPerCount *= 20.0f / drv.GetCsaGainVoltsPerVolt();
+	ampsPerCount *= 20.0f / drv.GetCsaGainVoltsPerVolt();
 #endif
 
 	switch (channel)
 	{
 	case 0:
-		currentInAmps = (adc.ReadChannel(Common::ADC_CHANNELS::PHASE_A_CURRENT) - phaseOffsets[channel]) * milliampsPerCount;
+		currentInAmps = (adc.ReadChannel(Common::ADC_CHANNELS::PHASE_A_CURRENT) - phaseOffsets[channel]) * ampsPerCount;
 		currentInAmps = phaseCurrentFilter[0].Update(currentInAmps);
 		break;
 
 	case 1:
-		currentInAmps = (adc.ReadChannel(Common::ADC_CHANNELS::PHASE_B_CURRENT) - phaseOffsets[channel]) * milliampsPerCount;
+		currentInAmps = (adc.ReadChannel(Common::ADC_CHANNELS::PHASE_B_CURRENT) - phaseOffsets[channel]) * ampsPerCount;
 		currentInAmps = phaseCurrentFilter[1].Update(currentInAmps);
 		break;
 
 	case 2:
-		currentInAmps = (adc.ReadChannel(Common::ADC_CHANNELS::PHASE_C_CURRENT) - phaseOffsets[channel]) * milliampsPerCount;
+		currentInAmps = (adc.ReadChannel(Common::ADC_CHANNELS::PHASE_C_CURRENT) - phaseOffsets[channel]) * ampsPerCount;
 		currentInAmps = phaseCurrentFilter[2].Update(currentInAmps);
 		break;
 

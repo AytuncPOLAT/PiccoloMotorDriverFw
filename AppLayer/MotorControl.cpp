@@ -1,4 +1,5 @@
 #include "MotorControl.hpp"
+#include "BoardConfig/BoardConfig.h"
 #include "SystemError.hpp"
 #include "MotorPwm.hpp"
 #include "SystemData.hpp"
@@ -292,8 +293,8 @@ void MotorControl::MotorControlTask(void *argument)
 	for (;;)
 	{
 		ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-		HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8, (GPIO_PinState)1);
-		HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8, (GPIO_PinState)0);
+		HAL_GPIO_WritePin(BOARD_MOTOR_DEBUG_PORT, BOARD_MOTOR_DEBUG_PIN, (GPIO_PinState)1);
+		HAL_GPIO_WritePin(BOARD_MOTOR_DEBUG_PORT, BOARD_MOTOR_DEBUG_PIN, (GPIO_PinState)0);
 
 		if(
 				//objectHandle->analog.GetConversionDoneFlag() &&

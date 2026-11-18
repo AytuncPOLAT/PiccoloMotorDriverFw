@@ -8,7 +8,7 @@ Compact firmware for the Piccolo motor driver platform — STM32H7-based motor c
 - GUI: `PiccoloGui/` — desktop interface for monitoring and control.
 
 ## Quickstart (Linux)
-Prerequisites: ARM toolchain (gcc-arm-none-eabi), CMake, build tools.
+Prerequisites: CMake 3.22 or newer, Ninja, and the ARM toolchain (gcc-arm-none-eabi).
 
 1. Configure & build (using CMake presets):
 
@@ -24,12 +24,15 @@ cmake --build --preset Release
 ./flash.sh
 ```
 
-For a Release build explicitly targeting the DRV8316R gate driver:
+To select the Piccolo2 PCB profile explicitly:
 
 ```
-cmake --preset Release-DRV8316R
-cmake --build --preset Release-DRV8316R
+cmake --preset Release-Piccolo2
+cmake --build --preset Release-Piccolo2
 ```
+
+The build directory contains both `PiccoloMotorDriver.elf` and
+`PiccoloMotorDriver.hex`.
 
 3. Run the GUI (optional):
 
@@ -41,6 +44,9 @@ cd PiccoloGui
 Notes:
 - `flash.sh` wraps the platform-specific flashing steps; run with appropriate permissions.
 - See `CMakePresets.json` for build configuration and targets.
+- Piccolo2 uses the DRV8353S, 5 mΩ shunts, and the 47 kΩ / 1 kΩ supply divider
+  from the KiCad schematic. PiccoloZero uses the DRV8316R but cannot be built
+  until its pinout and electrical values are defined.
 
 ## Motor control startup
 Motor initialization applies the configuration loaded from flash (or the defaults
@@ -76,10 +82,28 @@ failure. Failed SPI writes do not commit configuration and disarm the motor.
 No disarm requirement is enforced for setting changes; changing strength or gain
 while driving can disturb motor control. DRV8316R configuration is not supported.
 
+## Weight-to-torque GUI (Windows)
+
+Run from the repository root with Python 3:
+
+```
+py -3 -m pip install -r scripts\requirements.txt
+py -3 scripts\weight_torque_gui.py
+```
+
+The weight sensor port defaults to COM36; choose the motor driver's port
+separately. Both baud rates default to 115200 and can be changed in the GUI.
+The sensor should send comma-separated ASCII lines; the third field is used as
+the weight in grams and may include a `g`/`grams` suffix. The slider scales grams into the
+integer torque command sent using the firmware's serial frame format. Starting
+output selects torque control but does not arm the motor. Stopping output or
+losing fresh weight data sends a zero torque command.
+
 ## Project layout
 - `AppLayer/` — application logic and control loops.
 - `HardwareLayer/` — hardware abstraction and peripheral drivers.
 - `PiccoloGui/` — host GUI and tools.
+- `scripts/` — utility scripts, including the weight-to-torque GUI.
 
 ## License
 This project is covered by the terms in the `LICENSE` file.

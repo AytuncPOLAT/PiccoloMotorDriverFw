@@ -1,4 +1,5 @@
 #include "SystemDataController.hpp"
+#include "BoardConfig/BoardConfig.h"
 #include <string.h>
 
 using namespace AppLayer;

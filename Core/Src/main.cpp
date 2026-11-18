@@ -1,6 +1,7 @@
 #define ADC_DEBUG
 
 #include "main.h"
+#include "BoardConfig/BoardConfig.h"
 #include "cmsis_os.h"
 #include "usb_device.h"
 #include "usbd_cdc_if.h"
@@ -144,73 +145,71 @@ static void MX_GPIO_Init(void)
 		{0};
 
 	/* GPIO Ports Clock Enable */
-	__HAL_RCC_GPIOE_CLK_ENABLE();
-	__HAL_RCC_GPIOB_CLK_ENABLE();
-	__HAL_RCC_GPIOA_CLK_ENABLE();
-	__HAL_RCC_GPIOD_CLK_ENABLE();
-	__HAL_RCC_GPIOC_CLK_ENABLE();
-	__HAL_RCC_GPIOH_CLK_ENABLE();
+	BOARD_ENABLE_GPIO_PORT_CLOCKS();
 
 	/*Configure GPIO pin Output Level */
-	HAL_GPIO_WritePin(GPIOE, GPIO_PIN_2, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(BOARD_STATUS_PING_PORT, BOARD_STATUS_PING_PIN, GPIO_PIN_RESET);
 
-	/*Configure GPIO pin : PE2 */
-	GPIO_InitStruct.Pin = GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_4;
 	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-	HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+	GPIO_InitStruct.Pin = BOARD_STATUS_PING_PIN;
+	HAL_GPIO_Init(BOARD_STATUS_PING_PORT, &GPIO_InitStruct);
+	GPIO_InitStruct.Pin = BOARD_STATUS_ERROR_PIN;
+	HAL_GPIO_Init(BOARD_STATUS_ERROR_PORT, &GPIO_InitStruct);
+	GPIO_InitStruct.Pin = BOARD_STATUS_HEARTBEAT_PIN;
+	HAL_GPIO_Init(BOARD_STATUS_HEARTBEAT_PORT, &GPIO_InitStruct);
 
-	// PB11: gate driver enable (DRV8353S ENABLE). Held low at boot; the DRV8353S driver raises it in Init().
-	GPIO_InitStruct.Pin = GPIO_PIN_11;
+	GPIO_InitStruct.Pin = BOARD_GATE_DRIVER_ENABLE_PIN;
 	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-	HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_SET);
+	HAL_GPIO_Init(BOARD_GATE_DRIVER_ENABLE_PORT, &GPIO_InitStruct);
+	HAL_GPIO_WritePin(BOARD_GATE_DRIVER_ENABLE_PORT, BOARD_GATE_DRIVER_ENABLE_PIN, GPIO_PIN_SET);
 
-	GPIO_InitStruct.Pin = GPIO_PIN_2;
+	GPIO_InitStruct.Pin = BOARD_GPIO_PB2_PIN;
 	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-	HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_SET);
+	HAL_GPIO_Init(BOARD_GPIO_PB2_PORT, &GPIO_InitStruct);
+	HAL_GPIO_WritePin(BOARD_GPIO_PB2_PORT, BOARD_GPIO_PB2_PIN, GPIO_PIN_SET);
 
-	GPIO_InitStruct.Pin = GPIO_PIN_9;
+	GPIO_InitStruct.Pin = BOARD_GATE_SPI_NSS_PIN;
 	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-	HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, GPIO_PIN_SET);
+	HAL_GPIO_Init(BOARD_GATE_SPI_NSS_PORT, &GPIO_InitStruct);
+	HAL_GPIO_WritePin(BOARD_GATE_SPI_NSS_PORT, BOARD_GATE_SPI_NSS_PIN, GPIO_PIN_SET);
 
-	GPIO_InitStruct.Pin = GPIO_PIN_0;
+	GPIO_InitStruct.Pin = BOARD_GATE_DRIVER_FAULT_PIN;
 	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-	HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+	HAL_GPIO_Init(BOARD_GATE_DRIVER_FAULT_PORT, &GPIO_InitStruct);
 
 	/*Configure GPIO pin : PA8 */
-	GPIO_InitStruct.Pin = GPIO_PIN_8;
+	GPIO_InitStruct.Pin = BOARD_MCO_PIN;
 	GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-	GPIO_InitStruct.Alternate = GPIO_AF0_MCO;
-	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+	GPIO_InitStruct.Alternate = BOARD_MCO_AF;
+	HAL_GPIO_Init(BOARD_MCO_PORT, &GPIO_InitStruct);
 
-	GPIO_InitStruct.Pin = GPIO_PIN_8|GPIO_PIN_9;
 	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-	HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
-	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8, GPIO_PIN_SET);
+	GPIO_InitStruct.Pin = BOARD_MOTOR_DEBUG_PIN;
+	HAL_GPIO_Init(BOARD_MOTOR_DEBUG_PORT, &GPIO_InitStruct);
+	HAL_GPIO_WritePin(BOARD_MOTOR_DEBUG_PORT, BOARD_MOTOR_DEBUG_PIN, GPIO_PIN_SET);
+	GPIO_InitStruct.Pin = BOARD_ADC_DEBUG_PIN;
+	HAL_GPIO_Init(BOARD_ADC_DEBUG_PORT, &GPIO_InitStruct);
 
-	//DRV ADC REF
-	GPIO_InitStruct.Pin = GPIO_PIN_1;
+	GPIO_InitStruct.Pin = BOARD_GPIO_PC1_PIN;
 	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-	HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-	HAL_GPIO_WritePin(GPIOC, GPIO_PIN_1, GPIO_PIN_SET);
+	HAL_GPIO_Init(BOARD_GPIO_PC1_PORT, &GPIO_InitStruct);
+	HAL_GPIO_WritePin(BOARD_GPIO_PC1_PORT, BOARD_GPIO_PC1_PIN, GPIO_PIN_SET);
 }
 
 /* MPU Configuration */

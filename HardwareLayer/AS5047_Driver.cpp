@@ -1,4 +1,5 @@
 #include "AS5047_Driver.hpp"
+#include "BoardConfig/BoardConfig.h"
 
 using namespace HardwareLayer;
 
@@ -54,32 +55,38 @@ void AS5047::Init()
 	RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
 
 	__HAL_RCC_SPI3_CLK_ENABLE();
-	__HAL_RCC_GPIOA_CLK_ENABLE();
-	__HAL_RCC_GPIOB_CLK_ENABLE();
+	BOARD_ENABLE_GPIO_PORT_CLOCKS();
 
 	PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_SPI3;
 	PeriphClkInitStruct.Spi123ClockSelection = RCC_SPI123CLKSOURCE_CLKP;
 
-    GPIO_InitStruct.Pin = GPIO_PIN_4|GPIO_PIN_3;
+    GPIO_InitStruct.Pin = BOARD_ENCODER_SPI_SCK_PIN;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    GPIO_InitStruct.Alternate = GPIO_AF6_SPI3;
-    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+    GPIO_InitStruct.Alternate = BOARD_ENCODER_SPI_SCK_AF;
+    HAL_GPIO_Init(BOARD_ENCODER_SPI_SCK_PORT, &GPIO_InitStruct);
 
-    GPIO_InitStruct.Pin = GPIO_PIN_5;
+    GPIO_InitStruct.Pin = BOARD_ENCODER_SPI_MISO_PIN;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    GPIO_InitStruct.Alternate = GPIO_AF7_SPI3;
-    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+    GPIO_InitStruct.Alternate = BOARD_ENCODER_SPI_MISO_AF;
+    HAL_GPIO_Init(BOARD_ENCODER_SPI_MISO_PORT, &GPIO_InitStruct);
 
-    GPIO_InitStruct.Pin = GPIO_PIN_4;
+    GPIO_InitStruct.Pin = BOARD_ENCODER_SPI_MOSI_PIN;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    GPIO_InitStruct.Alternate = GPIO_AF6_SPI3;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+    GPIO_InitStruct.Alternate = BOARD_ENCODER_SPI_MOSI_AF;
+    HAL_GPIO_Init(BOARD_ENCODER_SPI_MOSI_PORT, &GPIO_InitStruct);
+
+    GPIO_InitStruct.Pin = BOARD_ENCODER_SPI_NSS_PIN;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Alternate = BOARD_ENCODER_SPI_NSS_AF;
+    HAL_GPIO_Init(BOARD_ENCODER_SPI_NSS_PORT, &GPIO_InitStruct);
 
 	spiHandle.Instance = SPI3;
 	spiHandle.Init.Mode = SPI_MODE_MASTER;

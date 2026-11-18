@@ -1,4 +1,5 @@
 #include "MotorPwm.hpp"
+#include "BoardConfig/BoardConfig.h"
 #include "SystemData.hpp"
 
 using namespace HardwareLayer;
@@ -88,7 +89,7 @@ void HardwareLayer::MotorPwm::PwmIoInit()
 {
 	GPIO_InitTypeDef GPIO_InitStruct = {0};
 
-    __HAL_RCC_GPIOE_CLK_ENABLE();
+    BOARD_ENABLE_GPIO_PORT_CLOCKS();
     /**TIM1 GPIO Configuration
     PE10     ------> TIM1_CH2N
     PE11     ------> TIM1_CH2
@@ -97,13 +98,27 @@ void HardwareLayer::MotorPwm::PwmIoInit()
     PE9     ------> TIM1_CH1
     PE13     ------> TIM1_CH3
     */
-    GPIO_InitStruct.Pin = GPIO_PIN_10|GPIO_PIN_11|GPIO_PIN_8|GPIO_PIN_12
-                          |GPIO_PIN_9|GPIO_PIN_13;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    GPIO_InitStruct.Alternate = GPIO_AF1_TIM1;
-    HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+    GPIO_InitStruct.Pin = BOARD_MOTOR_PWM_CH1N_PIN;
+    GPIO_InitStruct.Alternate = BOARD_MOTOR_PWM_CH1N_AF;
+    HAL_GPIO_Init(BOARD_MOTOR_PWM_CH1N_PORT, &GPIO_InitStruct);
+    GPIO_InitStruct.Pin = BOARD_MOTOR_PWM_CH1_PIN;
+    GPIO_InitStruct.Alternate = BOARD_MOTOR_PWM_CH1_AF;
+    HAL_GPIO_Init(BOARD_MOTOR_PWM_CH1_PORT, &GPIO_InitStruct);
+    GPIO_InitStruct.Pin = BOARD_MOTOR_PWM_CH2N_PIN;
+    GPIO_InitStruct.Alternate = BOARD_MOTOR_PWM_CH2N_AF;
+    HAL_GPIO_Init(BOARD_MOTOR_PWM_CH2N_PORT, &GPIO_InitStruct);
+    GPIO_InitStruct.Pin = BOARD_MOTOR_PWM_CH2_PIN;
+    GPIO_InitStruct.Alternate = BOARD_MOTOR_PWM_CH2_AF;
+    HAL_GPIO_Init(BOARD_MOTOR_PWM_CH2_PORT, &GPIO_InitStruct);
+    GPIO_InitStruct.Pin = BOARD_MOTOR_PWM_CH3N_PIN;
+    GPIO_InitStruct.Alternate = BOARD_MOTOR_PWM_CH3N_AF;
+    HAL_GPIO_Init(BOARD_MOTOR_PWM_CH3N_PORT, &GPIO_InitStruct);
+    GPIO_InitStruct.Pin = BOARD_MOTOR_PWM_CH3_PIN;
+    GPIO_InitStruct.Alternate = BOARD_MOTOR_PWM_CH3_AF;
+    HAL_GPIO_Init(BOARD_MOTOR_PWM_CH3_PORT, &GPIO_InitStruct);
 }
 
 void MotorPwm::SetPwmChannel1Duty(uint32_t duty)

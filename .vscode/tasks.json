@@ -39,13 +39,23 @@
 			"detail": "CMake template clean task"
 		},
 		{
-			"label": "Build DRV8353S Release",
+			"label": "CMake: configure Piccolo2 Release",
+			"type": "shell",
+			"command": "cmake --preset Release-Piccolo2",
+			"group": "build",
+			"problemMatcher": [],
+			"detail": "Configure the Piccolo2 Release build directory"
+		},
+		{
+			"label": "Build Piccolo2 Release",
 			"type": "shell",
 			"command": "cmake",
 			"args": [
 				"--build",
-				"${workspaceFolder}\\build\\Release"
+				"--preset",
+				"Release-Piccolo2"
 			],
+			"dependsOn": "CMake: configure Piccolo2 Release",
 			"problemMatcher": [
 				"$gcc"
 			],

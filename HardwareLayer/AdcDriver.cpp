@@ -1,4 +1,5 @@
 #include <AdcDriver.hpp>
+#include "BoardConfig/BoardConfig.h"
 #include "cmsis_os.h"
 
 using namespace HardwareLayer;
@@ -17,7 +18,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
 	if (hadc->Instance == ADC1)
 	{
-		HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_9);
+		HAL_GPIO_TogglePin(BOARD_ADC_DEBUG_PORT, BOARD_ADC_DEBUG_PIN);
 		adcDriverPtr->isConversionDone = true;
 
 		if (gMotorControlTaskHandle != NULL)
@@ -79,7 +80,7 @@ void AdcDriver::Init()
 		//Error_Handler();
 	}
 
-	sConfig.Channel = ADC_CHANNEL_3;
+	sConfig.Channel = BOARD_ADC_PHASE_A_CHANNEL;
 	sConfig.Rank = ADC_REGULAR_RANK_1;
 	sConfig.SamplingTime = ADC_SAMPLETIME_32CYCLES_5;
 	sConfig.SingleDiff = ADC_SINGLE_ENDED;
@@ -91,7 +92,7 @@ void AdcDriver::Init()
 		//Error_Handler();
 	}
 
-	sConfig.Channel = ADC_CHANNEL_5;
+	sConfig.Channel = BOARD_ADC_PHASE_B_CHANNEL;
 	sConfig.Rank = ADC_REGULAR_RANK_2;
 	sConfig.SamplingTime = ADC_SAMPLETIME_32CYCLES_5;
 	sConfig.SingleDiff = ADC_SINGLE_ENDED;
@@ -103,7 +104,7 @@ void AdcDriver::Init()
 		//Error_Handler();
 	}
 
-	sConfig.Channel = ADC_CHANNEL_7;
+	sConfig.Channel = BOARD_ADC_PHASE_C_CHANNEL;
 	sConfig.Rank = ADC_REGULAR_RANK_3;
 	sConfig.SamplingTime = ADC_SAMPLETIME_32CYCLES_5;
 	sConfig.SingleDiff = ADC_SINGLE_ENDED;
@@ -115,7 +116,7 @@ void AdcDriver::Init()
 		//Error_Handler();
 	}
 
-	sConfig.Channel = ADC_CHANNEL_10;
+	sConfig.Channel = BOARD_ADC_EXT1_CHANNEL;
 	sConfig.Rank = ADC_REGULAR_RANK_4;
 	sConfig.SamplingTime = ADC_SAMPLETIME_32CYCLES_5;
 	sConfig.SingleDiff = ADC_SINGLE_ENDED;
@@ -139,7 +140,7 @@ void AdcDriver::Init()
 		//Error_Handler();
 	}*/
 
-	sConfig.Channel = ADC_CHANNEL_14;
+	sConfig.Channel = BOARD_ADC_BUS_VOLTAGE_CHANNEL;
 	sConfig.Rank = ADC_REGULAR_RANK_5;
 	sConfig.SamplingTime = ADC_SAMPLETIME_32CYCLES_5;
 	sConfig.SingleDiff = ADC_SINGLE_ENDED;
@@ -151,7 +152,7 @@ void AdcDriver::Init()
 		//Error_Handler();
 	}
 
-	sConfig.Channel = ADC_CHANNEL_15;
+	sConfig.Channel = BOARD_ADC_EXT0_CHANNEL;
 	sConfig.Rank = ADC_REGULAR_RANK_6;
 	sConfig.SamplingTime = ADC_SAMPLETIME_32CYCLES_5;
 	sConfig.SingleDiff = ADC_SINGLE_ENDED;
@@ -187,24 +188,22 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* hadc)
 
     __HAL_RCC_ADC12_CLK_ENABLE();
 
-    __HAL_RCC_GPIOC_CLK_ENABLE();
-    __HAL_RCC_GPIOA_CLK_ENABLE();
-    __HAL_RCC_GPIOB_CLK_ENABLE();
+    BOARD_ENABLE_GPIO_PORT_CLOCKS();
 
-    GPIO_InitStruct.Pin = GPIO_PIN_0;
     GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
-    GPIO_InitStruct.Pin = GPIO_PIN_2|GPIO_PIN_3|GPIO_PIN_6|GPIO_PIN_7;
-    GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-    GPIO_InitStruct.Pin = GPIO_PIN_1;
-    GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+    GPIO_InitStruct.Pin = BOARD_ADC_PHASE_A_PIN;
+    HAL_GPIO_Init(BOARD_ADC_PHASE_A_PORT, &GPIO_InitStruct);
+    GPIO_InitStruct.Pin = BOARD_ADC_PHASE_B_PIN;
+    HAL_GPIO_Init(BOARD_ADC_PHASE_B_PORT, &GPIO_InitStruct);
+    GPIO_InitStruct.Pin = BOARD_ADC_PHASE_C_PIN;
+    HAL_GPIO_Init(BOARD_ADC_PHASE_C_PORT, &GPIO_InitStruct);
+    GPIO_InitStruct.Pin = BOARD_ADC_BUS_VOLTAGE_PIN;
+    HAL_GPIO_Init(BOARD_ADC_BUS_VOLTAGE_PORT, &GPIO_InitStruct);
+    GPIO_InitStruct.Pin = BOARD_ADC_EXT0_PIN;
+    HAL_GPIO_Init(BOARD_ADC_EXT0_PORT, &GPIO_InitStruct);
+    GPIO_InitStruct.Pin = BOARD_ADC_EXT1_PIN;
+    HAL_GPIO_Init(BOARD_ADC_EXT1_PORT, &GPIO_InitStruct);
 
     /* ADC1 DMA Init */
     /* ADC1 Init */

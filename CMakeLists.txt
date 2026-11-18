@@ -21,6 +21,19 @@ endif()
 # Set the project name
 set(CMAKE_PROJECT_NAME PiccoloMotorDriver)
 
+# Select the PCB-specific firmware profile. PiccoloZero is intentionally
+# unavailable until its pinout and electrical values are defined.
+set(BOARD "Piccolo2" CACHE STRING "PCB profile: Piccolo2 or PiccoloZero")
+set_property(CACHE BOARD PROPERTY STRINGS Piccolo2 PiccoloZero)
+if(BOARD STREQUAL "Piccolo2")
+    set(BOARD_COMPILE_DEFINITION BOARD_PICCOLO2)
+    set(BOARD_GATE_DRIVER "DRV8353S")
+elseif(BOARD STREQUAL "PiccoloZero")
+    message(FATAL_ERROR "PiccoloZero profile is incomplete; provide its pinout and electrical values")
+else()
+    message(FATAL_ERROR "Unsupported BOARD '${BOARD}'. Select Piccolo2 or PiccoloZero.")
+endif()
+
 # Enable compile command to ease indexing with e.g. clangd
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 
@@ -84,21 +97,16 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     Core/Src
 )
 
-# Gate driver IC fitted on the board (shares SPI2): DRV8316R or DRV8353S
-set(GATE_DRIVER "DRV8316R" CACHE STRING "Gate driver IC: DRV8316R or DRV8353S")
-set_property(CACHE GATE_DRIVER PROPERTY STRINGS DRV8316R DRV8353S)
-if(NOT GATE_DRIVER MATCHES "^(DRV8316R|DRV8353S)$")
-    message(FATAL_ERROR "Unsupported GATE_DRIVER '${GATE_DRIVER}'")
-endif()
-message("Gate driver: " ${GATE_DRIVER})
+message("PCB profile: " ${BOARD})
+message("Gate driver: " ${BOARD_GATE_DRIVER})
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
-    HardwareLayer/${GATE_DRIVER}_SpiDriver.cpp
+    HardwareLayer/${BOARD_GATE_DRIVER}_SpiDriver.cpp
 )
 
 # Add project symbols (macros)
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined symbols
-    GATE_DRIVER_${GATE_DRIVER}
+    ${BOARD_COMPILE_DEFINITION}
 )
 
 # Remove wrong libob.a library dependency when using cpp files
@@ -109,4 +117,12 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
     stm32cubemx
 
     # Add user defined libraries
+)
+
+add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_OBJCOPY} -O ihex
+        $<TARGET_FILE:${CMAKE_PROJECT_NAME}>
+        ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME}.hex
+    COMMENT "Generating Intel HEX image"
+    VERBATIM
 )

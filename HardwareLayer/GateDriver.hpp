@@ -1,7 +1,9 @@
 #ifndef GATE_DRIVER_HPP
 #define GATE_DRIVER_HPP
 
-// Compile-time gate driver IC selection (board variant). Set via CMake: -DGATE_DRIVER=DRV8353S
+#include "BoardConfig/BoardConfig.h"
+
+// The selected board profile determines which gate-driver implementation is used.
 #if defined(GATE_DRIVER_DRV8353S)
 #include "DRV8353S_SpiDriver.hpp"
 namespace HardwareLayer

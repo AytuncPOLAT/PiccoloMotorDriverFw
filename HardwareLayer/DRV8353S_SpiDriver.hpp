@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include "SpiBus.hpp"
+#include "BoardConfig/BoardConfig.h"
 
 namespace HardwareLayer
 {
@@ -113,8 +114,8 @@ namespace HardwareLayer
 		};
 
 		explicit Drv8353sSpiDriver(SpiBus& spiBusRef,
-								   GPIO_TypeDef* enablePort = GPIOB,
-								   std::uint16_t enablePin = GPIO_PIN_11,
+								   GPIO_TypeDef* enablePort = BOARD_GATE_DRIVER_ENABLE_PORT,
+								   std::uint16_t enablePin = BOARD_GATE_DRIVER_ENABLE_PIN,
 								   const Config& initialConfig = DEFAULT_CONFIG);
 
 		// Initializes SPI and drives ENABLE high (device does not respond to SPI while asleep).

@@ -1,4 +1,5 @@
 #include "RS485.hpp"
+#include "BoardConfig/BoardConfig.h"
 
 using namespace HardwareLayer;
 
@@ -109,26 +110,28 @@ extern "C"
 			/* Peripheral clock enable */
 			__HAL_RCC_UART4_CLK_ENABLE();
 
-			__HAL_RCC_GPIOA_CLK_ENABLE();
-			__HAL_RCC_GPIOC_CLK_ENABLE();
+			BOARD_ENABLE_GPIO_PORT_CLOCKS();
 			/**UART4 GPIO Configuration
 			PA15(JTDI)     ------> UART4_DE
 			PC11     ------> UART4_RX
 			PC10     ------> UART4_TX
 			*/
-			GPIO_InitStruct.Pin = GPIO_PIN_15;
 			GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
 			GPIO_InitStruct.Pull = GPIO_NOPULL;
 			GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-			GPIO_InitStruct.Alternate = GPIO_AF8_UART4;
-			HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+			GPIO_InitStruct.Pin = BOARD_RS485_DE_PIN;
+			GPIO_InitStruct.Alternate = BOARD_RS485_DE_AF;
+			HAL_GPIO_Init(BOARD_RS485_DE_PORT, &GPIO_InitStruct);
 
-			GPIO_InitStruct.Pin = GPIO_PIN_11|GPIO_PIN_10;
 			GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
 			GPIO_InitStruct.Pull = GPIO_NOPULL;
 			GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-			GPIO_InitStruct.Alternate = GPIO_AF8_UART4;
-			HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+			GPIO_InitStruct.Pin = BOARD_RS485_RX_PIN;
+			GPIO_InitStruct.Alternate = BOARD_RS485_RX_AF;
+			HAL_GPIO_Init(BOARD_RS485_RX_PORT, &GPIO_InitStruct);
+			GPIO_InitStruct.Pin = BOARD_RS485_TX_PIN;
+			GPIO_InitStruct.Alternate = BOARD_RS485_TX_AF;
+			HAL_GPIO_Init(BOARD_RS485_TX_PORT, &GPIO_InitStruct);
 
 			/* UART4 DMA Init */
 			/* UART4_RX Init */

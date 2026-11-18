@@ -25,11 +25,6 @@ namespace Common
 	constexpr int16_t ADC_MID_POINT = ADC_MAX / 2U;
 	constexpr float ADC_REF_IN_MILLI_VOLTS = 3300U;
 	constexpr float MILLIVOLTS_PER_COUNT = ADC_REF_IN_MILLI_VOLTS / ADC_MAX;
-	constexpr float MILLIAMPS_PER_COUNT = MILLIVOLTS_PER_COUNT / 1.2;
-
-	constexpr float DC_BUS_SENSE_LOW_SIDE = 1000U;
-	constexpr float DC_BUS_SENSE_HIGH_SIDE = 47000U;
-	constexpr float DC_BUS_SENSE_RATIO = DC_BUS_SENSE_LOW_SIDE / (DC_BUS_SENSE_LOW_SIDE + DC_BUS_SENSE_HIGH_SIDE);
 
 	enum class INTERFACE : uint8_t
 	{

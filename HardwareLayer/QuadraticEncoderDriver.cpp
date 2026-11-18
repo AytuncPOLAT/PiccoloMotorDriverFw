@@ -1,4 +1,5 @@
 #include "QuadraticEncoderDriver.hpp"
+#include "BoardConfig/BoardConfig.h"
 #include "stm32h7xx_hal.h"
 
 using namespace HardwareLayer;
@@ -16,17 +17,20 @@ void QuadraticEncoderDriver::Init()
 
 	GPIO_InitTypeDef GPIO_InitStruct = {0};
 	__HAL_RCC_TIM5_CLK_ENABLE();
-	__HAL_RCC_GPIOA_CLK_ENABLE();
+	BOARD_ENABLE_GPIO_PORT_CLOCKS();
 	/**TIM5 GPIO Configuration
 	PA0     ------> TIM5_CH1
 	PA1     ------> TIM5_CH2
 	*/
-	GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1;
 	GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-	GPIO_InitStruct.Alternate = GPIO_AF2_TIM5;
-	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+	GPIO_InitStruct.Pin = BOARD_QUADRATURE_ENCODER_CH1_PIN;
+	GPIO_InitStruct.Alternate = BOARD_QUADRATURE_ENCODER_CH1_AF;
+	HAL_GPIO_Init(BOARD_QUADRATURE_ENCODER_CH1_PORT, &GPIO_InitStruct);
+	GPIO_InitStruct.Pin = BOARD_QUADRATURE_ENCODER_CH2_PIN;
+	GPIO_InitStruct.Alternate = BOARD_QUADRATURE_ENCODER_CH2_AF;
+	HAL_GPIO_Init(BOARD_QUADRATURE_ENCODER_CH2_PORT, &GPIO_InitStruct);
 
 	htim5.Instance = TIM5;
 	htim5.Init.Prescaler = 0;

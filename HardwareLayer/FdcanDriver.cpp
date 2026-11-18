@@ -1,4 +1,5 @@
 #include "FdcanDriver.hpp"
+#include "BoardConfig/BoardConfig.h"
 
 using namespace HardwareLayer;
 
@@ -49,18 +50,21 @@ void FdCanDriver::Init()
     }
 
     __HAL_RCC_FDCAN_CLK_ENABLE();
-    __HAL_RCC_GPIOD_CLK_ENABLE();
+    BOARD_ENABLE_GPIO_PORT_CLOCKS();
 
     /**FDCAN1 GPIO Configuration
     PD0     ------> FDCAN1_RX
     PD1     ------> FDCAN1_TX
     */
-    GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    GPIO_InitStruct.Alternate = GPIO_AF9_FDCAN1;
-    HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+    GPIO_InitStruct.Pin = BOARD_FDCAN_RX_PIN;
+    GPIO_InitStruct.Alternate = BOARD_FDCAN_RX_AF;
+    HAL_GPIO_Init(BOARD_FDCAN_RX_PORT, &GPIO_InitStruct);
+    GPIO_InitStruct.Pin = BOARD_FDCAN_TX_PIN;
+    GPIO_InitStruct.Alternate = BOARD_FDCAN_TX_AF;
+    HAL_GPIO_Init(BOARD_FDCAN_TX_PORT, &GPIO_InitStruct);
 
     hfdcan.Instance = FDCAN1;
     hfdcan.Init.FrameFormat = FDCAN_FRAME_CLASSIC;
